@@ -2,342 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles */
-:root {
-    --casino-bg: #050505;
-    --casino-card: #111111;
-    --casino-border: #1a1a1a;
-    --casino-cyan: #00f2ff;
-    --casino-purple: #bc13fe;
-    --casino-gold: #ffd700;
-    --casino-green: #00ff88;
-    --casino-red: #ff3366;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/* Scrollbar styling */
+html,
+body,
+#root {
+    height: 100%;
+    background: #0f0f1a;
+    color: #fff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--casino-card);
-    border-radius: 3px;
+    background: #1a1a2e;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--casino-cyan);
+    background: #3a3a5c;
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #00d4e0;
+    background: #4a4a6c;
 }
 
-/* Custom utilities */
-@layer utilities {
-    .text-glow-cyan {
-        text-shadow: 0 0 10px var(--casino-cyan), 0 0 20px var(--casino-cyan);
-    }
-
-    .text-glow-purple {
-        text-shadow: 0 0 10px var(--casino-purple), 0 0 20px var(--casino-purple);
-    }
-
-    .text-glow-gold {
-        text-shadow: 0 0 10px var(--casino-gold), 0 0 20px var(--casino-gold);
-    }
-
-    .text-glow-green {
-        text-shadow: 0 0 10px var(--casino-green), 0 0 20px var(--casino-green);
-    }
-
-    .text-glow-red {
-        text-shadow: 0 0 10px var(--casino-red), 0 0 20px var(--casino-red);
-    }
-
-    .bg-glass {
-        background: rgba(17, 17, 17, 0.8);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
-
-    .bg-glass-dark {
-        background: rgba(5, 5, 5, 0.9);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-    }
-
-    .border-glow-cyan {
-        border-color: var(--casino-cyan);
-        box-shadow: 0 0 10px var(--casino-cyan), inset 0 0 10px rgba(0, 242, 255, 0.1);
-    }
-
-    .border-glow-purple {
-        border-color: var(--casino-purple);
-        box-shadow: 0 0 10px var(--casino-purple), inset 0 0 10px rgba(188, 19, 254, 0.1);
-    }
-
-    .border-glow-gold {
-        border-color: var(--casino-gold);
-        box-shadow: 0 0 10px var(--casino-gold), inset 0 0 10px rgba(255, 215, 0, 0.1);
-    }
-
-    .hover-glow {
-        transition: all 0.3s ease;
-    }
-
-    .hover-glow:hover {
-        box-shadow: 0 0 20px currentColor;
-        transform: translateY(-2px);
-    }
+/* Range inputs */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
 }
 
-/* Neon button styles */
-.btn-neon {
-    @apply relative px-6 py-3 font-bold uppercase tracking-wider;
-    @apply border-2 rounded-lg transition-all duration-300;
-    @apply hover:scale-105 active:scale-95;
+input[type="range"]::-webkit-slider-track {
+    background: #1a1a2e;
+    height: 8px;
+    border-radius: 4px;
 }
 
-.btn-neon-cyan {
-    @apply btn-neon text-casino-cyan border-casino-cyan;
-    @apply hover:bg-casino-cyan hover:text-casino-bg;
-    @apply hover:shadow-neon-cyan;
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #00d4ff;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    margin-top: -6px;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
 
-.btn-neon-purple {
-    @apply btn-neon text-casino-purple border-casino-purple;
-    @apply hover:bg-casino-purple hover:text-casino-bg;
-    @apply hover:shadow-neon-purple;
+input[type="range"]::-moz-range-track {
+    background: #1a1a2e;
+    height: 8px;
+    border-radius: 4px;
 }
 
-.btn-neon-gold {
-    @apply btn-neon text-casino-gold border-casino-gold;
-    @apply hover:bg-casino-gold hover:text-casino-bg;
-    @apply hover:shadow-neon-gold;
+input[type="range"]::-moz-range-thumb {
+    background: #00d4ff;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
 
-.btn-neon-green {
-    @apply btn-neon text-casino-green border-casino-green;
-    @apply hover:bg-casino-green hover:text-casino-bg;
-    @apply hover:shadow-neon-green;
-}
-
-.btn-neon-red {
-    @apply btn-neon text-casino-red border-casino-red;
-    @apply hover:bg-casino-red hover:text-casino-bg;
-    @apply hover:shadow-neon-red;
-}
-
-/* Card flip animation */
-.card-flip {
-    perspective: 1000px;
-}
-
-.card-flip-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
-}
-
-.card-flip.flipped .card-flip-inner {
-    transform: rotateY(180deg);
-}
-
-.card-flip-front,
-.card-flip-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-}
-
-.card-flip-back {
-    transform: rotateY(180deg);
-}
-
-/* Coin flip animation */
-.coin-flip {
-    animation: coinFlip 1s ease-out forwards;
-}
-
-@keyframes coinFlip {
-    0% {
-        transform: rotateX(0deg);
-    }
-
-    100% {
-        transform: rotateX(1800deg);
-    }
-}
-
-/* Slot reel spin */
-.slot-reel {
-    overflow: hidden;
-}
-
-.slot-reel-inner {
-    transition: transform 2s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-}
-
-/* Plinko ball */
-.plinko-ball {
-    @apply rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600;
-    box-shadow:
-        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
-        inset 2px 2px 4px rgba(255, 255, 255, 0.5),
-        0 0 10px var(--casino-gold);
-}
-
-/* Mine tile */
-.mine-tile {
-    @apply relative rounded-lg transition-all duration-200;
-    @apply hover:scale-105 hover:z-10;
-    background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
-}
-
-.mine-tile-revealed {
-    animation: tileReveal 0.3s ease-out;
-}
-
-@keyframes tileReveal {
-    0% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-
-    50% {
-        transform: scale(1.1);
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* Crash rocket */
-.crash-rocket {
-    transition: transform 0.1s linear;
-    filter: drop-shadow(0 0 10px var(--casino-cyan));
-}
-
-/* Roulette wheel */
-.roulette-wheel {
-    background: conic-gradient(from 0deg,
-            #00ff00 0deg 9.73deg,
-            #ff0000 9.73deg 19.46deg,
-            #000000 19.46deg 29.19deg,
-            #ff0000 29.19deg 38.92deg,
-            #000000 38.92deg 48.65deg,
-            #ff0000 48.65deg 58.38deg,
-            #000000 58.38deg 68.11deg,
-            #ff0000 68.11deg 77.84deg,
-            #000000 77.84deg 87.57deg,
-            #ff0000 87.57deg 97.3deg,
-            #000000 97.3deg 107.03deg,
-            #000000 107.03deg 116.76deg,
-            #ff0000 116.76deg 126.49deg,
-            #000000 126.49deg 136.22deg,
-            #ff0000 136.22deg 145.95deg,
-            #000000 145.95deg 155.68deg,
-            #ff0000 155.68deg 165.41deg,
-            #000000 165.41deg 175.14deg,
-            #ff0000 175.14deg 184.87deg,
-            #ff0000 184.87deg 194.6deg,
-            #000000 194.6deg 204.33deg,
-            #ff0000 204.33deg 214.06deg,
-            #000000 214.06deg 223.79deg,
-            #ff0000 223.79deg 233.52deg,
-            #000000 233.52deg 243.25deg,
-            #ff0000 243.25deg 252.98deg,
-            #000000 252.98deg 262.71deg,
-            #ff0000 262.71deg 272.44deg,
-            #000000 272.44deg 282.17deg,
-            #000000 282.17deg 291.9deg,
-            #ff0000 291.9deg 301.63deg,
-            #000000 301.63deg 311.36deg,
-            #ff0000 311.36deg 321.09deg,
-            #000000 321.09deg 330.82deg,
-            #ff0000 330.82deg 340.55deg,
-            #000000 340.55deg 350.28deg,
-            #ff0000 350.28deg 360deg);
-    border: 8px solid #1a1a1a;
-    box-shadow:
-        0 0 0 4px #333,
-        0 0 0 8px #1a1a1a,
-        0 0 30px rgba(0, 0, 0, 0.5);
-}
-
-/* Screen shake animation */
-.screen-shake {
-    animation: screenShake 0.5s ease-in-out;
-}
-
-@keyframes screenShake {
-
-    0%,
-    100% {
-        transform: translate(0, 0);
-    }
-
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: translate(-5px, 0);
-    }
-
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: translate(5px, 0);
-    }
-}
-
-/* Win celebration particles */
-.particle {
-    position: absolute;
-    pointer-events: none;
-    animation: particleFall 1s ease-out forwards;
-}
-
-@keyframes particleFall {
-    0% {
-        transform: translateY(0) rotate(0deg);
-        opacity: 1;
-    }
-
-    100% {
-        transform: translateY(100px) rotate(720deg);
-        opacity: 0;
-    }
-}
-
-/* Tower climbing animation */
-.tower-climb {
-    animation: towerClimb 0.5s ease-out;
-}
-
-@keyframes towerClimb {
-    0% {
-        transform: translateY(50px);
-        opacity: 0;
-    }
-
-    100% {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Input styling */
+/* Number inputs */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
@@ -348,91 +87,80 @@ input[type="number"] {
     -moz-appearance: textfield;
 }
 
-input[type="range"] {
-    -webkit-appearance: none;
-    @apply w-full h-2 rounded-lg bg-casino-border cursor-pointer;
-}
+/* Animations */
+@keyframes pulse-glow {
 
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    @apply w-4 h-4 rounded-full bg-casino-cyan cursor-pointer;
-    @apply shadow-neon-cyan;
-}
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
 
-input[type="range"]::-moz-range-thumb {
-    @apply w-4 h-4 rounded-full bg-casino-cyan cursor-pointer border-none;
-    box-shadow: 0 0 10px var(--casino-cyan);
-}
-
-/* Tooltip */
-.tooltip {
-    @apply absolute z-50 px-3 py-2 text-sm rounded-lg;
-    @apply bg-casino-card border border-casino-border;
-    @apply opacity-0 invisible transition-all duration-200;
-    @apply -translate-y-2;
-}
-
-.tooltip-trigger:hover .tooltip {
-    @apply opacity-100 visible translate-y-0;
-}
-
-/* Loading spinner */
-.spinner {
-    @apply w-8 h-8 border-4 border-casino-border rounded-full;
-    border-top-color: var(--casino-cyan);
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
+    50% {
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
     }
 }
 
-/* Number counter animation */
-.number-roll {
-    display: inline-block;
-    transition: transform 0.3s ease-out;
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
-/* Game card hover effects */
-.game-card {
-    @apply relative overflow-hidden rounded-xl;
-    @apply bg-casino-card border border-casino-border;
-    @apply transition-all duration-300;
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
 }
 
-.game-card::before {
-    content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg,
-            rgba(0, 242, 255, 0.1) 0%,
-            transparent 50%,
-            rgba(188, 19, 254, 0.1) 100%);
+.animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.game-card:hover {
-    @apply border-casino-cyan shadow-neon-cyan;
-    transform: translateY(-4px);
+.animate-float {
+    animation: float 3s ease-in-out infinite;
 }
 
-.game-card:hover::before {
-    @apply opacity-100;
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
 }
 
-/* Stats panel */
-.stat-value {
-    @apply font-display font-bold text-2xl;
-    background: linear-gradient(135deg, var(--casino-cyan), var(--casino-purple));
+/* Glass effect */
+.glass {
+    background: rgba(26, 26, 46, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+    background: linear-gradient(135deg, #00d4ff, #7b2cbf);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-.stat-positive {
-    @apply text-casino-green;
+/* Card hover effect */
+.card-hover {
+    transition: all 0.3s ease;
 }
 
-.stat-negative {
-    @apply text-casino-red;
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }

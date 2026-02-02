@@ -1,447 +1,184 @@
-/**
- * Casino Context - Global State Management
- * Complete rewrite with persistence, profile export/import, and improved features
- */
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
-import { calculateStats } from '../utils/gameUtils';
-import { generateSeed, hashServerSeed } from '../utils/provablyFair';
+import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 
-// Encryption/decryption helpers
-const encryptData = (data, password = 'casino-secret-key') => {
-  const str = JSON.stringify(data);
-  const encoded = btoa(unescape(encodeURIComponent(str)));
-  let encrypted = '';
-  for (let i = 0; i < encoded.length; i++) {
-    encrypted += String.fromCharCode(encoded.charCodeAt(i) ^ password.charCodeAt(i % password.length));
-  }
-  return btoa(encrypted);
+const generateSeed = (length = 16) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 };
 
-const decryptData = (encrypted, password = 'casino-secret-key') => {
-  try {
-    const decoded = atob(encrypted);
-    let decrypted = '';
-    for (let i = 0; i < decoded.length; i++) {
-      decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ password.charCodeAt(i % password.length));
-    }
-    const str = decodeURIComponent(escape(atob(decrypted)));
-    return JSON.parse(str);
-  } catch {
-    return null;
-  }
-};
-
-// Initial state
 const initialState = {
-  balance: 500.00,
-  username: 'Player',
-
-  clientSeed: generateSeed(16),
-  serverSeed: generateSeed(32),
-  serverSeedHash: '',
-  nonce: 0,
-
-  betHistory: [],
-
+  balance: 1000,
+  currentGame: null,
+  sidebarOpen: true,
+  modalOpen: null,
+  history: [],
   stats: {
     totalBets: 0,
     totalWagered: 0,
     totalWon: 0,
     netProfit: 0,
-    winRate: 0,
     biggestWin: 0,
-    biggestLoss: 0,
-    currentStreak: 0,
-    gamesPlayed: {}
+    wins: 0,
+    losses: 0
   },
-
   settings: {
     soundEnabled: true,
-    musicEnabled: false,
-    soundVolume: 0.7,
-    musicVolume: 0.3,
-    animations: true,
-    fastMode: false,
-    showStats: true,
-    currency: 'USD',
-    hotkeys: true,
-    instantBet: false,
-    confirmBets: false,
-    autoPlaySpeed: 1000,
-    stopOnBigWin: false,
-    bigWinThreshold: 100
+    animations: true
   },
-
-  currentGame: null,
-  sidebarOpen: true,
-  modalOpen: null,
-
-  autoBet: {
-    active: false,
-    betsRemaining: 0,
-    totalBets: 0,
-    stopOnWin: false,
-    stopOnLoss: false,
-    stopOnProfit: null,
-    stopOnLossAmount: null,
-    onWinAction: 'reset',
-    onWinMultiplier: 2,
-    onLossAction: 'reset',
-    onLossMultiplier: 2,
-    baseBet: 0,
-    currentBet: 0,
-    initialBalance: 0,
-    profit: 0
-  },
-
-  sessionId: Date.now(),
-  hotGames: [],
-  multiplayers: []
+  clientSeed: generateSeed(16),
+  nonce: 0
 };
 
-// Action types
-const ActionTypes = {
+const ACTIONS = {
   SET_BALANCE: 'SET_BALANCE',
-  ADD_BALANCE: 'ADD_BALANCE',
-  SUBTRACT_BALANCE: 'SUBTRACT_BALANCE',
   PLACE_BET: 'PLACE_BET',
   ADD_WIN: 'ADD_WIN',
-  SET_CLIENT_SEED: 'SET_CLIENT_SEED',
-  ROTATE_SERVER_SEED: 'ROTATE_SERVER_SEED',
-  INCREMENT_NONCE: 'INCREMENT_NONCE',
-  UPDATE_SETTINGS: 'UPDATE_SETTINGS',
-  SET_CURRENT_GAME: 'SET_CURRENT_GAME',
+  SET_GAME: 'SET_GAME',
   TOGGLE_SIDEBAR: 'TOGGLE_SIDEBAR',
   SET_MODAL: 'SET_MODAL',
-  START_AUTO_BET: 'START_AUTO_BET',
-  STOP_AUTO_BET: 'STOP_AUTO_BET',
-  UPDATE_AUTO_BET: 'UPDATE_AUTO_BET',
+  UPDATE_SETTINGS: 'UPDATE_SETTINGS',
   RESET_STATS: 'RESET_STATS',
-  LOAD_STATE: 'LOAD_STATE',
-  SET_USERNAME: 'SET_USERNAME',
-  RESET_SESSION: 'RESET_SESSION',
-  SET_HOT_GAMES: 'SET_HOT_GAMES',
-  UPDATE_MULTIPLAYERS: 'UPDATE_MULTIPLAYERS'
+  LOAD_STATE: 'LOAD_STATE'
 };
 
-// Reducer
-const casinoReducer = (state, action) => {
+const reducer = (state, action) => {
   switch (action.type) {
-    case ActionTypes.SET_BALANCE:
+    case ACTIONS.SET_BALANCE:
       return { ...state, balance: Math.max(0, action.payload) };
 
-    case ActionTypes.ADD_BALANCE:
-      return { ...state, balance: state.balance + action.payload };
-
-    case ActionTypes.SUBTRACT_BALANCE:
-      return { ...state, balance: Math.max(0, state.balance - action.payload) };
-
-    case ActionTypes.PLACE_BET: {
-      const newHistory = [...state.betHistory, action.payload].slice(-200);
-      const newStats = { ...state.stats };
-      if (action.payload.game) {
-        newStats.gamesPlayed[action.payload.game] = (newStats.gamesPlayed[action.payload.game] || 0) + 1;
-      }
+    case ACTIONS.PLACE_BET: {
+      const { amount } = action.payload;
       return {
         ...state,
-        balance: Math.max(0, state.balance - action.payload.amount),
-        betHistory: newHistory,
-        stats: { ...calculateStats(newHistory), gamesPlayed: newStats.gamesPlayed },
-        nonce: state.nonce + 1
-      };
-    }
-
-    case ActionTypes.ADD_WIN: {
-      const updatedHistory = state.betHistory.map((bet, index) =>
-        index === state.betHistory.length - 1
-          ? { ...bet, win: true, payout: action.payload.amount }
-          : bet
-      );
-
-      let autoBetUpdate = {};
-      if (state.autoBet.active) {
-        const profit = action.payload.amount - state.autoBet.currentBet;
-        autoBetUpdate = {
-          autoBet: {
-            ...state.autoBet,
-            profit: state.autoBet.profit + profit
-          }
-        };
-      }
-
-      return {
-        ...state,
-        balance: state.balance + action.payload.amount,
-        betHistory: updatedHistory,
-        stats: { ...calculateStats(updatedHistory), gamesPlayed: state.stats.gamesPlayed },
-        ...autoBetUpdate
-      };
-    }
-
-    case ActionTypes.SET_CLIENT_SEED:
-      return { ...state, clientSeed: action.payload };
-
-    case ActionTypes.ROTATE_SERVER_SEED: {
-      const newServerSeed = generateSeed(32);
-      return {
-        ...state,
-        serverSeed: newServerSeed,
-        serverSeedHash: hashServerSeed(newServerSeed),
-        nonce: 0
-      };
-    }
-
-    case ActionTypes.INCREMENT_NONCE:
-      return { ...state, nonce: state.nonce + 1 };
-
-    case ActionTypes.UPDATE_SETTINGS:
-      return { ...state, settings: { ...state.settings, ...action.payload } };
-
-    case ActionTypes.SET_CURRENT_GAME:
-      return { ...state, currentGame: action.payload };
-
-    case ActionTypes.TOGGLE_SIDEBAR:
-      return { ...state, sidebarOpen: action.payload !== undefined ? action.payload : !state.sidebarOpen };
-
-    case ActionTypes.SET_MODAL:
-      return { ...state, modalOpen: action.payload };
-
-    case ActionTypes.START_AUTO_BET:
-      return {
-        ...state,
-        autoBet: {
-          ...state.autoBet,
-          ...action.payload,
-          active: true,
-          initialBalance: state.balance,
-          profit: 0
+        balance: Math.max(0, state.balance - amount),
+        nonce: state.nonce + 1,
+        stats: {
+          ...state.stats,
+          totalBets: state.stats.totalBets + 1,
+          totalWagered: state.stats.totalWagered + amount
         }
       };
+    }
 
-    case ActionTypes.STOP_AUTO_BET:
-      return { ...state, autoBet: { ...state.autoBet, active: false, betsRemaining: 0 } };
+    case ACTIONS.ADD_WIN: {
+      const { amount, bet, game, multiplier } = action.payload;
+      const profit = amount - bet;
+      const isWin = amount > 0;
 
-    case ActionTypes.UPDATE_AUTO_BET:
-      return { ...state, autoBet: { ...state.autoBet, ...action.payload } };
-
-    case ActionTypes.RESET_STATS:
-      return {
-        ...state,
-        betHistory: [],
-        stats: { ...initialState.stats }
+      const entry = {
+        game, bet, multiplier, payout: amount, profit, win: isWin, timestamp: Date.now()
       };
 
-    case ActionTypes.LOAD_STATE:
       return {
         ...state,
-        ...action.payload,
-        sessionId: Date.now(),
-        autoBet: initialState.autoBet
+        balance: state.balance + amount,
+        history: [entry, ...state.history].slice(0, 100),
+        stats: {
+          ...state.stats,
+          totalWon: state.stats.totalWon + amount,
+          netProfit: state.stats.netProfit + profit,
+          biggestWin: Math.max(state.stats.biggestWin, profit),
+          wins: state.stats.wins + (isWin ? 1 : 0),
+          losses: state.stats.losses + (isWin ? 0 : 1)
+        }
       };
+    }
 
-    case ActionTypes.SET_USERNAME:
-      return { ...state, username: action.payload };
+    case ACTIONS.SET_GAME:
+      return { ...state, currentGame: action.payload };
 
-    case ActionTypes.RESET_SESSION:
-      return {
-        ...state,
-        sessionId: Date.now(),
-        hotGames: action.payload.hotGames || [],
-        multiplayers: []
-      };
+    case ACTIONS.TOGGLE_SIDEBAR:
+      return { ...state, sidebarOpen: action.payload ?? !state.sidebarOpen };
 
-    case ActionTypes.SET_HOT_GAMES:
-      return { ...state, hotGames: action.payload };
+    case ACTIONS.SET_MODAL:
+      return { ...state, modalOpen: action.payload };
 
-    case ActionTypes.UPDATE_MULTIPLAYERS:
-      return { ...state, multiplayers: action.payload };
+    case ACTIONS.UPDATE_SETTINGS:
+      return { ...state, settings: { ...state.settings, ...action.payload } };
+
+    case ACTIONS.RESET_STATS:
+      return { ...state, stats: initialState.stats, history: [] };
+
+    case ACTIONS.LOAD_STATE:
+      return { ...state, ...action.payload };
 
     default:
       return state;
   }
 };
 
-// Create context
 const CasinoContext = createContext(null);
 
-// Provider component
 export const CasinoProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(casinoReducer, initialState);
-  const saveTimeoutRef = useRef(null);
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    if (!state.serverSeedHash) {
-      dispatch({ type: ActionTypes.ROTATE_SERVER_SEED });
-    }
-
-    const allGames = ['crash', 'mines', 'dice', 'plinko', 'limbo', 'roulette', 'blackjack', 'coinflip', 'tower', 'keno', 'slots'];
-    const shuffled = [...allGames].sort(() => Math.random() - 0.5);
-    dispatch({
-      type: ActionTypes.RESET_SESSION,
-      payload: { hotGames: shuffled.slice(0, 4) }
-    });
-  }, []);
-
-  useEffect(() => {
-    const savedState = localStorage.getItem('casinoState');
-    if (savedState) {
+    const saved = localStorage.getItem('casino_state');
+    if (saved) {
       try {
-        const parsed = JSON.parse(savedState);
-        if (parsed && typeof parsed.balance === 'number' && parsed.balance >= 0) {
-          dispatch({ type: ActionTypes.LOAD_STATE, payload: parsed });
-        }
+        const parsed = JSON.parse(saved);
+        dispatch({ type: ACTIONS.LOAD_STATE, payload: parsed });
       } catch (e) {
-        console.error('Failed to load saved state:', e);
+        console.error('Failed to load state:', e);
       }
     }
   }, []);
 
   useEffect(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      const stateToSave = {
-        balance: state.balance,
-        username: state.username,
-        clientSeed: state.clientSeed,
-        serverSeed: state.serverSeed,
-        serverSeedHash: state.serverSeedHash,
-        nonce: state.nonce,
-        betHistory: state.betHistory.slice(-200),
-        stats: state.stats,
-        settings: state.settings
-      };
-      localStorage.setItem('casinoState', JSON.stringify(stateToSave));
-    }, 500);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+    const toSave = {
+      balance: state.balance,
+      stats: state.stats,
+      history: state.history.slice(0, 50),
+      settings: state.settings
     };
-  }, [state.balance, state.betHistory, state.settings, state.username, state.nonce]);
+    localStorage.setItem('casino_state', JSON.stringify(toSave));
+  }, [state.balance, state.stats, state.history, state.settings]);
 
-  const actions = {
-    setBalance: useCallback((amount) => {
-      dispatch({ type: ActionTypes.SET_BALANCE, payload: amount });
-    }, []),
+  const placeBet = useCallback((amount, game) => {
+    if (amount > state.balance || amount <= 0) return false;
+    dispatch({ type: ACTIONS.PLACE_BET, payload: { amount, game } });
+    return true;
+  }, [state.balance]);
 
-    addBalance: useCallback((amount) => {
-      dispatch({ type: ActionTypes.ADD_BALANCE, payload: amount });
-    }, []),
+  const addWin = useCallback((amount, bet, game, multiplier) => {
+    dispatch({ type: ACTIONS.ADD_WIN, payload: { amount, bet, game, multiplier } });
+  }, []);
 
-    subtractBalance: useCallback((amount) => {
-      dispatch({ type: ActionTypes.SUBTRACT_BALANCE, payload: amount });
-    }, []),
+  const setCurrentGame = useCallback((game) => {
+    dispatch({ type: ACTIONS.SET_GAME, payload: game });
+  }, []);
 
-    placeBet: useCallback((bet) => {
-      dispatch({ type: ActionTypes.PLACE_BET, payload: bet });
-    }, []),
+  const toggleSidebar = useCallback((value) => {
+    dispatch({ type: ACTIONS.TOGGLE_SIDEBAR, payload: value });
+  }, []);
 
-    addWin: useCallback((amount, skipBalanceUpdate = false) => {
-      dispatch({ type: ActionTypes.ADD_WIN, payload: { amount, skipBalanceUpdate } });
-    }, []),
+  const setModal = useCallback((modal) => {
+    dispatch({ type: ACTIONS.SET_MODAL, payload: modal });
+  }, []);
 
-    setClientSeed: useCallback((seed) => {
-      dispatch({ type: ActionTypes.SET_CLIENT_SEED, payload: seed });
-    }, []),
+  const updateSettings = useCallback((settings) => {
+    dispatch({ type: ACTIONS.UPDATE_SETTINGS, payload: settings });
+  }, []);
 
-    rotateServerSeed: useCallback(() => {
-      dispatch({ type: ActionTypes.ROTATE_SERVER_SEED });
-    }, []),
+  const resetStats = useCallback(() => {
+    dispatch({ type: ACTIONS.RESET_STATS });
+  }, []);
 
-    incrementNonce: useCallback(() => {
-      dispatch({ type: ActionTypes.INCREMENT_NONCE });
-    }, []),
-
-    updateSettings: useCallback((settings) => {
-      dispatch({ type: ActionTypes.UPDATE_SETTINGS, payload: settings });
-    }, []),
-
-    setCurrentGame: useCallback((game) => {
-      dispatch({ type: ActionTypes.SET_CURRENT_GAME, payload: game });
-    }, []),
-
-    toggleSidebar: useCallback((value) => {
-      dispatch({ type: ActionTypes.TOGGLE_SIDEBAR, payload: value });
-    }, []),
-
-    setModal: useCallback((modal) => {
-      dispatch({ type: ActionTypes.SET_MODAL, payload: modal });
-    }, []),
-
-    startAutoBet: useCallback((config) => {
-      dispatch({ type: ActionTypes.START_AUTO_BET, payload: config });
-    }, []),
-
-    stopAutoBet: useCallback(() => {
-      dispatch({ type: ActionTypes.STOP_AUTO_BET });
-    }, []),
-
-    updateAutoBet: useCallback((updates) => {
-      dispatch({ type: ActionTypes.UPDATE_AUTO_BET, payload: updates });
-    }, []),
-
-    resetStats: useCallback(() => {
-      dispatch({ type: ActionTypes.RESET_STATS });
-    }, []),
-
-    setUsername: useCallback((username) => {
-      dispatch({ type: ActionTypes.SET_USERNAME, payload: username });
-    }, []),
-
-    exportProgress: useCallback(() => {
-      const exportData = {
-        version: 1,
-        timestamp: Date.now(),
-        balance: state.balance,
-        username: state.username,
-        clientSeed: state.clientSeed,
-        nonce: state.nonce,
-        betHistory: state.betHistory,
-        stats: state.stats,
-        settings: state.settings
-      };
-
-      const encrypted = encryptData(exportData);
-      const blob = new Blob([encrypted], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `casino-progress-${state.username}-${Date.now()}.save`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }, [state]),
-
-    importProgress: useCallback((fileContent) => {
-      const decrypted = decryptData(fileContent);
-      if (decrypted && decrypted.version === 1) {
-        dispatch({
-          type: ActionTypes.LOAD_STATE,
-          payload: {
-            balance: decrypted.balance,
-            username: decrypted.username,
-            clientSeed: decrypted.clientSeed,
-            nonce: decrypted.nonce,
-            betHistory: decrypted.betHistory || [],
-            stats: decrypted.stats || initialState.stats,
-            settings: { ...initialState.settings, ...decrypted.settings }
-          }
-        });
-        return true;
-      }
-      return false;
-    }, []),
-
-    addFreeCredits: useCallback((amount = 1000) => {
-      dispatch({ type: ActionTypes.ADD_BALANCE, payload: amount });
-    }, [])
-  };
+  const addFreeCredits = useCallback((amount = 1000) => {
+    dispatch({ type: ACTIONS.SET_BALANCE, payload: state.balance + amount });
+  }, [state.balance]);
 
   return (
-    <CasinoContext.Provider value={{ state, ...actions }}>
+    <CasinoContext.Provider value={{
+      state,
+      placeBet,
+      addWin,
+      setCurrentGame,
+      toggleSidebar,
+      setModal,
+      updateSettings,
+      resetStats,
+      addFreeCredits
+    }}>
       {children}
     </CasinoContext.Provider>
   );
@@ -449,8 +186,6 @@ export const CasinoProvider = ({ children }) => {
 
 export const useCasino = () => {
   const context = useContext(CasinoContext);
-  if (!context) {
-    throw new Error('useCasino must be used within a CasinoProvider');
-  }
+  if (!context) throw new Error('useCasino must be used within CasinoProvider');
   return context;
 };

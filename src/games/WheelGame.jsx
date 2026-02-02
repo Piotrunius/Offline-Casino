@@ -1,208 +1,165 @@
-import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
-import { playSound } from '../utils/audioEngine';
 
 const SEGMENTS = [
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 2, color: '#22c55e', label: '2x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 3, color: '#eab308', label: '3x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 2, color: '#22c55e', label: '2x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 5, color: '#a855f7', label: '5x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 2, color: '#22c55e', label: '2x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 3, color: '#eab308', label: '3x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 2, color: '#22c55e', label: '2x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 10, color: '#ef4444', label: '10x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 2, color: '#22c55e', label: '2x' },
-  { value: 1, color: '#3b82f6', label: '1x' },
-  { value: 50, color: '#06b6d4', label: '50x' }
+  { multiplier: 0, color: '#1a1a2e', label: '0x' },
+  { multiplier: 1.2, color: '#3b82f6', label: '1.2x' },
+  { multiplier: 1.5, color: '#22c55e', label: '1.5x' },
+  { multiplier: 0, color: '#1a1a2e', label: '0x' },
+  { multiplier: 2, color: '#eab308', label: '2x' },
+  { multiplier: 1.2, color: '#3b82f6', label: '1.2x' },
+  { multiplier: 0, color: '#1a1a2e', label: '0x' },
+  { multiplier: 1.5, color: '#22c55e', label: '1.5x' },
+  { multiplier: 3, color: '#f97316', label: '3x' },
+  { multiplier: 1.2, color: '#3b82f6', label: '1.2x' },
+  { multiplier: 0, color: '#1a1a2e', label: '0x' },
+  { multiplier: 1.5, color: '#22c55e', label: '1.5x' },
+  { multiplier: 5, color: '#ef4444', label: '5x' },
+  { multiplier: 1.2, color: '#3b82f6', label: '1.2x' },
+  { multiplier: 0, color: '#1a1a2e', label: '0x' },
+  { multiplier: 10, color: '#a855f7', label: '10x' },
 ];
 
-const WheelGame = () => {
-  const { state, addBalance, subtractBalance } = useCasino();
-  const balance = state.balance;
-  const soundEnabled = state.settings?.soundEnabled;
-
-  const [betAmount, setBetAmount] = useState(10);
+export default function WheelGame() {
+  const { state, placeBet, addWin } = useCasino();
+  const [bet, setBet] = useState(10);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
-  const spin = () => {
-    if (betAmount > balance || spinning) return;
+  const spin = useCallback(() => {
+    if (bet <= 0 || bet > state.balance || spinning) return;
+    if (!placeBet(bet, 'wheel')) return;
 
-    subtractBalance(betAmount);
     setSpinning(true);
     setResult(null);
-    if (soundEnabled) playSound('wheelSpin');
 
-    // Random result
-    const segmentIndex = Math.floor(Math.random() * SEGMENTS.length);
-    const segment = SEGMENTS[segmentIndex];
+    // Determine winning segment
+    const winningIndex = Math.floor(Math.random() * SEGMENTS.length);
+    const segment = SEGMENTS[winningIndex];
 
     // Calculate rotation
     const segmentAngle = 360 / SEGMENTS.length;
-    const targetAngle = 360 - (segmentIndex * segmentAngle) - (segmentAngle / 2);
+    const targetAngle = 360 - (winningIndex * segmentAngle) - (segmentAngle / 2);
     const spins = 5 + Math.floor(Math.random() * 3);
     const finalRotation = rotation + (spins * 360) + targetAngle;
 
     setRotation(finalRotation);
 
     setTimeout(() => {
-      const winAmount = betAmount * segment.value;
-      addBalance(winAmount);
-      setResult({ multiplier: segment.value, amount: winAmount, won: segment.value > 1 });
-      setHistory(prev => [{ multiplier: segment.value, won: segment.value > 1 }, ...prev.slice(0, 14)]);
-      if (soundEnabled) {
-        if (segment.value >= 5) playSound('bigWin');
-        else if (segment.value > 1) playSound('betWin');
-        else playSound('betLose');
+      const winAmount = bet * segment.multiplier;
+
+      if (segment.multiplier > 0) {
+        addWin(winAmount, bet, 'wheel', segment.multiplier);
+        setResult({ won: true, mult: segment.multiplier, profit: (winAmount - bet).toFixed(2) });
+      } else {
+        addWin(0, bet, 'wheel', 0);
+        setResult({ won: false, mult: 0, profit: (-bet).toFixed(2) });
       }
+
+      setHistory(h => [{ mult: segment.multiplier, won: segment.multiplier > 0 }, ...h.slice(0, 9)]);
       setSpinning(false);
-    }, 4000);
-  };
+    }, 5000);
+  }, [bet, state.balance, spinning, rotation, placeBet, addWin]);
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4">
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="relative">
+    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Wheel */}
+      <div className="lg:col-span-2 bg-[#1a1a2e] rounded-xl p-8">
+        <div className="relative max-w-md mx-auto">
           {/* Pointer */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10">
-            <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-casino-gold" />
+            <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-cyan-400" />
           </div>
 
           {/* Wheel */}
-          <motion.div
-            className="w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full border-4 border-casino-gold relative overflow-hidden"
-            animate={{ rotate: rotation }}
-            transition={{ duration: 4, ease: [0.17, 0.67, 0.12, 0.99] }}
+          <div
+            className="w-72 h-72 mx-auto rounded-full relative overflow-hidden border-4 border-[#2a2a45]"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transition: spinning ? 'transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
+            }}
           >
-            <svg viewBox="0 0 200 200" className="w-full h-full">
-              {SEGMENTS.map((seg, i) => {
-                const angle = 360 / SEGMENTS.length;
-                const startAngle = i * angle - 90;
-                const endAngle = startAngle + angle;
-                const x1 = 100 + 100 * Math.cos((startAngle * Math.PI) / 180);
-                const y1 = 100 + 100 * Math.sin((startAngle * Math.PI) / 180);
-                const x2 = 100 + 100 * Math.cos((endAngle * Math.PI) / 180);
-                const y2 = 100 + 100 * Math.sin((endAngle * Math.PI) / 180);
-                const largeArc = angle > 180 ? 1 : 0;
-
-                return (
-                  <g key={i}>
-                    <path
-                      d={`M100,100 L${x1},${y1} A100,100 0 ${largeArc},1 ${x2},${y2} Z`}
-                      fill={seg.color}
-                      stroke="#1a1a2e"
-                      strokeWidth="1"
-                    />
-                    <text
-                      x={100 + 65 * Math.cos(((startAngle + angle / 2) * Math.PI) / 180)}
-                      y={100 + 65 * Math.sin(((startAngle + angle / 2) * Math.PI) / 180)}
-                      fill="white"
-                      fontSize="10"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      transform={`rotate(${startAngle + angle / 2 + 90}, ${100 + 65 * Math.cos(((startAngle + angle / 2) * Math.PI) / 180)}, ${100 + 65 * Math.sin(((startAngle + angle / 2) * Math.PI) / 180)})`}
-                    >
-                      {seg.label}
-                    </text>
-                  </g>
-                );
-              })}
-              <circle cx="100" cy="100" r="20" fill="#1a1a2e" stroke="#fbbf24" strokeWidth="3" />
-            </svg>
-          </motion.div>
-        </div>
-
-        {/* Result */}
-        <div className="h-16 flex items-center justify-center mt-4">
-          {result && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className={`text-2xl font-black ${result.won ? 'text-casino-green' : 'text-white'}`}
-            >
-              {result.multiplier}x - {result.won ? `+$${(result.amount - betAmount).toFixed(2)}` : 'Break Even'}
-            </motion.div>
-          )}
-        </div>
-
-        {/* History */}
-        <div className="flex gap-2 overflow-x-auto pb-2 max-h-12">
-          {history.map((h, i) => (
-            <motion.div
-              key={i}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className={`shrink-0 px-3 py-1.5 rounded text-xs font-bold ${h.won ? 'bg-casino-green/20 text-casino-green' : 'bg-gray-600/20 text-gray-400'}`}
-            >
-              {h.multiplier}x
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      <div className="w-full lg:w-80 space-y-4">
-        <BetControls
-          betAmount={betAmount}
-          onBetChange={setBetAmount}
-          onBet={spin}
-          balance={balance}
-          disabled={spinning}
-          buttonText={spinning ? "SPINNING..." : "SPIN"}
-          showAutoBet={false}
-        />
-
-        <div className="bg-casino-card border border-casino-border rounded-xl p-4">
-          <h3 className="text-xs font-bold uppercase text-gray-400 mb-3">Payouts</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-gray-400">1x</span>
-              <span className="text-white ml-auto">40%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-gray-400">2x</span>
-              <span className="text-white ml-auto">25%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <span className="text-gray-400">3x</span>
-              <span className="text-white ml-auto">10%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500" />
-              <span className="text-gray-400">5x</span>
-              <span className="text-white ml-auto">5%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-gray-400">10x</span>
-              <span className="text-white ml-auto">5%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-cyan-500" />
-              <span className="text-gray-400">50x</span>
-              <span className="text-white ml-auto">5%</span>
+            {SEGMENTS.map((seg, i) => {
+              const angle = (360 / SEGMENTS.length);
+              const rotate = i * angle;
+              return (
+                <div
+                  key={i}
+                  className="absolute w-1/2 h-1/2 origin-bottom-right"
+                  style={{
+                    transform: `rotate(${rotate}deg) skewY(${90 - angle}deg)`,
+                    background: seg.color
+                  }}
+                />
+              );
+            })}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-[#0a0a14] border-4 border-[#2a2a45] flex items-center justify-center">
+                <span className="text-2xl">🎡</span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Result */}
+        {result && (
+          <div className="text-center mt-8">
+            <div className={`text-4xl font-black mb-2 ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.mult}x
+            </div>
+            <div className={`text-2xl font-bold ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? '+' : ''}{result.profit}
+            </div>
+          </div>
+        )}
+
+        {/* Legend */}
+        <div className="flex flex-wrap justify-center gap-2 mt-6">
+          {[...new Set(SEGMENTS.map(s => s.multiplier))].sort((a, b) => a - b).map(mult => {
+            const seg = SEGMENTS.find(s => s.multiplier === mult);
+            return (
+              <div key={mult} className="flex items-center gap-1 px-2 py-1 rounded bg-[#12121f]">
+                <div className="w-3 h-3 rounded-full" style={{ background: seg.color }} />
+                <span className="text-xs font-bold text-gray-400">{mult}x</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* History */}
+        {history.length > 0 && (
+          <div className="mt-6">
+            <div className="text-xs text-gray-500 uppercase mb-2">Recent Spins</div>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {history.map((h, i) => (
+                <div
+                  key={i}
+                  className={`px-3 py-1 rounded-lg text-sm font-bold ${
+                    h.won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                  }`}
+                >
+                  {h.mult}x
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div>
+        <BetControls
+          bet={bet}
+          setBet={setBet}
+          onPlay={spin}
+          disabled={spinning}
+          balance={state.balance}
+          buttonText={spinning ? 'SPINNING...' : 'SPIN WHEEL'}
+        />
       </div>
     </div>
   );
-};
-
-export default WheelGame;
+}

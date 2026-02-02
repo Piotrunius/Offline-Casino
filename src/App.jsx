@@ -1,11 +1,8 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import Dashboard from './components/Dashboard';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import { useCasino } from './context/CasinoContext';
-import audioEngine from './utils/audioEngine';
+import { useState } from 'react';
+import { CasinoProvider, useCasino } from './context/CasinoContext';
+import './styles/index.css';
 
+// Games
 import BlackjackGame from './games/BlackjackGame';
 import CoinFlipGame from './games/CoinFlipGame';
 import CrashGame from './games/CrashGame';
@@ -20,128 +17,104 @@ import SlotsGame from './games/SlotsGame';
 import TowerGame from './games/TowerGame';
 import WheelGame from './games/WheelGame';
 
-import ProvablyFairModal from './components/modals/ProvablyFairModal';
-import SettingsModal from './components/modals/SettingsModal';
-import StatsModal from './components/modals/StatsModal';
+const GAMES = [
+  { id: 'dice', name: 'Dice', icon: '🎲', component: DiceGame },
+  { id: 'mines', name: 'Mines', icon: '💣', component: MinesGame },
+  { id: 'crash', name: 'Crash', icon: '📈', component: CrashGame },
+  { id: 'plinko', name: 'Plinko', icon: '⚪', component: PlinkoGame },
+  { id: 'limbo', name: 'Limbo', icon: '🎯', component: LimboGame },
+  { id: 'coinflip', name: 'Coin Flip', icon: '🪙', component: CoinFlipGame },
+  { id: 'wheel', name: 'Wheel', icon: '🎡', component: WheelGame },
+  { id: 'tower', name: 'Tower', icon: '🗼', component: TowerGame },
+  { id: 'keno', name: 'Keno', icon: '🔢', component: KenoGame },
+  { id: 'roulette', name: 'Roulette', icon: '🎰', component: RouletteGame },
+  { id: 'blackjack', name: 'Blackjack', icon: '🃏', component: BlackjackGame },
+  { id: 'slots', name: 'Slots', icon: '🍒', component: SlotsGame },
+  { id: 'hilo', name: 'Hi-Lo', icon: '↕️', component: HiLoGame },
+];
 
-const games = {
-  crash: CrashGame,
-  mines: MinesGame,
-  dice: DiceGame,
-  plinko: PlinkoGame,
-  limbo: LimboGame,
-  roulette: RouletteGame,
-  blackjack: BlackjackGame,
-  coinflip: CoinFlipGame,
-  tower: TowerGame,
-  keno: KenoGame,
-  slots: SlotsGame,
-  wheel: WheelGame,
-  hilo: HiLoGame
-};
+function MainApp() {
+  const { state, setCurrentGame, addFreeCredits, toggleSidebar } = useCasino();
+  const [activeGame, setActiveGame] = useState('dice');
 
-function App() {
-  const { state, setCurrentGame, setModal } = useCasino();
-  const [loaded, setLoaded] = useState(false);
+  const currentGameData = GAMES.find(g => g.id === activeGame);
+  const GameComponent = currentGameData?.component;
 
-  useEffect(() => {
-    audioEngine.init();
-    setLoaded(true);
-    return () => audioEngine.destroy();
-  }, []);
-
-  const CurrentGame = state.currentGame ? games[state.currentGame] : null;
-
-  const renderModal = () => {
-    switch (state.modalOpen) {
-      case 'settings':
-        return <SettingsModal onClose={() => setModal(null)} />;
-      case 'provablyFair':
-        return <ProvablyFairModal onClose={() => setModal(null)} />;
-      case 'stats':
-        return <StatsModal onClose={() => setModal(null)} />;
-      default:
-        return null;
-    }
+  const handleGameSelect = (gameId) => {
+    setActiveGame(gameId);
+    setCurrentGame(gameId);
   };
 
-  if (!loaded) {
-    return (
-      <div className="min-h-screen bg-casino-bg flex items-center justify-center">
-        <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }}>
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-casino-cyan/20 border-t-casino-cyan rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-casino-cyan font-semibold tracking-widest">CASINO</p>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-casino-bg text-white">
-      <Header />
+    <div className="h-screen flex bg-[#0a0a14]">
+      {/* Sidebar */}
+      <aside className={`${state.sidebarOpen ? 'w-64' : 'w-16'} bg-[#12121f] border-r border-[#1f1f35] flex flex-col transition-all duration-300`}>
+        <div className="p-4 border-b border-[#1f1f35]">
+          <h1 className={`font-black text-xl gradient-text ${!state.sidebarOpen && 'text-center text-sm'}`}>
+            {state.sidebarOpen ? '🎰 Casino' : '🎰'}
+          </h1>
+        </div>
 
-      <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-        <Sidebar />
-
-        <main className="flex-1 overflow-auto">
-          {CurrentGame ? (
-            <motion.div
-              key={state.currentGame}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="p-4 md:p-6 max-w-7xl mx-auto h-full"
+        <nav className="flex-1 overflow-y-auto p-2">
+          {GAMES.map(game => (
+            <button
+              key={game.id}
+              onClick={() => handleGameSelect(game.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${
+                activeGame === game.id
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400 border border-cyan-500/30'
+                  : 'text-gray-400 hover:bg-[#1a1a2e] hover:text-white'
+              }`}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <button
-                  onClick={() => setCurrentGame(null)}
-                  className="px-4 py-2 rounded-lg bg-casino-card hover:bg-casino-border transition text-sm font-medium border border-casino-border"
-                >
-                  ← Back
-                </button>
-                <h1 className="text-2xl font-bold text-casino-cyan">
-                  {Object.keys(games).find(key => games[key] === CurrentGame)?.toUpperCase() || 'Game'}
-                </h1>
-              </div>
+              <span className="text-xl">{game.icon}</span>
+              {state.sidebarOpen && <span className="font-semibold text-sm">{game.name}</span>}
+            </button>
+          ))}
+        </nav>
 
-              <div className="h-[calc(100%-60px)]">
-                <CurrentGame />
-              </div>
-            </motion.div>
-          ) : (
-            <div className="p-4 md:p-6">
-              <Dashboard onSelectGame={setCurrentGame} />
-            </div>
-          )}
-        </main>
-      </div>
+        <button
+          onClick={() => toggleSidebar()}
+          className="p-4 border-t border-[#1f1f35] text-gray-500 hover:text-white transition"
+        >
+          {state.sidebarOpen ? '◀' : '▶'}
+        </button>
+      </aside>
 
-      <AnimatePresence>
-        {state.modalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setModal(null)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative z-10"
-            >
-              {renderModal()}
-            </motion.div>
+      {/* Main */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-16 bg-[#12121f] border-b border-[#1f1f35] flex items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <span className="text-2xl">{currentGameData?.icon}</span>
+            <h2 className="text-xl font-bold text-white">{currentGameData?.name}</h2>
           </div>
-        )}
-      </AnimatePresence>
+
+          <div className="flex items-center gap-4">
+            <div className="bg-[#1a1a2e] rounded-xl px-4 py-2 flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Balance:</span>
+              <span className="text-cyan-400 font-bold text-lg">${state.balance.toFixed(2)}</span>
+            </div>
+
+            <button
+              onClick={() => addFreeCredits(1000)}
+              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:brightness-110 transition"
+            >
+              + $1000
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto p-6">
+          {GameComponent && <GameComponent />}
+        </div>
+      </main>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <CasinoProvider>
+      <MainApp />
+    </CasinoProvider>
+  );
+}

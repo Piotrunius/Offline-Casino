@@ -1,83 +1,39 @@
-import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useState } from 'react';
 import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
-import { playSound } from '../utils/audioEngine';
 
-const getRandomInt = (max) => {
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  return array[0] % max;
-};
-
-const GRID_SIZES = {
-  small: { rows: 4, cols: 10, picks: 10, maxPicks: 10 },
-  normal: { rows: 8, cols: 10, picks: 10, maxPicks: 15 },
-  large: { rows: 10, cols: 10, picks: 20, maxPicks: 20 }
-};
+const GRID_SIZE = 40;
+const MAX_PICKS = 10;
 
 const PAYOUTS = {
-  10: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1.5, 6: 3, 7: 10, 8: 50, 9: 200, 10: 1000 }
+  1: { 1: 3.8 },
+  2: { 1: 1.9, 2: 8.1 },
+  3: { 1: 1.1, 2: 3.3, 3: 25.3 },
+  4: { 2: 2.2, 3: 9.8, 4: 72 },
+  5: { 2: 1.5, 3: 4.2, 4: 18.5, 5: 202 },
+  6: { 3: 2.5, 4: 7.2, 5: 35, 6: 500 },
+  7: { 3: 1.8, 4: 4.1, 5: 14, 6: 80, 7: 1000 },
+  8: { 4: 2.5, 5: 6.5, 6: 25, 7: 150, 8: 2000 },
+  9: { 4: 1.8, 5: 4, 6: 12, 7: 50, 8: 300, 9: 4000 },
+  10: { 5: 2.5, 6: 6.5, 7: 20, 8: 80, 9: 500, 10: 10000 }
 };
 
-const KenoGame = () => {
-  const { state, addBalance, subtractBalance } = useCasino();
-  const balance = state.balance;
-  const soundEnabled = state.settings?.soundEnabled;
-
-  const [betAmount, setBetAmount] = useState(10);
-  const [gridSize, setGridSize] = useState('normal');
+export default function KenoGame() {
+  const { state, placeBet, addWin } = useCasino();
+  const [bet, setBet] = useState(10);
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [drawnNumbers, setDrawnNumbers] = useState([]);
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
-  const config = GRID_SIZES[gridSize];
-  const totalNumbers = config.rows * config.cols;
-  const maxPicks = config.maxPicks;
-
-  const getPayout = (hits, picks) => {
-    // Simplified payout table
-    const multipliers = {
-      1: { 1: 2.5 },
-      2: { 1: 1, 2: 5 },
-      3: { 2: 2, 3: 20 },
-      4: { 2: 1.5, 3: 5, 4: 50 },
-      5: { 2: 1, 3: 2.5, 4: 15, 5: 100 },
-      6: { 3: 1.5, 4: 5, 5: 25, 6: 200 },
-      7: { 3: 1, 4: 3, 5: 10, 6: 75, 7: 500 },
-      8: { 4: 2, 5: 5, 6: 25, 7: 150, 8: 1000 },
-      9: { 4: 1.5, 5: 3, 6: 10, 7: 50, 8: 300, 9: 2000 },
-      10: { 5: 2, 6: 5, 7: 15, 8: 100, 9: 500, 10: 5000 }
-    };
-
-    const table = multipliers[picks] || {};
-    return table[hits] || 0;
-  };
-
   const toggleNumber = (num) => {
     if (playing) return;
-
     if (selectedNumbers.includes(num)) {
       setSelectedNumbers(selectedNumbers.filter(n => n !== num));
-    } else if (selectedNumbers.length < maxPicks) {
+    } else if (selectedNumbers.length < MAX_PICKS) {
       setSelectedNumbers([...selectedNumbers, num]);
-      if (soundEnabled) playSound('kenoSelect');
     }
-  };
-
-  const quickPick = () => {
-    if (playing) return;
-
-    const nums = [];
-    while (nums.length < maxPicks) {
-      const num = getRandomInt(totalNumbers) + 1;
-      if (!nums.includes(num)) {
-        nums.push(num);
-      }
-    }
-    setSelectedNumbers(nums.sort((a, b) => a - b));
   };
 
   const clearSelection = () => {
@@ -88,222 +44,183 @@ const KenoGame = () => {
     }
   };
 
-  const play = useCallback((bet = betAmount) => {
-    if (bet > balance || selectedNumbers.length === 0 || playing) return Promise.resolve();
+  const quickPick = () => {
+    if (playing) return;
+    const picks = [];
+    while (picks.length < MAX_PICKS) {
+      const num = Math.floor(Math.random() * GRID_SIZE) + 1;
+      if (!picks.includes(num)) picks.push(num);
+    }
+    setSelectedNumbers(picks);
+  };
 
-    subtractBalance(bet);
+  const play = useCallback(() => {
+    if (selectedNumbers.length === 0 || bet <= 0 || bet > state.balance || playing) return;
+    if (!placeBet(bet, 'keno')) return;
+
     setPlaying(true);
-    setDrawnNumbers([]);
     setResult(null);
-    if (soundEnabled) playSound('betPlace');
+    setDrawnNumbers([]);
 
-    return new Promise((resolve) => {
-      // Draw 10-20 numbers based on grid size
-      const drawCount = Math.floor(totalNumbers * 0.2); // 20% of grid
-      const drawn = [];
-      while (drawn.length < drawCount) {
-        const num = getRandomInt(totalNumbers) + 1;
-        if (!drawn.includes(num)) {
-          drawn.push(num);
-        }
-      }
+    // Draw 10 random numbers
+    const drawn = [];
+    while (drawn.length < 10) {
+      const num = Math.floor(Math.random() * GRID_SIZE) + 1;
+      if (!drawn.includes(num)) drawn.push(num);
+    }
 
-      // Animate drawing numbers
-      let i = 0;
-      const drawInterval = setInterval(() => {
-        if (i < drawn.length) {
-          setDrawnNumbers(prev => [...prev, drawn[i]]);
-          if (soundEnabled) playSound('kenoDraw');
-          // Play match sound if drawn number is in selected
-          if (selectedNumbers.includes(drawn[i]) && soundEnabled) {
-            playSound('kenoMatch');
-          }
-          i++;
+    // Animate drawing
+    let i = 0;
+    const drawNext = () => {
+      if (i < drawn.length) {
+        setDrawnNumbers(d => [...d, drawn[i]]);
+        i++;
+        setTimeout(drawNext, 200);
+      } else {
+        // Calculate result
+        const hits = selectedNumbers.filter(n => drawn.includes(n)).length;
+        const picks = selectedNumbers.length;
+        const payout = PAYOUTS[picks]?.[hits] || 0;
+        const winAmount = bet * payout;
+
+        if (winAmount > 0) {
+          addWin(winAmount, bet, 'keno', payout);
+          setResult({ won: true, hits, payout, profit: (winAmount - bet).toFixed(2) });
         } else {
-          clearInterval(drawInterval);
-
-          // Calculate hits
-          const hits = selectedNumbers.filter(n => drawn.includes(n)).length;
-          const multiplier = getPayout(hits, selectedNumbers.length);
-          const winAmount = bet * multiplier;
-
-          if (winAmount > 0) {
-            addBalance(winAmount);
-            setResult({ won: true, hits, total: selectedNumbers.length, amount: winAmount });
-            if (soundEnabled) {
-              if (multiplier >= 10) playSound('bigWin');
-              else playSound('betWin');
-            }
-          } else {
-            setResult({ won: false, hits, total: selectedNumbers.length, amount: 0 });
-            if (soundEnabled) playSound('betLose');
-          }
-
-          setHistory(prev => [{ hits, picks: selectedNumbers.length, won: winAmount > 0 }, ...prev.slice(0, 9)]);
-          setPlaying(false);
-          resolve({ won: winAmount > 0 });
+          addWin(0, bet, 'keno', 0);
+          setResult({ won: false, hits, payout: 0, profit: (-bet).toFixed(2) });
         }
-      }, 100);
-    });
-  }, [betAmount, balance, selectedNumbers, playing, subtractBalance, totalNumbers, addBalance, soundEnabled]);
+
+        setHistory(h => [{ hits, picks, won: winAmount > 0 }, ...h.slice(0, 9)]);
+        setPlaying(false);
+      }
+    };
+
+    setTimeout(drawNext, 300);
+  }, [selectedNumbers, bet, state.balance, playing, placeBet, addWin]);
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4">
-      <div className="flex-1 flex flex-col">
-        {/* Grid */}
-        <div className="flex-1 bg-casino-card border border-casino-border rounded-xl p-4 flex flex-col items-center justify-center relative min-h-[400px]">
-          {/* Result - Positioned at top */}
-          <AnimatePresence>
-            {result && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-10"
+    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Keno Grid */}
+      <div className="lg:col-span-2 bg-[#1a1a2e] rounded-xl p-6">
+        <div className="grid grid-cols-8 gap-2 max-w-lg mx-auto">
+          {[...Array(GRID_SIZE)].map((_, i) => {
+            const num = i + 1;
+            const isSelected = selectedNumbers.includes(num);
+            const isDrawn = drawnNumbers.includes(num);
+            const isHit = isSelected && isDrawn;
+
+            return (
+              <button
+                key={num}
+                onClick={() => toggleNumber(num)}
+                disabled={playing}
+                className={`aspect-square rounded-lg font-bold text-sm transition ${
+                  isHit
+                    ? 'bg-green-500 text-white'
+                    : isDrawn
+                      ? 'bg-red-500/50 text-red-200'
+                      : isSelected
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-[#12121f] text-gray-400 hover:bg-[#1f1f35] hover:text-white border border-[#2a2a45]'
+                }`}
               >
-                <div className={`px-6 py-3 rounded-xl text-center ${result.won ? 'bg-casino-green/90' : 'bg-casino-red/90'}`}>
-                  <div className={`text-xl font-black text-white`}>
-                    {result.hits}/{result.total} HITS
-                  </div>
-                  {result.won && (
-                    <div className="text-sm text-white/90">+${result.amount.toFixed(2)}</div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div
-            className="grid gap-1 w-full max-w-xl"
-            style={{ gridTemplateColumns: `repeat(${config.cols}, 1fr)` }}
-          >
-            {Array.from({ length: totalNumbers }, (_, i) => {
-              const num = i + 1;
-              const isSelected = selectedNumbers.includes(num);
-              const isDrawn = drawnNumbers.includes(num);
-              const isHit = isSelected && isDrawn;
-
-              return (
-                <motion.button
-                  key={num}
-                  onClick={() => toggleNumber(num)}
-                  disabled={playing}
-                  whileHover={!playing ? { scale: 1.1 } : {}}
-                  whileTap={!playing ? { scale: 0.95 } : {}}
-                  className={`aspect-square rounded text-xs md:text-sm font-bold flex items-center justify-center transition-all ${
-                    isHit
-                      ? 'bg-casino-green text-white'
-                      : isDrawn
-                        ? 'bg-casino-red/50 text-white'
-                        : isSelected
-                          ? 'bg-casino-cyan text-casino-bg'
-                          : 'bg-casino-bg text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <AnimatePresence mode="wait">
-                    {isDrawn ? (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 500 }}
-                      >
-                        {num}
-                      </motion.span>
-                    ) : (
-                      num
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* Quick actions */}
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={quickPick}
-              disabled={playing}
-              className="px-4 py-2 bg-casino-bg rounded-lg text-sm font-bold text-gray-400 hover:text-white transition disabled:opacity-50"
-            >
-              Quick Pick
-            </button>
-            <button
-              onClick={clearSelection}
-              disabled={playing}
-              className="px-4 py-2 bg-casino-bg rounded-lg text-sm font-bold text-gray-400 hover:text-white transition disabled:opacity-50"
-            >
-              Clear
-            </button>
-          </div>
+                {num}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-4 justify-center mt-6">
+          <button
+            onClick={clearSelection}
+            disabled={playing}
+            className="px-4 py-2 bg-[#12121f] text-gray-400 rounded-lg font-bold hover:text-white disabled:opacity-50 transition"
+          >
+            Clear
+          </button>
+          <button
+            onClick={quickPick}
+            disabled={playing}
+            className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg font-bold hover:bg-cyan-500/40 disabled:opacity-50 transition"
+          >
+            Quick Pick
+          </button>
+        </div>
+
+        {/* Result */}
+        {result && (
+          <div className="text-center mt-6">
+            <div className={`text-3xl font-black mb-2 ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.hits} / {selectedNumbers.length} HITS
+            </div>
+            {result.payout > 0 && (
+              <div className="text-xl text-cyan-400">{result.payout}x</div>
+            )}
+            <div className={`text-xl font-bold ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? '+' : ''}{result.profit}
+            </div>
+          </div>
+        )}
 
         {/* History */}
-        <div className="flex gap-2 mt-4 overflow-x-auto pb-2 max-h-12">
-          {history.map((h, i) => (
-            <motion.div
-              key={i}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className={`shrink-0 px-3 py-1.5 rounded text-xs font-bold ${
-                h.won ? 'bg-casino-green/20 text-casino-green' : 'bg-casino-red/20 text-casino-red'
-              }`}
-            >
-              {h.hits}/{h.picks}
-            </motion.div>
-          ))}
-        </div>
+        {history.length > 0 && (
+          <div className="mt-6">
+            <div className="text-xs text-gray-500 uppercase mb-2">Recent Games</div>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {history.map((h, i) => (
+                <div
+                  key={i}
+                  className={`px-3 py-1 rounded-lg text-sm font-bold ${
+                    h.won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                  }`}
+                >
+                  {h.hits}/{h.picks}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="w-full lg:w-80 space-y-4">
+      {/* Controls */}
+      <div>
         <BetControls
-          betAmount={betAmount}
-          onBetChange={setBetAmount}
-          onBet={() => play()}
-          balance={balance}
+          bet={bet}
+          setBet={setBet}
+          onPlay={play}
           disabled={playing || selectedNumbers.length === 0}
-          buttonText={playing ? "DRAWING..." : selectedNumbers.length === 0 ? "PICK NUMBERS" : "PLAY"}
-          showAutoBet={false}
-        />
-
-        <div className="bg-casino-card border border-casino-border rounded-xl p-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs text-gray-500 uppercase">Selected</span>
-            <span className="text-lg font-bold text-casino-cyan">{selectedNumbers.length}/{maxPicks}</span>
+          balance={state.balance}
+          buttonText={playing ? 'DRAWING...' : selectedNumbers.length === 0 ? 'SELECT NUMBERS' : 'PLAY'}
+        >
+          <div className="bg-[#12121f] rounded-lg p-3">
+            <div className="text-xs text-gray-500 mb-2">Selected: {selectedNumbers.length}/{MAX_PICKS}</div>
+            <div className="flex flex-wrap gap-1">
+              {selectedNumbers.sort((a,b) => a-b).map(n => (
+                <span key={n} className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded text-xs font-bold">
+                  {n}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {selectedNumbers.sort((a, b) => a - b).map(num => (
-              <span key={num} className="px-2 py-1 bg-casino-cyan/20 text-casino-cyan rounded text-xs font-bold">
-                {num}
-              </span>
-            ))}
-          </div>
-        </div>
+        </BetControls>
 
-        <div className="bg-casino-card border border-casino-border rounded-xl p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Payouts ({selectedNumbers.length} picks)</h3>
-          <div className="space-y-1 text-xs max-h-40 overflow-y-auto">
-            {selectedNumbers.length > 0 && Array.from({ length: selectedNumbers.length + 1 }, (_, i) => {
-              const mult = getPayout(i, selectedNumbers.length);
-              if (mult === 0 && i < selectedNumbers.length / 2) return null;
-              return (
-                <div key={i} className="flex justify-between text-gray-500">
-                  <span>{i} hits</span>
-                  <span className={mult > 0 ? 'text-casino-green' : ''}>{mult > 0 ? `${mult}x` : '-'}</span>
+        {/* Payout Table */}
+        {selectedNumbers.length > 0 && (
+          <div className="bg-[#1a1a2e] rounded-xl p-4 mt-4">
+            <div className="text-xs text-gray-500 uppercase mb-2">Payouts</div>
+            <div className="space-y-1">
+              {Object.entries(PAYOUTS[selectedNumbers.length] || {}).map(([hits, mult]) => (
+                <div key={hits} className="flex justify-between text-sm">
+                  <span className="text-gray-400">{hits} hits</span>
+                  <span className="text-cyan-400 font-bold">{mult}x</span>
                 </div>
-              );
-            }).filter(Boolean)}
+              ))}
+            </div>
           </div>
-        </div>
-
-        <div className="bg-casino-card border border-casino-border rounded-xl p-4">
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Pick up to {maxPicks} numbers. 20% of the grid will be drawn.
-            More hits = bigger payouts!
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default KenoGame;
+}

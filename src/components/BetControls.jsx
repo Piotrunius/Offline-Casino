@@ -1,140 +1,126 @@
-import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-const BetControls = ({
+export default function BetControls({
   bet,
-  onBetChange,
-  balance,
+  setBet,
   onPlay,
-  multiplier,
-  loading,
   disabled,
-  maxBet,
-  minBet = 1,
-  showMultiplier = false
-}) => {
-  const [focused, setFocused] = useState(false);
+  balance,
+  buttonText = 'BET',
+  children
+}) {
+  const [inputValue, setInputValue] = useState(bet.toString());
 
-  const handleBetInput = (e) => {
-    let value = parseFloat(e.target.value) || 0;
-    value = Math.max(minBet, Math.min(maxBet, value));
-    onBetChange(value);
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInputValue(val);
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0) {
+      setBet(Math.min(num, balance));
+    }
   };
 
-  const quickBet = (amount) => {
-    const newBet = Math.max(minBet, Math.min(maxBet, amount));
-    onBetChange(newBet);
+  const handleBlur = () => {
+    const num = parseFloat(inputValue);
+    if (isNaN(num) || num < 0) {
+      setInputValue(bet.toString());
+    } else {
+      const clamped = Math.min(num, balance);
+      setBet(clamped);
+      setInputValue(clamped.toString());
+    }
   };
 
-  const canPlay = bet > 0 && bet <= balance && !loading && !disabled;
+  const quickBet = (multiplier) => {
+    if (multiplier === 'max') {
+      setBet(balance);
+      setInputValue(balance.toString());
+    } else if (multiplier === 'min') {
+      setBet(1);
+      setInputValue('1');
+    } else {
+      const newBet = Math.min(bet * multiplier, balance);
+      setBet(newBet);
+      setInputValue(newBet.toString());
+    }
+  };
+
+  const canPlay = bet > 0 && bet <= balance && !disabled;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-3"
-    >
-      {/* Bet Input */}
-      <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-          Bet Amount
-        </label>
-        <div className={`relative rounded-lg border-2 transition ${
-          focused
-            ? 'border-casino-cyan bg-casino-bg'
-            : 'border-casino-border bg-casino-bg'
-        }`}>
+    <div className="bg-[#1a1a2e] rounded-xl p-4 space-y-4">
+      {/* Bet Amount */}
+      <div>
+        <label className="text-xs text-gray-500 uppercase font-bold mb-2 block">Bet Amount</label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
           <input
             type="number"
-            value={bet}
-            onChange={handleBetInput}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            value={inputValue}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
             disabled={disabled}
-            className="w-full px-4 py-3 bg-transparent text-lg font-bold text-casino-cyan outline-none placeholder-gray-500"
+            className="w-full bg-[#12121f] border border-[#2a2a45] rounded-lg pl-7 pr-4 py-3 text-white font-bold focus:border-cyan-500 focus:outline-none disabled:opacity-50 transition"
             placeholder="0.00"
-            min={minBet}
-            max={maxBet}
+            min="0"
+            step="any"
           />
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">
-            $
-          </span>
         </div>
       </div>
 
-      {/* Quick Bets */}
+      {/* Quick Bet Buttons */}
       <div className="grid grid-cols-4 gap-2">
-        {[10, 50, 100, 500].map(amount => (
-          <button
-            key={amount}
-            onClick={() => quickBet(amount)}
-            disabled={disabled || amount > maxBet}
-            className="py-2 px-2 rounded-lg bg-casino-bg border border-casino-border hover:border-casino-cyan hover:bg-casino-border disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold text-gray-300 hover:text-white transition"
-          >
-            ${amount}
-          </button>
-        ))}
-      </div>
-
-      {/* Range Slider */}
-      <div className="space-y-2">
-        <input
-          type="range"
-          min={minBet}
-          max={maxBet}
-          value={bet}
-          onChange={e => onBetChange(parseFloat(e.target.value))}
+        <button
+          onClick={() => quickBet('min')}
           disabled={disabled}
-          className="w-full h-2 bg-casino-border rounded-lg appearance-none cursor-pointer accent-casino-cyan"
-        />
-        <div className="flex justify-between text-xs text-gray-500 font-semibold">
-          <span>Min: ${minBet}</span>
-          <span>Max: ${maxBet}</span>
-        </div>
+          className="bg-[#12121f] hover:bg-[#1f1f35] border border-[#2a2a45] rounded-lg py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50 transition"
+        >
+          MIN
+        </button>
+        <button
+          onClick={() => quickBet(0.5)}
+          disabled={disabled}
+          className="bg-[#12121f] hover:bg-[#1f1f35] border border-[#2a2a45] rounded-lg py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50 transition"
+        >
+          ½
+        </button>
+        <button
+          onClick={() => quickBet(2)}
+          disabled={disabled}
+          className="bg-[#12121f] hover:bg-[#1f1f35] border border-[#2a2a45] rounded-lg py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50 transition"
+        >
+          2×
+        </button>
+        <button
+          onClick={() => quickBet('max')}
+          disabled={disabled}
+          className="bg-[#12121f] hover:bg-[#1f1f35] border border-[#2a2a45] rounded-lg py-2 text-xs font-bold text-gray-400 hover:text-white disabled:opacity-50 transition"
+        >
+          MAX
+        </button>
       </div>
 
-      {/* Balance & Info */}
-      <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-casino-bg border border-casino-border">
-        <div>
-          <div className="text-xs text-gray-400 font-semibold uppercase">Balance</div>
-          <div className="text-lg font-bold text-casino-cyan">${balance.toFixed(2)}</div>
-        </div>
-        {showMultiplier && multiplier && (
-          <div>
-            <div className="text-xs text-gray-400 font-semibold uppercase">Multiplier</div>
-            <div className="text-lg font-bold text-casino-cyan">{multiplier}x</div>
-          </div>
-        )}
-      </div>
+      {/* Additional Controls */}
+      {children}
 
       {/* Play Button */}
-      <motion.button
+      <button
         onClick={onPlay}
         disabled={!canPlay}
-        whileHover={canPlay ? { scale: 1.02 } : {}}
-        whileTap={canPlay ? { scale: 0.98 } : {}}
-        className={`w-full py-3 px-4 rounded-lg font-bold text-lg uppercase tracking-wider transition ${
+        className={`w-full py-4 rounded-xl font-black text-lg uppercase tracking-wide transition ${
           canPlay
-            ? 'bg-gradient-to-r from-casino-cyan to-blue-500 hover:brightness-110 text-casino-bg shadow-lg shadow-casino-cyan/50'
-            : 'bg-casino-border text-gray-500 cursor-not-allowed'
+            ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:brightness-110 shadow-lg shadow-cyan-500/25'
+            : 'bg-[#2a2a45] text-gray-600 cursor-not-allowed'
         }`}
       >
-        {loading ? 'Playing...' : 'Play'}
-      </motion.button>
+        {disabled ? 'PLAYING...' : buttonText}
+      </button>
 
-      {/* Error Messages */}
-      {bet > balance && (
-        <div className="text-sm text-red-400 font-semibold text-center">
-          ⚠️ Insufficient balance
-        </div>
-      )}
-      {bet < minBet && bet > 0 && (
-        <div className="text-sm text-yellow-400 font-semibold text-center">
-          ⚠️ Minimum bet: ${minBet}
-        </div>
-      )}
-    </motion.div>
+      {/* Balance Display */}
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-500">Balance:</span>
+        <span className="text-cyan-400 font-bold">${balance.toFixed(2)}</span>
+      </div>
+    </div>
   );
-};
-
-export default BetControls;
+}
