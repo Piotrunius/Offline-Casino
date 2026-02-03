@@ -1,22 +1,28 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-const HORSE_NAMES = ['Thunder', 'Lightning', 'Storm', 'Blaze', 'Shadow', 'Spirit'];
-const HORSE_COLORS = ['#ff4444', '#4488ff', '#44ff44', '#ffaa00', '#aa44ff', '#ff44aa'];
+const HORSES = [
+  { name: 'Thunder', color: '#ef4444', emoji: '🔴' },
+  { name: 'Storm', color: '#3b82f6', emoji: '🔵' },
+  { name: 'Blaze', color: '#22c55e', emoji: '🟢' },
+  { name: 'Shadow', color: '#a855f7', emoji: '🟣' },
+  { name: 'Spirit', color: '#f59e0b', emoji: '🟡' },
+  { name: 'Nova', color: '#ec4899', emoji: '🩷' }
+];
 
 export default function HorsesGame() {
   const { state, placeBet, addWin, setGlobalBet } = useCasino();
   const [bet, setBet] = useState(state.globalBet || 10);
   const [selectedHorse, setSelectedHorse] = useState(0);
   const [racing, setRacing] = useState(false);
-  const [positions, setPositions] = useState([0, 0, 0, 0, 0, 0]);
+  const [positions, setPositions] = useState(HORSES.map(() => 0));
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const animRef = useRef(null);
 
   const godMode = state.adminSettings?.godMode;
-  const MULTIPLIER = 6; // 6:1 payout
+  const MULTIPLIER = 5;
 
   const race = useCallback(async () => {
     if (racing || bet <= 0 || bet > state.balance) return;
@@ -26,40 +32,36 @@ export default function HorsesGame() {
 
     setRacing(true);
     setResult(null);
-    setPositions([0, 0, 0, 0, 0, 0]);
+    setPositions(HORSES.map(() => 0));
     audio.playBet();
 
-    const duration = state.settings.fastMode ? 3000 : 6000;
+    const duration = state.settings.fastMode ? 2500 : 5000;
     const startTime = Date.now();
-    
-    // Determine winner
-    let winner;
-    if (godMode) {
-      winner = selectedHorse;
-    } else {
-      winner = Math.floor(Math.random() * 6);
-    }
 
-    // Generate random speed factors for each horse
-    const speedFactors = Array(6).fill(0).map((_, i) => {
-      if (i === winner) return 1.0 + Math.random() * 0.1; // Winner is slightly faster
-      return 0.7 + Math.random() * 0.25;
+    // Determine winner
+    const winner = godMode ? selectedHorse : Math.floor(Math.random() * HORSES.length);
+
+    // Speed factors - winner gets slight boost
+    const speedFactors = HORSES.map((_, i) => {
+      const base = 0.8 + Math.random() * 0.2;
+      return i === winner ? base + 0.15 : base;
     });
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / duration);
 
-      // Add randomness to make it exciting
       const newPositions = speedFactors.map((speed, i) => {
         const baseProgress = progress * speed;
-        const wobble = Math.sin(elapsed / 100 + i * 2) * 0.02;
+        // Add wobble for excitement
+        const wobble = Math.sin(elapsed / 80 + i * 1.5) * 0.015;
         return Math.min(1, baseProgress + (progress < 0.9 ? wobble : 0));
       });
 
-      // Ensure winner finishes first in the last stretch
+      // Ensure winner finishes first at the end
       if (progress > 0.85) {
-        newPositions[winner] = Math.max(...newPositions) + 0.01;
+        const maxOther = Math.max(...newPositions.filter((_, i) => i !== winner));
+        newPositions[winner] = Math.max(newPositions[winner], maxOther + 0.02);
       }
 
       setPositions(newPositions);
@@ -70,7 +72,7 @@ export default function HorsesGame() {
         setRacing(false);
         const won = winner === selectedHorse;
 
-        setHistory(h => [{ winner, horseName: HORSE_NAMES[winner], color: HORSE_COLORS[winner] }, ...h.slice(0, 3)]);
+        setHistory(h => [{ winner, ...HORSES[winner] }, ...h.slice(0, 4)]);
 
         if (won) {
           const winAmount = bet * (MULTIPLIER + 1);
@@ -95,171 +97,164 @@ export default function HorsesGame() {
   };
 
   return (
-    <div className="h-full flex gap-4">
-      {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-4 flex flex-col">
-        {/* Race Track */}
-        <div className="flex-1 bg-gradient-to-b from-green-900/30 to-green-800/20 rounded-xl p-4 relative">
-          {/* Track Header */}
-          <div className="absolute top-2 left-0 right-0 flex justify-between px-4 text-xs text-gray-500">
-            <span>START</span>
-            <span>FINISH</span>
-          </div>
-
-          {/* Finish Line */}
-          <div className="absolute right-8 top-8 bottom-8 w-1 bg-gradient-to-b from-white/50 via-red-500/50 to-white/50" />
-
-          {/* Lanes */}
-          <div className="mt-8 space-y-3">
-            {HORSE_NAMES.map((name, i) => (
-              <div key={i} className="relative">
-                {/* Lane Background */}
-                <div className={`h-12 rounded-lg bg-black/30 border-l-4 ${
-                  selectedHorse === i ? 'border-yellow-400' : 'border-transparent'
-                }`}>
-                  {/* Horse */}
-                  <div
-                    className="absolute top-1 bottom-1 transition-all duration-100 flex items-center"
-                    style={{ 
-                      left: `${positions[i] * 85 + 2}%`,
-                    }}
-                  >
-                    {/* Horse Icon */}
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg"
-                      style={{ backgroundColor: HORSE_COLORS[i] }}
-                    >
-                      {i + 1}
-                    </div>
-                    {racing && (
-                      <div className="ml-1 text-xs text-gray-400 animate-pulse">
-                        🏇
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Horse Name */}
-                <div className="absolute left-[-80px] top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 w-20 text-right">
-                  #{i + 1} {name}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Race Result */}
-          {result && (
-            <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl ${
-              result.won ? 'bg-green-900/80 text-green-400' : 'bg-red-900/80 text-red-400'
-            }`}>
-              <div className="text-center">
-                <div className="text-sm mb-1">
-                  Winner: <span className="font-bold" style={{ color: HORSE_COLORS[result.winner] }}>
-                    #{result.winner + 1} {HORSE_NAMES[result.winner]}
-                  </span>
-                </div>
-                <div className="text-xl font-bold">
-                  {result.won ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
-                </div>
-              </div>
-            </div>
-          )}
+    <div className="h-full flex gap-3 p-2">
+      {/* Race Track */}
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-3 flex flex-col">
+        {/* Track Header */}
+        <div className="flex justify-between text-xs text-gray-500 mb-2 px-2">
+          <span>START</span>
+          <span className="text-yellow-500 font-bold">🏆 FINISH</span>
         </div>
+
+        {/* Race Lanes */}
+        <div className="flex-1 flex flex-col justify-center gap-2">
+          {HORSES.map((horse, i) => (
+            <div key={i} className="relative h-10">
+              {/* Lane Background */}
+              <div
+                className={`absolute inset-0 rounded-lg transition-all ${
+                  selectedHorse === i
+                    ? 'bg-white/10 ring-2'
+                    : 'bg-black/30'
+                }`}
+                style={{
+                  ringColor: selectedHorse === i ? horse.color : 'transparent',
+                  borderLeft: `3px solid ${horse.color}`
+                }}
+              />
+
+              {/* Finish Line */}
+              <div className="absolute right-2 top-0 bottom-0 w-1 bg-gradient-to-b from-yellow-400/50 via-white/50 to-yellow-400/50" />
+
+              {/* Horse */}
+              <div
+                className="absolute top-1 bottom-1 flex items-center transition-all duration-75"
+                style={{ left: `calc(${positions[i] * 88}% + 8px)` }}
+              >
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg transition-transform"
+                  style={{
+                    backgroundColor: horse.color,
+                    transform: racing ? `scaleX(${1 + Math.sin(Date.now() / 50) * 0.1})` : 'scaleX(1)'
+                  }}
+                >
+                  {i + 1}
+                </div>
+                {racing && <span className="ml-1 animate-bounce">🏃</span>}
+              </div>
+
+              {/* Horse Label */}
+              {!racing && (
+                <div
+                  className="absolute right-14 top-1/2 -translate-y-1/2 text-xs font-bold"
+                  style={{ color: horse.color }}
+                >
+                  {horse.name}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Result */}
+        {result && (
+          <div className={`mt-3 px-4 py-3 rounded-xl text-center ${
+            result.won ? 'bg-green-900/50' : 'bg-red-900/50'
+          }`}>
+            <div className={`text-lg font-bold ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? '🎉 YOU WIN!' : 'Better luck next time!'}
+            </div>
+            <div className="text-sm text-gray-400">
+              Winner: <span style={{ color: HORSES[result.winner].color }}>{HORSES[result.winner].name}</span>
+              <span className="ml-2">
+                {result.won ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Controls - RIGHT */}
-      <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4">
+      {/* Controls */}
+      <div className="w-72 bg-[#0a0a12] rounded-2xl p-3 flex flex-col gap-3">
         {/* Bet Amount */}
         <div>
           <label className="text-xs text-gray-500 uppercase font-bold">Bet Amount</label>
-          <div className="relative mt-2">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
+          <div className="relative mt-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
             <input
               type="number"
               value={bet}
               onChange={(e) => handleBetChange(Number(e.target.value))}
               disabled={racing}
-              className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-lg font-bold"
+              className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-8 pr-3 text-white font-bold"
             />
           </div>
-          <div className="grid grid-cols-4 gap-2 mt-2">
-            <button onClick={() => handleBetChange(1)} disabled={racing} className="btn-secondary py-2 text-sm font-bold">MIN</button>
-            <button onClick={() => handleBetChange(bet / 2)} disabled={racing} className="btn-secondary py-2 text-sm font-bold">½</button>
-            <button onClick={() => handleBetChange(bet * 2)} disabled={racing} className="btn-secondary py-2 text-sm font-bold">2x</button>
-            <button onClick={() => handleBetChange(state.balance)} disabled={racing} className="btn-secondary py-2 text-sm font-bold">MAX</button>
+          <div className="grid grid-cols-4 gap-1 mt-1">
+            <button onClick={() => handleBetChange(1)} disabled={racing} className="btn-secondary py-1.5 text-xs font-bold">MIN</button>
+            <button onClick={() => handleBetChange(bet / 2)} disabled={racing} className="btn-secondary py-1.5 text-xs font-bold">½</button>
+            <button onClick={() => handleBetChange(bet * 2)} disabled={racing} className="btn-secondary py-1.5 text-xs font-bold">2x</button>
+            <button onClick={() => handleBetChange(state.balance)} disabled={racing} className="btn-secondary py-1.5 text-xs font-bold">MAX</button>
           </div>
         </div>
 
-        {/* Select Horse */}
+        {/* Horse Selection */}
         <div>
-          <label className="text-xs text-gray-500 uppercase font-bold mb-2 block">Select Your Horse</label>
-          <div className="grid grid-cols-3 gap-2">
-            {HORSE_NAMES.map((name, i) => (
+          <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Pick Your Horse</label>
+          <div className="grid grid-cols-3 gap-1">
+            {HORSES.map((horse, i) => (
               <button
                 key={i}
-                onClick={() => setSelectedHorse(i)}
+                onClick={() => !racing && setSelectedHorse(i)}
                 disabled={racing}
-                className={`p-3 rounded-xl transition-all ${
+                className={`py-2 px-1 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
                   selectedHorse === i
-                    ? 'ring-2 ring-yellow-400'
-                    : 'hover:bg-white/5'
+                    ? 'ring-2 text-white'
+                    : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50'
                 }`}
-                style={{ backgroundColor: `${HORSE_COLORS[i]}30` }}
+                style={{
+                  backgroundColor: selectedHorse === i ? horse.color : undefined,
+                  ringColor: horse.color
+                }}
               >
-                <div 
-                  className="w-8 h-8 mx-auto rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: HORSE_COLORS[i] }}
-                >
-                  {i + 1}
-                </div>
-                <div className="text-xs text-gray-400 mt-1 text-center">{name}</div>
+                <span className="text-lg">{horse.emoji}</span>
+                <span className="truncate w-full text-center">{horse.name}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Payout Info */}
-        <div className="bg-black/30 rounded-xl p-3">
-          <div className="flex justify-between text-gray-400">
-            <span>Selected:</span>
-            <span className="font-bold" style={{ color: HORSE_COLORS[selectedHorse] }}>
-              #{selectedHorse + 1} {HORSE_NAMES[selectedHorse]}
-            </span>
-          </div>
-          <div className="flex justify-between text-gray-400 mt-1">
-            <span>Payout:</span>
-            <span className="text-green-400 font-bold">{MULTIPLIER + 1}x</span>
-          </div>
+        <div className="bg-black/30 rounded-lg p-2 text-center">
+          <div className="text-xs text-gray-500">Win Multiplier</div>
+          <div className="text-xl font-bold text-yellow-400">{MULTIPLIER + 1}x</div>
+          <div className="text-xs text-gray-500">Potential Win: ${(bet * (MULTIPLIER + 1)).toFixed(2)}</div>
         </div>
 
         {/* Race Button */}
         <button
           onClick={race}
           disabled={racing || bet <= 0 || bet > state.balance}
-          className={`py-4 rounded-xl font-bold text-lg transition-all ${
+          className={`py-3 rounded-xl font-bold transition-all ${
             racing
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed animate-pulse'
+              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white'
           }`}
         >
-          {racing ? '🏇 RACING...' : 'START RACE'}
+          {racing ? '🏇 RACING...' : '🏁 START RACE'}
         </button>
 
         {/* History */}
         {history.length > 0 && (
-          <div className="space-y-1">
-            <div className="text-xs text-gray-500 uppercase font-bold mb-2">Recent Winners</div>
-            <div className="flex gap-2">
+          <div>
+            <div className="text-xs text-gray-500 uppercase font-bold mb-1">Recent Winners</div>
+            <div className="flex gap-1 flex-wrap">
               {history.map((h, i) => (
                 <div
                   key={i}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold group relative cursor-help"
-                  style={{ backgroundColor: h.color }}
+                  className="px-2 py-1 rounded text-xs font-bold"
+                  style={{ backgroundColor: `${h.color}40`, color: h.color }}
                 >
-                  {h.winner + 1}
-                  <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-24 z-10 text-center whitespace-nowrap font-normal">
-                    {h.horseName}
-                  </div>
+                  {h.emoji} {h.name}
                 </div>
               ))}
             </div>

@@ -271,7 +271,6 @@ import KenoGame from './games/KenoGame';
 import LimboGame from './games/LimboGame';
 import MinesGame from './games/MinesGame';
 import PlinkoGame from './games/PlinkoGame';
-import RouletteGame from './games/RouletteGame';
 import SicboGame from './games/SicboGame';
 import SlotsGame from './games/SlotsGame';
 import StockExchange from './games/StockExchange';
@@ -283,11 +282,9 @@ import VideoPokerGame from './games/VideoPokerGame';
 
 const GAMES = [
   { id: 'dashboard', name: 'Dashboard', icon: Icons.Home, component: Dashboard, color: '#00f5ff' },
-  { id: 'stockexchange', name: 'Stock Exchange', icon: Icons.Stock, component: StockExchange, color: '#00ff88', featured: true },
   { id: 'dice', name: 'Dice', icon: Icons.Dice, component: DiceGame, color: '#00f5ff' },
   { id: 'mines', name: 'Mines', icon: Icons.Mine, component: MinesGame, color: '#ff3366' },
   { id: 'crash', name: 'Crash', icon: Icons.Rocket, component: CrashGame, color: '#ff8800' },
-  { id: 'roulette', name: 'Roulette', icon: Icons.Roulette, component: RouletteGame, color: '#00cc66' },
   { id: 'plinko', name: 'Plinko', icon: Icons.Plinko, component: PlinkoGame, color: '#00ddff' },
   { id: 'limbo', name: 'Limbo', icon: Icons.Target, component: LimboGame, color: '#aa00ff' },
   { id: 'coinflip', name: 'Coin Flip', icon: Icons.Coin, component: CoinFlipGame, color: '#ffee00' },
@@ -305,6 +302,9 @@ const GAMES = [
   { id: 'sicbo', name: 'Sicbo', icon: Icons.DiceThree, component: SicboGame, color: '#ff9933' },
   { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' }
 ];
+
+// Stock Exchange is separate - not in GAMES array
+const STOCK_EXCHANGE = { id: 'stockexchange', name: 'Stock Exchange', icon: Icons.Stock, component: StockExchange, color: '#00ff88' };
 
 export default function App() {
   const {
@@ -345,8 +345,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const ActiveGameComponent = GAMES.find(g => g.id === activeGame)?.component || DiceGame;
-  const activeGameData = GAMES.find(g => g.id === activeGame);
+  const ActiveGameComponent = activeGame === 'stockexchange'
+    ? STOCK_EXCHANGE.component
+    : GAMES.find(g => g.id === activeGame)?.component || DiceGame;
+  const activeGameData = activeGame === 'stockexchange'
+    ? STOCK_EXCHANGE
+    : GAMES.find(g => g.id === activeGame);
 
   useEffect(() => {
     audio.setEnabled(state.settings.soundEnabled);
@@ -389,30 +393,50 @@ export default function App() {
                   key={game.id}
                   onClick={() => handleGameChange(game.id)}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
-                    game.featured 
-                      ? 'bg-gradient-to-r from-green-900/40 to-cyan-900/40 border border-green-500/30 mb-2' 
-                      : ''
-                  } ${
                     activeGame === game.id
                       ? 'bg-gradient-to-r from-cyan-500/20 to-transparent border-l-2'
                       : 'hover:bg-white/5'
                   }`}
                   style={{
-                    borderColor: activeGame === game.id ? game.color : game.featured ? undefined : 'transparent',
+                    borderColor: activeGame === game.id ? game.color : 'transparent',
                     color: activeGame === game.id ? game.color : '#888'
                   }}
                 >
-                  <div className={`w-6 h-6 ${game.featured ? 'text-green-400' : ''}`}>
+                  <div className="w-6 h-6">
                     <game.icon />
                   </div>
                   {sidebarOpen && (
-                    <span className={`font-medium ${activeGame === game.id ? 'text-white' : ''} ${game.featured ? 'text-green-400' : ''}`}>
+                    <span className={`font-medium ${activeGame === game.id ? 'text-white' : ''}`}>
                       {game.name}
-                      {game.featured && <span className="ml-1 text-[10px] bg-green-500/30 px-1.5 py-0.5 rounded text-green-300">NEW</span>}
                     </span>
                   )}
                 </button>
               ))}
+            </div>
+
+            {/* Stock Exchange - Special Button */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <button
+                onClick={() => handleGameChange('stockexchange')}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                  bg-gradient-to-r from-green-900/40 to-cyan-900/40 border border-green-500/30 ${
+                  activeGame === 'stockexchange'
+                    ? 'border-green-400 shadow-lg shadow-green-500/20'
+                    : 'hover:border-green-400/50'
+                }`}
+                style={{
+                  color: activeGame === 'stockexchange' ? '#00ff88' : '#00cc66'
+                }}
+              >
+                <div className="w-6 h-6 text-green-400">
+                  <STOCK_EXCHANGE.icon />
+                </div>
+                {sidebarOpen && (
+                  <span className="font-medium text-green-400">
+                    {STOCK_EXCHANGE.name}
+                  </span>
+                )}
+              </button>
             </div>
           </nav>
         </div>
@@ -522,7 +546,7 @@ export default function App() {
         </header>
 
         {/* Game Area */}
-        <div className="flex-1 p-4 lg:p-6 overflow-auto">
+        <div className={`flex-1 p-4 lg:p-6 ${activeGame === 'dashboard' ? 'overflow-auto' : 'overflow-hidden'}`}>
           {activeGame === 'dashboard' ? (
             <ActiveGameComponent onSelectGame={handleGameChange} />
           ) : (

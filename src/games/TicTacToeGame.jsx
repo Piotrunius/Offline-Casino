@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
@@ -43,7 +43,7 @@ export default function TicTacToeGame() {
 
   const getAIMove = useCallback((squares, aiDifficulty) => {
     const emptySquares = squares.map((s, i) => s === null ? i : null).filter(i => i !== null);
-    
+
     if (emptySquares.length === 0) return null;
 
     // In god mode, AI makes stupid moves
@@ -316,7 +316,7 @@ export default function TicTacToeGame() {
               : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white'
           }`}
         >
-          {gamePhase === 'betting' ? 'START GAME' : 
+          {gamePhase === 'betting' ? 'START GAME' :
            gamePhase === 'playing' ? 'PLAYING...' :
            'NEW GAME'}
         </button>
@@ -330,7 +330,7 @@ export default function TicTacToeGame() {
                 <div
                   key={i}
                   className={`flex justify-between px-3 py-2 rounded-lg text-sm ${
-                    h.outcome === 'win' ? 'bg-green-900/30 text-green-400' : 
+                    h.outcome === 'win' ? 'bg-green-900/30 text-green-400' :
                     h.outcome === 'tie' ? 'bg-gray-700/30 text-gray-400' :
                     'bg-red-900/30 text-red-400'
                   }`}

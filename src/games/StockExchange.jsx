@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
@@ -90,7 +90,7 @@ export default function StockExchange() {
         const trendEffect = stock.trend;
         const priceChange = 1 + marketEffect + randomWalk + trendEffect;
         const newPrice = Math.max(0.01, stock.price * priceChange);
-        
+
         return { ...stock, price: newPrice };
       }));
 
@@ -133,7 +133,7 @@ export default function StockExchange() {
   const generateNewsEvent = () => {
     const randomStock = stocks[Math.floor(Math.random() * stocks.length)];
     const event = NEWS_EVENTS[Math.floor(Math.random() * NEWS_EVENTS.length)];
-    
+
     const newsItem = {
       id: Date.now(),
       time: new Date().toLocaleTimeString(),
@@ -217,8 +217,8 @@ export default function StockExchange() {
   }, [selectedStock, orderAmount, orderType, stocks, state.balance, portfolio, setBalance]);
 
   const toggleWatchlist = (symbol) => {
-    setWatchlist(prev => 
-      prev.includes(symbol) 
+    setWatchlist(prev =>
+      prev.includes(symbol)
         ? prev.filter(s => s !== symbol)
         : [...prev, symbol]
     );
@@ -295,7 +295,7 @@ export default function StockExchange() {
             </text>
           </g>
         ))}
-        
+
         {/* Area fill */}
         <defs>
           <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
@@ -307,7 +307,7 @@ export default function StockExchange() {
           points={`0,${height} ${points} ${width},${height}`}
           fill="url(#chartGradient)"
         />
-        
+
         {/* Line */}
         <polyline
           points={points}
@@ -494,7 +494,7 @@ export default function StockExchange() {
         {selectedStock && (
           <div className="bg-black/30 rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-3">TRADE {selectedStock.symbol}</div>
-            
+
             {/* Buy/Sell Toggle */}
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
@@ -518,13 +518,23 @@ export default function StockExchange() {
             {/* Amount */}
             <div className="mb-3">
               <label className="text-xs text-gray-500">Shares</label>
-              <input
-                type="number"
-                value={orderAmount}
-                onChange={(e) => setOrderAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-white mt-1"
-                min="1"
-              />
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="number"
+                  value={orderAmount}
+                  onChange={(e) => setOrderAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-white"
+                  min="1"
+                />
+                {orderType === 'sell' && portfolio[selectedStock.symbol] > 0 && (
+                  <button
+                    onClick={() => setOrderAmount(portfolio[selectedStock.symbol])}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-white font-bold text-sm"
+                  >
+                    ALL
+                  </button>
+                )}
+              </div>
               <div className="flex gap-1 mt-1">
                 {[1, 5, 10, 50].map(n => (
                   <button

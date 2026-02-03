@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
@@ -28,21 +28,21 @@ export default function ThreeCupsGame() {
     audio.playBet();
     setResult(null);
     setSelectedCup(null);
-    
+
     // Show ball under middle cup
     const initialBallPos = Math.floor(Math.random() * 3);
     setBallPosition(initialBallPos);
     setCupPositions([0, 1, 2]);
     setGamePhase('showing');
-    
+
     // Lift cup to show ball
     setCupsLifted([initialBallPos === 0, initialBallPos === 1, initialBallPos === 2]);
-    
+
     setTimeout(() => {
       // Lower cup
       setCupsLifted([false, false, false]);
       setGamePhase('shuffling');
-      
+
       // Start shuffling after a brief pause
       setTimeout(() => {
         performShuffle(initialBallPos, [0, 1, 2], 0);
@@ -52,7 +52,7 @@ export default function ThreeCupsGame() {
 
   const performShuffle = (ballPos, positions, count) => {
     const shuffles = state.settings.fastMode ? 5 : 10;
-    
+
     if (count >= shuffles) {
       setGamePhase('guessing');
       return;
@@ -66,7 +66,7 @@ export default function ThreeCupsGame() {
 
     // Swap positions
     [newPositions[idx1], newPositions[idx2]] = [newPositions[idx2], newPositions[idx1]];
-    
+
     // Update ball position if one of swapped cups had the ball
     let newBallPos = ballPos;
     if (positions[idx1] === ballPos) {
@@ -87,10 +87,10 @@ export default function ThreeCupsGame() {
 
   const selectCup = (cupIndex) => {
     if (gamePhase !== 'guessing') return;
-    
+
     setSelectedCup(cupIndex);
     setGamePhase('result');
-    
+
     // Reveal all cups
     setCupsLifted([true, true, true]);
     audio.playClick();
@@ -138,7 +138,7 @@ export default function ThreeCupsGame() {
     const visualPos = cupPositions.indexOf(cupIndex);
     const xPos = visualPos * 120 + 60; // Space cups evenly
     const lifted = cupsLifted[cupIndex];
-    
+
     return {
       transform: `translateX(${xPos}px) translateY(${lifted ? '-40px' : '0'})`,
       transition: 'transform 0.3s ease-out'
@@ -171,7 +171,7 @@ export default function ThreeCupsGame() {
           {/* Cups Container */}
           <div className="relative h-40 flex justify-center">
             {/* Ball */}
-            <div 
+            <div
               className="absolute bottom-2 w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 shadow-lg"
               style={{
                 left: `${cupPositions.indexOf(ballPosition) * 120 + 76}px`,
@@ -192,7 +192,7 @@ export default function ThreeCupsGame() {
               >
                 {/* Cup */}
                 <div className="relative">
-                  <div 
+                  <div
                     className="w-24 h-28 bg-gradient-to-b from-amber-600 to-amber-800 rounded-t-full shadow-2xl border-4 border-amber-500"
                     style={{
                       clipPath: 'polygon(10% 100%, 90% 100%, 100% 0%, 0% 0%)'
@@ -201,7 +201,7 @@ export default function ThreeCupsGame() {
                     {/* Cup Shine */}
                     <div className="absolute inset-x-4 top-2 bottom-2 bg-gradient-to-r from-amber-400/20 via-amber-300/40 to-amber-400/20 rounded-t-full" />
                   </div>
-                  
+
                   {/* Cup Number */}
                   <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-gray-400 font-bold">
                     #{cupIndex + 1}
@@ -283,7 +283,7 @@ export default function ThreeCupsGame() {
               : 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white'
           }`}
         >
-          {gamePhase === 'betting' ? 'START GAME' : 
+          {gamePhase === 'betting' ? 'START GAME' :
            gamePhase === 'guessing' ? 'PICK A CUP!' :
            'WATCH...'}
         </button>
