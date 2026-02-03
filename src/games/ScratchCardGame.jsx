@@ -16,7 +16,7 @@ const generateCard = () => {
   // Weighted random - rarer symbols appear less
   const weights = [1, 2, 3, 5, 8, 12, 18, 25];
   const totalWeight = weights.reduce((a, b) => a + b, 0);
-  
+
   for (let i = 0; i < 9; i++) {
     let rand = Math.random() * totalWeight;
     let symbolIdx = 0;
