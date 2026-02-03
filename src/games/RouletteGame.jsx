@@ -1,197 +1,295 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
+import audio from '../utils/audioEngine';
 
-const NUMBERS = Array.from({ length: 37 }, (_, i) => i);
-const RED_NUMBERS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-
-const BET_TYPES = [
-  { id: 'red', label: 'Red', multiplier: 2, check: (n) => RED_NUMBERS.includes(n) },
-  { id: 'black', label: 'Black', multiplier: 2, check: (n) => n !== 0 && !RED_NUMBERS.includes(n) },
-  { id: 'odd', label: 'Odd', multiplier: 2, check: (n) => n !== 0 && n % 2 === 1 },
-  { id: 'even', label: 'Even', multiplier: 2, check: (n) => n !== 0 && n % 2 === 0 },
-  { id: '1-18', label: '1-18', multiplier: 2, check: (n) => n >= 1 && n <= 18 },
-  { id: '19-36', label: '19-36', multiplier: 2, check: (n) => n >= 19 && n <= 36 },
-  { id: '1st12', label: '1st 12', multiplier: 3, check: (n) => n >= 1 && n <= 12 },
-  { id: '2nd12', label: '2nd 12', multiplier: 3, check: (n) => n >= 13 && n <= 24 },
-  { id: '3rd12', label: '3rd 12', multiplier: 3, check: (n) => n >= 25 && n <= 36 },
+const NUMBERS = [
+  { n: 0, c: 'green' }, { n: 32, c: 'red' }, { n: 15, c: 'black' }, { n: 19, c: 'red' },
+  { n: 4, c: 'black' }, { n: 21, c: 'red' }, { n: 2, c: 'black' }, { n: 25, c: 'red' },
+  { n: 17, c: 'black' }, { n: 34, c: 'red' }, { n: 6, c: 'black' }, { n: 27, c: 'red' },
+  { n: 13, c: 'black' }, { n: 36, c: 'red' }, { n: 11, c: 'black' }, { n: 30, c: 'red' },
+  { n: 8, c: 'black' }, { n: 23, c: 'red' }, { n: 10, c: 'black' }, { n: 5, c: 'red' },
+  { n: 24, c: 'black' }, { n: 16, c: 'red' }, { n: 33, c: 'black' }, { n: 1, c: 'red' },
+  { n: 20, c: 'black' }, { n: 14, c: 'red' }, { n: 31, c: 'black' }, { n: 9, c: 'red' },
+  { n: 22, c: 'black' }, { n: 18, c: 'red' }, { n: 29, c: 'black' }, { n: 7, c: 'red' },
+  { n: 28, c: 'black' }, { n: 12, c: 'red' }, { n: 35, c: 'black' }, { n: 3, c: 'red' },
+  { n: 26, c: 'black' }
 ];
+
+const BET_TYPES = {
+  red: { label: 'RED', mult: 2, check: n => NUMBERS.find(x => x.n === n)?.c === 'red' },
+  black: { label: 'BLACK', mult: 2, check: n => NUMBERS.find(x => x.n === n)?.c === 'black' },
+  green: { label: 'GREEN (0)', mult: 36, check: n => n === 0 },
+  odd: { label: 'ODD', mult: 2, check: n => n > 0 && n % 2 === 1 },
+  even: { label: 'EVEN', mult: 2, check: n => n > 0 && n % 2 === 0 },
+  low: { label: '1-18', mult: 2, check: n => n >= 1 && n <= 18 },
+  high: { label: '19-36', mult: 2, check: n => n >= 19 && n <= 36 }
+};
 
 export default function RouletteGame() {
   const { state, placeBet, addWin } = useCasino();
   const [bet, setBet] = useState(10);
-  const [bets, setBets] = useState({});
+  const [betType, setBetType] = useState('red');
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
-  const [rotation, setRotation] = useState(0);
   const [history, setHistory] = useState([]);
+  const [currentNum, setCurrentNum] = useState(NUMBERS[0]);
+  const canvasRef = useRef(null);
+  const wheelRotRef = useRef(0);
+  const ballRotRef = useRef(0);
+  const animRef = useRef(null);
 
-  const totalBet = Object.values(bets).reduce((sum, b) => sum + b, 0);
+  const segAngle = 360 / NUMBERS.length;
 
-  const placeBetOnType = (type) => {
-    if (spinning) return;
-    if (totalBet + bet > state.balance) return;
-    setBets(prev => ({
-      ...prev,
-      [type]: (prev[type] || 0) + bet
-    }));
-  };
+  const drawRoulette = useCallback((wheelRot, ballRot) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  const clearBets = () => {
-    if (!spinning) {
-      setBets({});
-      setResult(null);
-    }
-  };
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - 40;
+
+    ctx.clearRect(0, 0, size, size);
+
+    // Outer wood frame
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 30, 0, Math.PI * 2);
+    ctx.strokeStyle = '#8b7355';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Draw wheel
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((wheelRot * Math.PI) / 180);
+
+    NUMBERS.forEach((num, i) => {
+      const start = (i * segAngle - 90) * Math.PI / 180;
+      const end = ((i + 1) * segAngle - 90) * Math.PI / 180;
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, r, start, end);
+      ctx.closePath();
+
+      // Color
+      ctx.fillStyle = num.c === 'green' ? '#00aa55' : num.c === 'red' ? '#cc0000' : '#111';
+      ctx.fill();
+      ctx.strokeStyle = '#c9a73f';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Number
+      ctx.save();
+      ctx.rotate(start + (segAngle / 2) * Math.PI / 180);
+      ctx.translate(r * 0.78, 0);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(num.n.toString(), 0, 0);
+      ctx.restore();
+    });
+
+    ctx.restore();
+
+    // Inner circle
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fill();
+    ctx.strokeStyle = '#c9a73f';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Ball track
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(201, 167, 63, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Ball
+    const ballDist = r * 0.7;
+    const ballAngle = (ballRot - 90) * Math.PI / 180;
+    const ballX = cx + Math.cos(ballAngle) * ballDist;
+    const ballY = cy + Math.sin(ballAngle) * ballDist;
+
+    // Ball glow
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, 15, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fill();
+
+    // Ball
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
+    const ballGrad = ctx.createRadialGradient(ballX - 2, ballY - 2, 0, ballX, ballY, 8);
+    ballGrad.addColorStop(0, '#fff');
+    ballGrad.addColorStop(1, '#aaa');
+    ctx.fillStyle = ballGrad;
+    ctx.fill();
+
+    // Center
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fill();
+    ctx.strokeStyle = '#c9a73f';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }, [segAngle]);
 
   const spin = useCallback(() => {
-    if (totalBet <= 0 || totalBet > state.balance || spinning) return;
-    if (!placeBet(totalBet, 'roulette')) return;
+    if (spinning || bet <= 0 || bet > state.balance) return;
+    if (!placeBet(bet, 'roulette')) return;
 
     setSpinning(true);
     setResult(null);
+    audio.playBet();
 
-    const winningNumber = Math.floor(Math.random() * 37);
+    // Pick result
+    const resultIdx = Math.floor(Math.random() * NUMBERS.length);
+    const resultNum = NUMBERS[resultIdx];
 
-    // Animate wheel
-    const spins = 5 + Math.floor(Math.random() * 3);
-    const targetAngle = (winningNumber / 37) * 360;
-    const finalRotation = rotation + (spins * 360) + (360 - targetAngle);
-    setRotation(finalRotation);
+    // Animation parameters
+    const wheelSpins = 2 + Math.random();
+    const ballSpins = 5 + Math.random() * 2;
 
-    setTimeout(() => {
-      // Calculate winnings
-      let totalWin = 0;
+    // Calculate final positions
+    // Ball needs to end up over the result segment
+    const targetSegAngle = resultIdx * segAngle + segAngle / 2;
+    const finalWheelRot = wheelRotRef.current + wheelSpins * 360;
+    const finalBallRot = finalWheelRot + targetSegAngle;
 
-      Object.entries(bets).forEach(([betType, amount]) => {
-        const betConfig = BET_TYPES.find(b => b.id === betType);
-        if (betConfig && betConfig.check(winningNumber)) {
-          totalWin += amount * betConfig.multiplier;
-        }
-      });
+    const startWheelRot = wheelRotRef.current;
+    const startBallRot = ballRotRef.current;
+    const totalWheelRot = finalWheelRot - startWheelRot;
+    const totalBallRot = ballSpins * 360 + (finalBallRot - startBallRot);
 
-      if (totalWin > 0) {
-        addWin(totalWin, totalBet, 'roulette', totalWin / totalBet);
-        setResult({ won: true, number: winningNumber, profit: (totalWin - totalBet).toFixed(2) });
-      } else {
-        addWin(0, totalBet, 'roulette', 0);
-        setResult({ won: false, number: winningNumber, profit: (-totalBet).toFixed(2) });
+    const duration = state.settings.fastMode ? 4000 : 7000;
+    const startTime = Date.now();
+    let lastTick = -1;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      // Easing
+      const wheelEase = 1 - Math.pow(1 - progress, 3);
+      const ballEase = 1 - Math.pow(1 - progress, 4);
+
+      const currentWheelRot = startWheelRot + totalWheelRot * wheelEase;
+      const currentBallRot = startBallRot + totalBallRot * ballEase;
+
+      wheelRotRef.current = currentWheelRot;
+      ballRotRef.current = currentBallRot;
+
+      drawRoulette(currentWheelRot, currentBallRot);
+
+      // Calculate current segment under ball
+      const relAngle = ((currentBallRot - currentWheelRot) % 360 + 360) % 360;
+      const segIdx = Math.floor(relAngle / segAngle) % NUMBERS.length;
+      setCurrentNum(NUMBERS[segIdx]);
+
+      // Tick sound
+      if (segIdx !== lastTick && progress < 0.85) {
+        audio.playTick();
+        lastTick = segIdx;
       }
 
-      setHistory(h => [{ number: winningNumber, won: totalWin > 0 }, ...h.slice(0, 14)]);
-      setSpinning(false);
-      setBets({});
-    }, 4000);
-  }, [totalBet, state.balance, spinning, bets, rotation, placeBet, addWin]);
+      if (progress < 1) {
+        animRef.current = requestAnimationFrame(animate);
+      } else {
+        // Done
+        setSpinning(false);
+        setCurrentNum(resultNum);
 
-  const getNumberColor = (n) => {
-    if (n === 0) return 'bg-green-600';
-    return RED_NUMBERS.includes(n) ? 'bg-red-600' : 'bg-gray-800';
-  };
+        const betInfo = BET_TYPES[betType];
+        const won = betInfo.check(resultNum.n);
+
+        if (won) {
+          const winAmount = bet * betInfo.mult;
+          addWin(winAmount, bet, 'roulette', betInfo.mult);
+          audio.playWin();
+          setResult({ won: true, num: resultNum, profit: winAmount - bet });
+        } else {
+          addWin(0, bet, 'roulette', 0);
+          audio.playLose();
+          setResult({ won: false, num: resultNum, profit: -bet });
+        }
+
+        setHistory(h => [resultNum, ...h.slice(0, 19)]);
+      }
+    };
+
+    animRef.current = requestAnimationFrame(animate);
+  }, [spinning, bet, betType, state.balance, state.settings.fastMode, segAngle, placeBet, addWin, drawRoulette]);
+
+  useEffect(() => {
+    drawRoulette(0, 0);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [drawRoulette]);
+
+  const getColorClass = c => c === 'red' ? 'bg-red-600' : c === 'green' ? 'bg-green-600' : 'bg-gray-900';
 
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Roulette Wheel & Table */}
-      <div className="lg:col-span-2 bg-[#1a1a2e] rounded-xl p-6">
-        {/* Wheel */}
-        <div className="relative w-48 h-48 mx-auto mb-8">
-          <div
-            className="w-full h-full rounded-full border-8 border-yellow-600 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900"
-            style={{
-              transform: `rotate(${rotation}deg)`,
-              transition: spinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
-            }}
-          >
-            <div className="w-16 h-16 rounded-full bg-yellow-600 flex items-center justify-center">
-              {result && (
-                <span className={`text-xl font-black ${result.number === 0 ? 'text-green-400' : RED_NUMBERS.includes(result.number) ? 'text-red-400' : 'text-white'}`}>
-                  {result.number}
-                </span>
-              )}
-            </div>
-          </div>
-          {/* Pointer */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1">
-            <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[15px] border-l-transparent border-r-transparent border-t-white" />
+    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 game-card p-6">
+        {/* Current number */}
+        <div className="text-center mb-4">
+          <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-xl ${getColorClass(currentNum.c)}`}>
+            <span className="text-3xl font-black text-white">{currentNum.n}</span>
+            <span className="text-white/70 uppercase">{currentNum.c}</span>
           </div>
         </div>
 
-        {/* Result */}
+        <canvas ref={canvasRef} width={400} height={400} className="w-full max-w-md mx-auto" />
+
         {result && (
-          <div className="text-center mb-6">
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl ${getNumberColor(result.number)}`}>
-              <span className="text-2xl font-black text-white">{result.number}</span>
-            </div>
-            <div className={`text-2xl font-bold mt-2 ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? '+' : ''}{result.profit}
+          <div className="text-center mt-4">
+            <div className={`text-3xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
             </div>
           </div>
         )}
 
-        {/* Betting Table */}
-        <div className="grid grid-cols-3 gap-2 max-w-md mx-auto">
-          {BET_TYPES.map(bt => (
-            <button
-              key={bt.id}
-              onClick={() => placeBetOnType(bt.id)}
-              disabled={spinning}
-              className={`py-3 rounded-lg font-bold text-sm transition ${
-                bets[bt.id]
-                  ? 'bg-cyan-500 text-white'
-                  : bt.id === 'red'
-                    ? 'bg-red-600/30 text-red-400 hover:bg-red-600/50'
-                    : bt.id === 'black'
-                      ? 'bg-gray-700/30 text-gray-300 hover:bg-gray-700/50'
-                      : 'bg-[#12121f] text-gray-400 hover:bg-[#1f1f35] hover:text-white'
-              } disabled:opacity-50`}
-            >
-              {bt.label}
-              {bets[bt.id] && <span className="block text-xs">${bets[bt.id]}</span>}
-            </button>
-          ))}
-        </div>
-
-        {/* History */}
         {history.length > 0 && (
-          <div className="mt-6">
-            <div className="text-xs text-gray-500 uppercase mb-2">Recent Spins</div>
-            <div className="flex gap-1 flex-wrap justify-center">
-              {history.map((h, i) => (
-                <div
-                  key={i}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${getNumberColor(h.number)}`}
-                >
-                  {h.number}
-                </div>
-              ))}
-            </div>
+          <div className="flex gap-2 flex-wrap mt-4 justify-center">
+            {history.slice(0, 12).map((h, i) => (
+              <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ${getColorClass(h.c)}`}>
+                {h.n}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Controls */}
-      <div>
-        <BetControls
-          bet={bet}
-          setBet={setBet}
-          onPlay={spin}
-          disabled={spinning || totalBet === 0}
-          balance={state.balance}
-          buttonText={spinning ? 'SPINNING...' : totalBet === 0 ? 'PLACE BETS' : `SPIN ($${totalBet})`}
-        >
-          <button
-            onClick={clearBets}
-            disabled={spinning}
-            className="w-full py-2 bg-[#12121f] text-gray-400 rounded-lg font-bold hover:text-white disabled:opacity-50 transition"
-          >
-            Clear Bets
-          </button>
+      <div className="space-y-4">
+        <BetControls bet={bet} setBet={setBet} onPlay={spin} disabled={spinning}
+          buttonText={spinning ? 'SPINNING...' : 'SPIN'} />
 
-          <div className="bg-[#12121f] rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-500">Total Bet</div>
-            <div className="text-xl font-bold text-cyan-400">${totalBet.toFixed(2)}</div>
+        <div className="game-card p-4">
+          <div className="text-xs text-gray-500 uppercase mb-3">Bet Type</div>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(BET_TYPES).map(([key, info]) => (
+              <button key={key} onClick={() => !spinning && setBetType(key)}
+                className={`p-3 rounded-lg text-sm font-bold transition-all ${
+                  betType === key
+                    ? key === 'red' ? 'bg-red-600 text-white'
+                    : key === 'black' ? 'bg-gray-900 text-white border border-gray-600'
+                    : key === 'green' ? 'bg-green-600 text-white'
+                    : 'bg-cyan-500/30 text-cyan-400 border border-cyan-500/50'
+                    : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50'
+                }`}>
+                <div>{info.label}</div>
+                <div className="text-xs opacity-70">{info.mult}x</div>
+              </button>
+            ))}
           </div>
-        </BetControls>
+        </div>
       </div>
     </div>
   );

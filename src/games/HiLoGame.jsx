@@ -1,38 +1,76 @@
 import { useCallback, useState } from 'react';
 import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
+import audio from '../utils/audioEngine';
 
-const SUITS = ['♠', '♥', '♦', '♣'];
+const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-const getCardNumericValue = (value) => {
-  if (value === 'A') return 14;
-  if (value === 'K') return 13;
-  if (value === 'Q') return 12;
-  if (value === 'J') return 11;
-  return parseInt(value);
+const getNumericValue = v => v === 'A' ? 14 : v === 'K' ? 13 : v === 'Q' ? 12 : v === 'J' ? 11 : parseInt(v);
+
+const SuitIcon = ({ suit, size = 24 }) => {
+  const red = suit === 'hearts' || suit === 'diamonds';
+  const color = red ? '#ef4444' : '#1f2937';
+
+  const paths = {
+    hearts: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
+    diamonds: 'M12 2L2 12l10 10 10-10L12 2z',
+    clubs: 'M12 2c-2 0-3.5 1.5-3.5 3.5 0 1 .4 1.9 1 2.5-1.5.5-2.5 2-2.5 3.5 0 2 1.5 3.5 3.5 3.5.5 0 1-.1 1.5-.3V17H9v2h6v-2h-3v-2.3c.5.2 1 .3 1.5.3 2 0 3.5-1.5 3.5-3.5 0-1.5-1-3-2.5-3.5.6-.6 1-1.5 1-2.5C15.5 3.5 14 2 12 2z',
+    spades: 'M12 2L4 12c0 3 2 5 4 5 1 0 2-.5 3-1.5V18H9v2h6v-2h-2v-2.5c1 1 2 1.5 3 1.5 2 0 4-2 4-5L12 2z'
+  };
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <path d={paths[suit]} />
+    </svg>
+  );
+};
+
+const Card = ({ card, flipping = false }) => {
+  const red = card.suit === 'hearts' || card.suit === 'diamonds';
+
+  return (
+    <div className={`w-32 h-44 rounded-xl bg-white border-2 border-gray-200 flex flex-col justify-between p-3 shadow-2xl transition-transform ${flipping ? 'animate-flip' : ''}`}>
+      <div className={`flex items-center gap-1 ${red ? 'text-red-500' : 'text-gray-800'}`}>
+        <span className="font-bold text-xl">{card.value}</span>
+        <SuitIcon suit={card.suit} size={18} />
+      </div>
+      <div className="flex justify-center">
+        <SuitIcon suit={card.suit} size={50} />
+      </div>
+      <div className={`flex items-center gap-1 rotate-180 ${red ? 'text-red-500' : 'text-gray-800'}`}>
+        <span className="font-bold text-xl">{card.value}</span>
+        <SuitIcon suit={card.suit} size={18} />
+      </div>
+    </div>
+  );
 };
 
 const createDeck = () => {
   const deck = [];
   for (const suit of SUITS) {
     for (const value of VALUES) {
-      deck.push({ suit, value, numericValue: getCardNumericValue(value) });
+      deck.push({ suit, value });
     }
   }
   return deck.sort(() => Math.random() - 0.5);
 };
 
-const Card = ({ card, size = 'normal' }) => {
-  const isRed = ['♥', '♦'].includes(card?.suit);
-  const sizeClasses = size === 'large' ? 'w-24 h-36 text-2xl' : 'w-16 h-24 text-lg';
-
-  return (
-    <div className={`${sizeClasses} rounded-lg bg-white border-2 border-gray-300 flex flex-col items-center justify-center ${isRed ? 'text-red-600' : 'text-black'}`}>
-      <span className="font-bold">{card.value}</span>
-      <span className="text-xl">{card.suit}</span>
-    </div>
-  );
+// Bet types with multipliers based on probability
+const BET_TYPES = {
+  higher: { label: 'HIGHER', getMult: (v) => Math.max(1.1, (14 / (14 - v + 1)).toFixed(2)) },
+  lower: { label: 'LOWER', getMult: (v) => Math.max(1.1, (14 / (v - 1 || 1)).toFixed(2)) },
+  same: { label: 'SAME', getMult: () => 12 },
+  red: { label: 'RED ♥♦', getMult: () => 2, check: c => c.suit === 'hearts' || c.suit === 'diamonds' },
+  black: { label: 'BLACK ♠♣', getMult: () => 2, check: c => c.suit === 'clubs' || c.suit === 'spades' },
+  hearts: { label: '♥ HEARTS', getMult: () => 4, check: c => c.suit === 'hearts' },
+  diamonds: { label: '♦ DIAMONDS', getMult: () => 4, check: c => c.suit === 'diamonds' },
+  clubs: { label: '♣ CLUBS', getMult: () => 4, check: c => c.suit === 'clubs' },
+  spades: { label: '♠ SPADES', getMult: () => 4, check: c => c.suit === 'spades' },
+  face: { label: 'FACE (J/Q/K)', getMult: () => 4.3, check: c => ['J', 'Q', 'K'].includes(c.value) },
+  ace: { label: 'ACE', getMult: () => 13, check: c => c.value === 'A' },
+  odd: { label: 'ODD', getMult: () => 2.1, check: c => !['A', 'J', 'Q', 'K'].includes(c.value) && parseInt(c.value) % 2 === 1 },
+  even: { label: 'EVEN', getMult: () => 2.1, check: c => !['A', 'J', 'Q', 'K'].includes(c.value) && parseInt(c.value) % 2 === 0 },
 };
 
 export default function HiLoGame() {
@@ -40,247 +78,257 @@ export default function HiLoGame() {
   const [bet, setBet] = useState(10);
   const [deck, setDeck] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
-  const [gameState, setGameState] = useState('betting'); // betting, playing, finished
-  const [result, setResult] = useState(null);
+  const [nextCard, setNextCard] = useState(null);
+  const [phase, setPhase] = useState('betting'); // betting, playing, revealing, finished
   const [streak, setStreak] = useState(0);
   const [multiplier, setMultiplier] = useState(1);
+  const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
-  const [potentialWin, setPotentialWin] = useState(0);
+  const [revealing, setRevealing] = useState(false);
 
-  const startGame = useCallback(() => {
+  const start = useCallback(() => {
     if (bet <= 0 || bet > state.balance) return;
     if (!placeBet(bet, 'hilo')) return;
 
     const newDeck = createDeck();
-    const firstCard = newDeck.pop();
+    const first = newDeck.pop();
 
     setDeck(newDeck);
-    setCurrentCard(firstCard);
-    setGameState('playing');
-    setResult(null);
+    setCurrentCard(first);
+    setNextCard(null);
+    setPhase('playing');
     setStreak(0);
     setMultiplier(1);
-    setPotentialWin(bet);
+    setResult(null);
+    setRevealing(false);
+    audio.playBet();
   }, [bet, state.balance, placeBet]);
 
-  const calculateOdds = (card, guess) => {
-    // Calculate probability of winning based on card value
-    const value = card.numericValue;
+  const guess = (betType) => {
+    if (phase !== 'playing' || deck.length === 0) return;
 
-    if (guess === 'higher') {
-      // Cards higher than current: 14 - value cards × 4 suits
-      const higherCards = (14 - value) * 4;
-      return higherCards / 51; // 51 remaining cards
-    } else {
-      // Cards lower than current: (value - 2) cards × 4 suits
-      const lowerCards = (value - 2) * 4;
-      return lowerCards / 51;
-    }
+    setRevealing(true);
+    const newDeck = [...deck];
+    const drawn = newDeck.pop();
+    setNextCard(drawn);
+    setDeck(newDeck);
+    audio.playTick();
+
+    setTimeout(() => {
+      const currentValue = getNumericValue(currentCard.value);
+      const nextValue = getNumericValue(drawn.value);
+      const betInfo = BET_TYPES[betType];
+
+      let won = false;
+
+      // Check win based on bet type
+      if (betType === 'higher') {
+        won = nextValue > currentValue;
+      } else if (betType === 'lower') {
+        won = nextValue < currentValue;
+      } else if (betType === 'same') {
+        won = nextValue === currentValue;
+      } else if (betInfo.check) {
+        won = betInfo.check(drawn);
+      }
+
+      setRevealing(false);
+
+      if (won) {
+        const betMult = parseFloat(betInfo.getMult(currentValue));
+        const newMult = multiplier * betMult;
+        setStreak(streak + 1);
+        setMultiplier(newMult);
+        setCurrentCard(drawn);
+        setNextCard(null);
+        audio.playTick();
+
+        if (newDeck.length === 0) {
+          cashOut(newMult);
+        }
+      } else {
+        setPhase('finished');
+        addWin(0, bet, 'hilo', 0);
+        audio.playLose();
+        setResult({ won: false, streak, profit: -bet });
+        setHistory(h => [{ won: false, streak }, ...h.slice(0, 9)]);
+      }
+    }, state.settings.fastMode ? 300 : 600);
   };
 
-  const guess = useCallback((choice) => {
-    if (gameState !== 'playing' || deck.length === 0) return;
+  const cashOut = (mult = multiplier) => {
+    if (phase !== 'playing' || streak === 0) return;
 
-    const newDeck = [...deck];
-    const nextCard = newDeck.pop();
-    const currentValue = currentCard.numericValue;
-    const nextValue = nextCard.numericValue;
-
-    let won = false;
-    if (choice === 'higher') {
-      won = nextValue > currentValue;
-    } else if (choice === 'lower') {
-      won = nextValue < currentValue;
-    } else if (choice === 'same') {
-      won = nextValue === currentValue;
-    }
-
-    // Calculate new multiplier based on odds
-    const odds = choice === 'same' ? 0.06 : calculateOdds(currentCard, choice);
-    const guessMultiplier = choice === 'same' ? 12 : Math.max(1.1, 1 / odds).toFixed(2);
-
-    if (won) {
-      const newStreak = streak + 1;
-      const newMultiplier = multiplier * parseFloat(guessMultiplier);
-
-      setStreak(newStreak);
-      setMultiplier(newMultiplier);
-      setCurrentCard(nextCard);
-      setDeck(newDeck);
-      setPotentialWin(bet * newMultiplier);
-
-      setResult({
-        won: true,
-        text: choice === 'same' ? 'SAME!' : choice === 'higher' ? 'HIGHER!' : 'LOWER!',
-        card: nextCard
-      });
-    } else {
-      // Lost
-      addWin(0, bet, 'hilo', 0);
-      setGameState('finished');
-      setResult({
-        won: false,
-        text: 'WRONG!',
-        card: nextCard
-      });
-      setHistory(h => [{ won: false, streak }, ...h.slice(0, 9)]);
-    }
-  }, [gameState, deck, currentCard, streak, multiplier, bet, addWin]);
-
-  const cashout = useCallback(() => {
-    if (gameState !== 'playing') return;
-
-    const winAmount = bet * multiplier;
-    addWin(winAmount, bet, 'hilo', multiplier);
-
-    setGameState('finished');
-    setResult({
-      won: true,
-      text: 'CASHED OUT!',
-      cashout: true
-    });
-    setHistory(h => [{ won: true, streak, multiplier }, ...h.slice(0, 9)]);
-  }, [gameState, bet, multiplier, streak, addWin]);
+    const win = bet * mult;
+    addWin(win, bet, 'hilo', mult);
+    audio.playCashout();
+    setPhase('finished');
+    setResult({ won: true, streak, multiplier: mult, profit: win - bet });
+    setHistory(h => [{ won: true, streak }, ...h.slice(0, 9)]);
+  };
 
   const newGame = () => {
-    setGameState('betting');
+    setPhase('betting');
     setCurrentCard(null);
+    setNextCard(null);
     setResult(null);
     setStreak(0);
     setMultiplier(1);
   };
 
-  const getHigherOdds = () => {
-    if (!currentCard) return '0.00';
-    return (calculateOdds(currentCard, 'higher') * 100).toFixed(0);
-  };
-
-  const getLowerOdds = () => {
-    if (!currentCard) return '0.00';
-    return (calculateOdds(currentCard, 'lower') * 100).toFixed(0);
-  };
+  const currentValue = currentCard ? getNumericValue(currentCard.value) : 0;
 
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Game Area */}
-      <div className="lg:col-span-2 bg-[#1a1a2e] rounded-xl p-8">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white">Higher or Lower?</h2>
-          <p className="text-gray-400 text-sm">Guess if the next card is higher or lower</p>
+    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 game-card p-6">
+        {/* Stats */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="text-gray-400 text-sm">Streak</div>
+            <div className="text-3xl font-black text-cyan-400">{streak}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-gray-400 text-sm">Multiplier</div>
+            <div className="text-3xl font-black text-green-400">{multiplier.toFixed(2)}x</div>
+          </div>
         </div>
 
-        {/* Current Card */}
-        <div className="flex justify-center mb-8">
-          {currentCard ? (
-            <div className="relative">
-              <Card card={currentCard} size="large" />
-              {result && result.card && (
-                <div className="absolute -right-20 top-0">
-                  <div className={`transform transition-all ${result.won ? 'scale-100' : 'scale-100'}`}>
-                    <Card card={result.card} size="large" />
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="w-24 h-36 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 border-2 border-blue-400 flex items-center justify-center">
-              <span className="text-4xl">🂠</span>
-            </div>
-          )}
+        {/* Cards */}
+        <div className="flex justify-center items-center gap-8 mb-8 min-h-52">
+          {currentCard && <Card card={currentCard} />}
+          {revealing && nextCard && <Card card={nextCard} flipping />}
         </div>
 
         {/* Result */}
         {result && (
-          <div className={`text-center mb-6 text-3xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-            {result.text}
-          </div>
-        )}
-
-        {/* Game Stats */}
-        {gameState === 'playing' && (
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-[#0a0a14] rounded-xl p-4 text-center">
-              <div className="text-xs text-gray-500 uppercase">Streak</div>
-              <div className="text-2xl font-bold text-white">{streak}</div>
+          <div className="text-center mb-6">
+            <div className={`text-4xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? `WON ${result.multiplier.toFixed(2)}x!` : 'LOST!'}
             </div>
-            <div className="bg-[#0a0a14] rounded-xl p-4 text-center">
-              <div className="text-xs text-gray-500 uppercase">Multiplier</div>
-              <div className="text-2xl font-bold text-cyan-400">{multiplier.toFixed(2)}×</div>
-            </div>
-            <div className="bg-[#0a0a14] rounded-xl p-4 text-center">
-              <div className="text-xs text-gray-500 uppercase">Potential Win</div>
-              <div className="text-2xl font-bold text-green-400">${potentialWin.toFixed(2)}</div>
+            <div className={`text-xl ${result.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {result.profit >= 0 ? '+' : ''}${result.profit.toFixed(2)}
             </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        {gameState === 'playing' && (
-          <div className="flex gap-4 justify-center flex-wrap">
-            <button
-              onClick={() => guess('higher')}
-              className="px-8 py-4 bg-green-500 text-white rounded-xl font-bold hover:brightness-110 transition flex flex-col items-center"
-            >
-              <span className="text-2xl">⬆️</span>
-              <span>HIGHER</span>
-              <span className="text-xs opacity-75">{getHigherOdds()}% chance</span>
-            </button>
-            <button
-              onClick={() => guess('same')}
-              className="px-8 py-4 bg-yellow-500 text-white rounded-xl font-bold hover:brightness-110 transition flex flex-col items-center"
-            >
-              <span className="text-2xl">🟰</span>
-              <span>SAME</span>
-              <span className="text-xs opacity-75">~6% chance</span>
-            </button>
-            <button
-              onClick={() => guess('lower')}
-              className="px-8 py-4 bg-red-500 text-white rounded-xl font-bold hover:brightness-110 transition flex flex-col items-center"
-            >
-              <span className="text-2xl">⬇️</span>
-              <span>LOWER</span>
-              <span className="text-xs opacity-75">{getLowerOdds()}% chance</span>
-            </button>
+        {/* Betting options */}
+        {phase === 'playing' && !revealing && (
+          <div className="space-y-4">
+            {/* Main bets: Higher/Lower/Same */}
+            <div className="grid grid-cols-3 gap-3">
+              <button onClick={() => guess('higher')}
+                className="py-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-lg transition-all">
+                <div>HIGHER ↑</div>
+                <div className="text-sm opacity-80">{BET_TYPES.higher.getMult(currentValue)}x</div>
+              </button>
+              <button onClick={() => guess('same')}
+                className="py-4 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-lg transition-all">
+                <div>SAME =</div>
+                <div className="text-sm opacity-80">{BET_TYPES.same.getMult()}x</div>
+              </button>
+              <button onClick={() => guess('lower')}
+                className="py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-lg transition-all">
+                <div>LOWER ↓</div>
+                <div className="text-sm opacity-80">{BET_TYPES.lower.getMult(currentValue)}x</div>
+              </button>
+            </div>
+
+            {/* Color bets */}
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => guess('red')}
+                className="py-3 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold transition-all">
+                RED ♥♦ (2x)
+              </button>
+              <button onClick={() => guess('black')}
+                className="py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-bold transition-all border border-gray-600">
+                BLACK ♠♣ (2x)
+              </button>
+            </div>
+
+            {/* Suit bets */}
+            <div className="grid grid-cols-4 gap-2">
+              <button onClick={() => guess('hearts')}
+                className="py-2 rounded-lg bg-red-700/50 hover:bg-red-600/50 text-white text-sm font-bold">
+                ♥ 4x
+              </button>
+              <button onClick={() => guess('diamonds')}
+                className="py-2 rounded-lg bg-red-700/50 hover:bg-red-600/50 text-white text-sm font-bold">
+                ♦ 4x
+              </button>
+              <button onClick={() => guess('clubs')}
+                className="py-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 text-white text-sm font-bold">
+                ♣ 4x
+              </button>
+              <button onClick={() => guess('spades')}
+                className="py-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 text-white text-sm font-bold">
+                ♠ 4x
+              </button>
+            </div>
+
+            {/* Special bets */}
+            <div className="grid grid-cols-4 gap-2">
+              <button onClick={() => guess('face')}
+                className="py-2 rounded-lg bg-purple-700/50 hover:bg-purple-600/50 text-white text-sm font-bold">
+                FACE 4.3x
+              </button>
+              <button onClick={() => guess('ace')}
+                className="py-2 rounded-lg bg-yellow-700/50 hover:bg-yellow-600/50 text-white text-sm font-bold">
+                ACE 13x
+              </button>
+              <button onClick={() => guess('odd')}
+                className="py-2 rounded-lg bg-cyan-700/50 hover:bg-cyan-600/50 text-white text-sm font-bold">
+                ODD 2.1x
+              </button>
+              <button onClick={() => guess('even')}
+                className="py-2 rounded-lg bg-cyan-700/50 hover:bg-cyan-600/50 text-white text-sm font-bold">
+                EVEN 2.1x
+              </button>
+            </div>
+
+            {/* Cashout */}
+            {streak > 0 && (
+              <button onClick={() => cashOut()}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black text-xl">
+                CASHOUT ${(bet * multiplier).toFixed(2)}
+              </button>
+            )}
           </div>
         )}
 
-        {/* Cashout Button */}
-        {gameState === 'playing' && streak > 0 && (
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={cashout}
-              className="px-12 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl font-bold hover:brightness-110 transition text-xl"
-            >
-              💰 CASHOUT ${potentialWin.toFixed(2)}
-            </button>
-          </div>
-        )}
-
-        {/* Game Over */}
-        {gameState === 'finished' && (
+        {phase === 'finished' && (
           <div className="flex justify-center">
-            <button
-              onClick={newGame}
-              className="px-8 py-3 bg-cyan-500 text-white rounded-xl font-bold hover:brightness-110 transition"
-            >
+            <button onClick={newGame} className="btn-primary px-8 py-3 font-bold text-lg">
               NEW GAME
             </button>
           </div>
         )}
+      </div>
 
-        {/* History */}
+      <div className="space-y-4">
+        {phase === 'betting' ? (
+          <BetControls bet={bet} setBet={setBet} onPlay={start} buttonText="START" />
+        ) : (
+          <div className="game-card p-4 text-center">
+            <div className="text-gray-400 text-sm">Current Bet</div>
+            <div className="text-3xl font-black text-cyan-400">${bet.toFixed(2)}</div>
+            <div className="text-sm text-gray-500 mt-1">Potential: ${(bet * multiplier).toFixed(2)}</div>
+          </div>
+        )}
+
+        {/* Cards remaining */}
+        <div className="game-card p-4 text-center">
+          <div className="text-gray-400 text-sm">Cards Left</div>
+          <div className="text-2xl font-bold text-white">{deck.length}</div>
+        </div>
+
         {history.length > 0 && (
-          <div className="mt-8">
-            <div className="text-xs text-gray-500 uppercase mb-2">Recent Games</div>
-            <div className="flex gap-2 flex-wrap">
+          <div className="game-card p-4">
+            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
+            <div className="space-y-2">
               {history.map((h, i) => (
-                <div
-                  key={i}
-                  className={`px-3 py-1 rounded-lg text-sm font-bold ${
-                    h.won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                  }`}
-                >
-                  {h.won ? `${h.streak}🔥 ${h.multiplier?.toFixed(2)}×` : `${h.streak}🔥`}
+                <div key={i} className={`flex justify-between text-sm ${h.won ? 'text-green-400' : 'text-red-400'}`}>
+                  <span>{h.won ? 'WIN' : 'LOST'}</span>
+                  <span>Streak: {h.streak}</span>
                 </div>
               ))}
             </div>
@@ -288,38 +336,13 @@ export default function HiLoGame() {
         )}
       </div>
 
-      {/* Controls */}
-      <div>
-        {gameState === 'betting' ? (
-          <BetControls
-            bet={bet}
-            setBet={setBet}
-            onPlay={startGame}
-            disabled={gameState !== 'betting'}
-            balance={state.balance}
-            buttonText="START"
-          />
-        ) : (
-          <div className="bg-[#1a1a2e] rounded-xl p-4 space-y-4">
-            <div className="text-center">
-              <div className="text-xs text-gray-500 uppercase mb-1">Current Bet</div>
-              <div className="text-2xl font-bold text-white">${bet.toFixed(2)}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-gray-500 uppercase mb-1">Cards Left</div>
-              <div className="text-xl font-bold text-gray-400">{deck.length}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Card Reference */}
-        <div className="mt-4 bg-[#1a1a2e] rounded-xl p-4">
-          <h3 className="text-sm font-bold text-white mb-2">Card Order</h3>
-          <div className="text-xs text-gray-400 text-center">
-            A &gt; K &gt; Q &gt; J &gt; 10 &gt; 9 &gt; 8 &gt; 7 &gt; 6 &gt; 5 &gt; 4 &gt; 3 &gt; 2
-          </div>
-        </div>
-      </div>
+      <style>{`
+        @keyframes flip {
+          0% { transform: rotateY(-90deg) scale(0.8); }
+          100% { transform: rotateY(0) scale(1); }
+        }
+        .animate-flip { animation: flip 0.4s ease-out; }
+      `}</style>
     </div>
   );
 }

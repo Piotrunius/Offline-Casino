@@ -1,8 +1,193 @@
-import { useState } from 'react';
-import { CasinoProvider, useCasino } from './context/CasinoContext';
-import './styles/index.css';
+import { useEffect, useState } from 'react';
+import { useCasino } from './context/CasinoContext';
+import audio from './utils/audioEngine';
 
-// Games
+// Icons as SVG components
+const Icons = {
+  Home: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
+  Dice: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="3"/>
+      <circle cx="8" cy="8" r="1" fill="currentColor"/>
+      <circle cx="16" cy="8" r="1" fill="currentColor"/>
+      <circle cx="8" cy="16" r="1" fill="currentColor"/>
+      <circle cx="16" cy="16" r="1" fill="currentColor"/>
+      <circle cx="12" cy="12" r="1" fill="currentColor"/>
+    </svg>
+  ),
+  Mine: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="6"/>
+      <line x1="12" y1="2" x2="12" y2="6"/>
+      <line x1="12" y1="18" x2="12" y2="22"/>
+      <line x1="2" y1="12" x2="6" y2="12"/>
+      <line x1="18" y1="12" x2="22" y2="12"/>
+      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+      <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+    </svg>
+  ),
+  Rocket: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+    </svg>
+  ),
+  Triangle: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="12,2 22,22 2,22"/>
+    </svg>
+  ),
+  Target: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="6"/>
+      <circle cx="12" cy="12" r="2"/>
+    </svg>
+  ),
+  Coin: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v12"/>
+      <path d="M15 9.5c0-1.38-1.34-2.5-3-2.5s-3 1.12-3 2.5 1.34 2.5 3 2.5 3 1.12 3 2.5-1.34 2.5-3 2.5"/>
+    </svg>
+  ),
+  Wheel: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="4"/>
+      <line x1="12" y1="2" x2="12" y2="8"/>
+      <line x1="12" y1="16" x2="12" y2="22"/>
+      <line x1="2" y1="12" x2="8" y2="12"/>
+      <line x1="16" y1="12" x2="22" y2="12"/>
+    </svg>
+  ),
+  Tower: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="6" y="4" width="12" height="4"/>
+      <rect x="7" y="8" width="10" height="4"/>
+      <rect x="8" y="12" width="8" height="4"/>
+      <rect x="9" y="16" width="6" height="4"/>
+    </svg>
+  ),
+  Grid: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7"/>
+      <rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/>
+    </svg>
+  ),
+  Roulette: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M12 2v3"/>
+      <path d="M12 19v3"/>
+      <path d="M2 12h3"/>
+      <path d="M19 12h3"/>
+      <path d="M4.93 4.93l2.12 2.12"/>
+      <path d="M16.95 16.95l2.12 2.12"/>
+      <path d="M4.93 19.07l2.12-2.12"/>
+      <path d="M16.95 7.05l2.12-2.12"/>
+    </svg>
+  ),
+  Cards: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="4" width="14" height="18" rx="2"/>
+      <rect x="8" y="2" width="14" height="18" rx="2"/>
+    </svg>
+  ),
+  Slots: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <line x1="8" y1="4" x2="8" y2="20"/>
+      <line x1="16" y1="4" x2="16" y2="20"/>
+      <circle cx="5" cy="12" r="2"/>
+      <circle cx="12" cy="12" r="2"/>
+      <circle cx="19" cy="12" r="2"/>
+    </svg>
+  ),
+  HiLo: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 5l-7 7h14z"/>
+      <path d="M12 19l-7-7h14z"/>
+    </svg>
+  ),
+  Menu: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  ),
+  Close: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
+  Settings: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  ),
+  Volume: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    </svg>
+  ),
+  VolumeOff: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <line x1="23" y1="9" x2="17" y2="15"/>
+      <line x1="17" y1="9" x2="23" y2="15"/>
+    </svg>
+  ),
+  Plus: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  ),
+  Refresh: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="23 4 23 10 17 10"/>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </svg>
+  ),
+  Stats: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>
+  ),
+  Trophy: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+      <path d="M4 22h16"/>
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </svg>
+  )
+};
+
+// Game imports
+import Dashboard from './components/Dashboard';
 import BlackjackGame from './games/BlackjackGame';
 import CoinFlipGame from './games/CoinFlipGame';
 import CrashGame from './games/CrashGame';
@@ -18,103 +203,391 @@ import TowerGame from './games/TowerGame';
 import WheelGame from './games/WheelGame';
 
 const GAMES = [
-  { id: 'dice', name: 'Dice', icon: '🎲', component: DiceGame },
-  { id: 'mines', name: 'Mines', icon: '💣', component: MinesGame },
-  { id: 'crash', name: 'Crash', icon: '📈', component: CrashGame },
-  { id: 'plinko', name: 'Plinko', icon: '⚪', component: PlinkoGame },
-  { id: 'limbo', name: 'Limbo', icon: '🎯', component: LimboGame },
-  { id: 'coinflip', name: 'Coin Flip', icon: '🪙', component: CoinFlipGame },
-  { id: 'wheel', name: 'Wheel', icon: '🎡', component: WheelGame },
-  { id: 'tower', name: 'Tower', icon: '🗼', component: TowerGame },
-  { id: 'keno', name: 'Keno', icon: '🔢', component: KenoGame },
-  { id: 'roulette', name: 'Roulette', icon: '🎰', component: RouletteGame },
-  { id: 'blackjack', name: 'Blackjack', icon: '🃏', component: BlackjackGame },
-  { id: 'slots', name: 'Slots', icon: '🍒', component: SlotsGame },
-  { id: 'hilo', name: 'Hi-Lo', icon: '↕️', component: HiLoGame },
+  { id: 'dashboard', name: 'Dashboard', icon: Icons.Home, component: Dashboard, color: '#00f5ff' },
+  { id: 'dice', name: 'Dice', icon: Icons.Dice, component: DiceGame, color: '#00f5ff' },
+  { id: 'mines', name: 'Mines', icon: Icons.Mine, component: MinesGame, color: '#ff3366' },
+  { id: 'crash', name: 'Crash', icon: Icons.Rocket, component: CrashGame, color: '#ff8800' },
+  { id: 'plinko', name: 'Plinko', icon: Icons.Triangle, component: PlinkoGame, color: '#00ff88' },
+  { id: 'limbo', name: 'Limbo', icon: Icons.Target, component: LimboGame, color: '#aa00ff' },
+  { id: 'coinflip', name: 'Coin Flip', icon: Icons.Coin, component: CoinFlipGame, color: '#ffee00' },
+  { id: 'wheel', name: 'Wheel', icon: Icons.Wheel, component: WheelGame, color: '#ff00ff' },
+  { id: 'tower', name: 'Tower', icon: Icons.Tower, component: TowerGame, color: '#00ccff' },
+  { id: 'keno', name: 'Keno', icon: Icons.Grid, component: KenoGame, color: '#ff6600' },
+  { id: 'roulette', name: 'Roulette', icon: Icons.Roulette, component: RouletteGame, color: '#00ff00' },
+  { id: 'blackjack', name: 'Blackjack', icon: Icons.Cards, component: BlackjackGame, color: '#ff4444' },
+  { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
+  { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' }
 ];
 
-function MainApp() {
-  const { state, setCurrentGame, addFreeCredits, toggleSidebar } = useCasino();
-  const [activeGame, setActiveGame] = useState('dice');
+export default function App() {
+  const { state, addFreeCredits, updateSettings, exportProgress, importProgress } = useCasino();
+  const [activeGame, setActiveGame] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showExportImport, setShowExportImport] = useState(false);
+  const [exportCode, setExportCode] = useState('');
+  const [importCode, setImportCode] = useState('');
+  const [importStatus, setImportStatus] = useState('');
 
-  const currentGameData = GAMES.find(g => g.id === activeGame);
-  const GameComponent = currentGameData?.component;
+  const ActiveGameComponent = GAMES.find(g => g.id === activeGame)?.component || DiceGame;
+  const activeGameData = GAMES.find(g => g.id === activeGame);
 
-  const handleGameSelect = (gameId) => {
+  useEffect(() => {
+    audio.setEnabled(state.settings.soundEnabled);
+    audio.setVolume(state.settings.soundVolume);
+  }, [state.settings.soundEnabled, state.settings.soundVolume]);
+
+  const handleGameChange = (gameId) => {
+    audio.playClick();
     setActiveGame(gameId);
-    setCurrentGame(gameId);
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
   };
 
   return (
-    <div className="h-screen flex bg-[#0a0a14]">
+    <div className="min-h-screen bg-black flex">
       {/* Sidebar */}
-      <aside className={`${state.sidebarOpen ? 'w-64' : 'w-16'} bg-[#12121f] border-r border-[#1f1f35] flex flex-col transition-all duration-300`}>
-        <div className="p-4 border-b border-[#1f1f35]">
-          <h1 className={`font-black text-xl gradient-text ${!state.sidebarOpen && 'text-center text-sm'}`}>
-            {state.sidebarOpen ? '🎰 Casino' : '🎰'}
-          </h1>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto p-2">
-          {GAMES.map(game => (
-            <button
-              key={game.id}
-              onClick={() => handleGameSelect(game.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${
-                activeGame === game.id
-                  ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400 border border-cyan-500/30'
-                  : 'text-gray-400 hover:bg-[#1a1a2e] hover:text-white'
-              }`}
-            >
-              <span className="text-xl">{game.icon}</span>
-              {state.sidebarOpen && <span className="font-semibold text-sm">{game.name}</span>}
-            </button>
-          ))}
-        </nav>
-
-        <button
-          onClick={() => toggleSidebar()}
-          className="p-4 border-t border-[#1f1f35] text-gray-500 hover:text-white transition"
-        >
-          {state.sidebarOpen ? '◀' : '▶'}
-        </button>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-[#12121f] border-b border-[#1f1f35] flex items-center justify-between px-6">
-          <div className="flex items-center gap-4">
-            <span className="text-2xl">{currentGameData?.icon}</span>
-            <h2 className="text-xl font-bold text-white">{currentGameData?.name}</h2>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#050508] border-r border-white/5 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-20'}`}>
+        <div className="h-full flex flex-col">
+          {/* Logo */}
+          <div className="p-4 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                <span className="text-white font-black text-lg">C</span>
+              </div>
+              {sidebarOpen && (
+                <div>
+                  <h1 className="font-bold text-white">Casino</h1>
+                  <p className="text-xs text-gray-500">Offline Edition</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="bg-[#1a1a2e] rounded-xl px-4 py-2 flex items-center gap-2">
-              <span className="text-gray-400 text-sm">Balance:</span>
-              <span className="text-cyan-400 font-bold text-lg">${state.balance.toFixed(2)}</span>
+          {/* Games List */}
+          <nav className="flex-1 overflow-y-auto py-4 px-2">
+            <div className="space-y-1">
+              {GAMES.map(game => (
+                <button
+                  key={game.id}
+                  onClick={() => handleGameChange(game.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
+                    activeGame === game.id
+                      ? 'bg-gradient-to-r from-cyan-500/20 to-transparent border-l-2'
+                      : 'hover:bg-white/5'
+                  }`}
+                  style={{
+                    borderColor: activeGame === game.id ? game.color : 'transparent',
+                    color: activeGame === game.id ? game.color : '#888'
+                  }}
+                >
+                  <div className="w-6 h-6">
+                    <game.icon />
+                  </div>
+                  {sidebarOpen && (
+                    <span className={`font-medium ${activeGame === game.id ? 'text-white' : ''}`}>
+                      {game.name}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Bottom Actions */}
+          <div className="p-4 border-t border-white/5 space-y-2">
+            <button
+              onClick={() => setShowStats(true)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 transition-colors"
+            >
+              <div className="w-5 h-5"><Icons.Stats /></div>
+              {sidebarOpen && <span className="text-sm">Statistics</span>}
+            </button>
+            <button
+              onClick={() => {
+                setExportCode(exportProgress());
+                setShowExportImport(true);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 transition-colors"
+            >
+              <div className="w-5 h-5"><Icons.Refresh /></div>
+              {sidebarOpen && <span className="text-sm">Save/Load</span>}
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 transition-colors"
+            >
+              <div className="w-5 h-5"><Icons.Settings /></div>
+              {sidebarOpen && <span className="text-sm">Settings</span>}
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+              >
+                <div className="w-5 h-5">
+                  {sidebarOpen ? <Icons.Close /> : <Icons.Menu />}
+                </div>
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8" style={{ color: activeGameData?.color }}>
+                  {activeGameData && <activeGameData.icon />}
+                </div>
+                <h2 className="font-bold text-xl text-white">{activeGameData?.name}</h2>
+              </div>
             </div>
 
-            <button
-              onClick={() => addFreeCredits(1000)}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:brightness-110 transition"
-            >
-              + $1000
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Balance */}
+              <div className="flex items-center gap-2 bg-[#0a0a10] border border-white/10 rounded-xl px-4 py-2">
+                <span className="text-gray-400 text-sm">Balance:</span>
+                <span className="font-bold text-white number-mono">${state.balance.toFixed(2)}</span>
+              </div>
+
+              {/* Add Credits - Only show when balance is low and uses < 3 */}
+              {state.balance <= 10 && (state.freeCreditsUsed || 0) < 3 && (
+                <button
+                  onClick={() => {
+                    if (addFreeCredits(1000)) {
+                      audio.playCashout();
+                    }
+                  }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white px-4 py-2 rounded-xl font-semibold transition-all animate-pulse"
+                >
+                  <div className="w-4 h-4"><Icons.Plus /></div>
+                  <span className="hidden sm:inline">Free $1000</span>
+                  <span className="text-xs opacity-70">({3 - (state.freeCreditsUsed || 0)} left)</span>
+                </button>
+              )}
+
+              {/* Sound Toggle */}
+              <button
+                onClick={() => {
+                  updateSettings({ soundEnabled: !state.settings.soundEnabled });
+                  if (!state.settings.soundEnabled) audio.playClick();
+                }}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                  state.settings.soundEnabled ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-gray-500'
+                }`}
+              >
+                <div className="w-5 h-5">
+                  {state.settings.soundEnabled ? <Icons.Volume /> : <Icons.VolumeOff />}
+                </div>
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-6">
-          {GameComponent && <GameComponent />}
+        {/* Game Area */}
+        <div className="flex-1 p-4 lg:p-6 overflow-auto">
+          {activeGame === 'dashboard' ? (
+            <ActiveGameComponent onSelectGame={handleGameChange} />
+          ) : (
+            <ActiveGameComponent />
+          )}
         </div>
       </main>
-    </div>
-  );
-}
 
-export default function App() {
-  return (
-    <CasinoProvider>
-      <MainApp />
-    </CasinoProvider>
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={() => setShowSettings(false)} />
+          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md animate-bounce-in">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Settings</h3>
+              <button onClick={() => setShowSettings(false)} className="w-8 h-8 text-gray-400 hover:text-white">
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Sound Effects</span>
+                <button
+                  onClick={() => updateSettings({ soundEnabled: !state.settings.soundEnabled })}
+                  className={`w-12 h-6 rounded-full transition-colors ${state.settings.soundEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.soundEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300">Volume</span>
+                  <span className="text-gray-500 text-sm">{Math.round(state.settings.soundVolume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={state.settings.soundVolume}
+                  onChange={(e) => updateSettings({ soundVolume: parseFloat(e.target.value) })}
+                  className="w-full accent-cyan-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Animations</span>
+                <button
+                  onClick={() => updateSettings({ animationsEnabled: !state.settings.animationsEnabled })}
+                  className={`w-12 h-6 rounded-full transition-colors ${state.settings.animationsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.animationsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Fast Mode</span>
+                <button
+                  onClick={() => updateSettings({ fastMode: !state.settings.fastMode })}
+                  className={`w-12 h-6 rounded-full transition-colors ${state.settings.fastMode ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.fastMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Modal */}
+      {showStats && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={() => setShowStats(false)} />
+          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md animate-bounce-in">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Statistics</h3>
+              <button onClick={() => setShowStats(false)} className="w-8 h-8 text-gray-400 hover:text-white">
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-sm">Games Played</div>
+                <div className="text-2xl font-bold text-white">{state.gamesPlayed}</div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-sm">Total Wagered</div>
+                <div className="text-2xl font-bold text-white">${state.totalBets.toFixed(0)}</div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-sm">Total Profit</div>
+                <div className={`text-2xl font-bold ${state.totalWins - state.totalLosses >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ${(state.totalWins - state.totalLosses).toFixed(0)}
+                </div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-sm">Biggest Win</div>
+                <div className="text-2xl font-bold text-yellow-400">${state.biggestWin.toFixed(0)}</div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-sm">Current Streak</div>
+                <div className="text-2xl font-bold text-cyan-400">{state.currentStreak}</div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-sm">Best Streak</div>
+                <div className="text-2xl font-bold text-purple-400">{state.bestStreak}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export/Import Modal */}
+      {showExportImport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={() => setShowExportImport(false)} />
+          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-lg animate-bounce-in">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Save / Load Progress</h3>
+              <button onClick={() => setShowExportImport(false)} className="w-8 h-8 text-gray-400 hover:text-white">
+                <Icons.Close />
+              </button>
+            </div>
+
+            {/* Export Section */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Export Code (copy this to save)</label>
+              <div className="relative">
+                <textarea
+                  readOnly
+                  value={exportCode}
+                  className="w-full h-24 bg-black/50 border border-white/10 rounded-lg p-3 text-xs text-gray-300 font-mono resize-none"
+                  onClick={(e) => e.target.select()}
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(exportCode);
+                    audio.playClick();
+                  }}
+                  className="absolute top-2 right-2 px-3 py-1 bg-cyan-500/20 text-cyan-400 text-xs rounded-lg hover:bg-cyan-500/30"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Import Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Import Code (paste to load)</label>
+              <textarea
+                value={importCode}
+                onChange={(e) => setImportCode(e.target.value)}
+                placeholder="Paste your save code here..."
+                className="w-full h-24 bg-black/50 border border-white/10 rounded-lg p-3 text-xs text-gray-300 font-mono resize-none placeholder-gray-600"
+              />
+              {importStatus && (
+                <div className={`mt-2 text-sm ${importStatus.includes('Success') ? 'text-green-400' : 'text-red-400'}`}>
+                  {importStatus}
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  if (importCode.trim()) {
+                    const success = importProgress(importCode.trim());
+                    if (success) {
+                      setImportStatus('✓ Success! Progress loaded.');
+                      audio.playWin();
+                      setTimeout(() => {
+                        setShowExportImport(false);
+                        setImportStatus('');
+                        setImportCode('');
+                      }, 1500);
+                    } else {
+                      setImportStatus('✗ Invalid code. Please check and try again.');
+                      audio.playLose();
+                    }
+                  }
+                }}
+                className="mt-3 w-full py-3 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-bold rounded-lg transition-all"
+              >
+                Load Progress
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

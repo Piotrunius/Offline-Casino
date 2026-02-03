@@ -1,183 +1,213 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
+import audio from '../utils/audioEngine';
+
+const ROLL_MIN = 0;
+const ROLL_MAX = 100;
 
 export default function DiceGame() {
   const { state, placeBet, addWin } = useCasino();
   const [bet, setBet] = useState(10);
   const [target, setTarget] = useState(50);
-  const [rollOver, setRollOver] = useState(true);
+  const [isOver, setIsOver] = useState(true);
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState(null);
-  const [displayValue, setDisplayValue] = useState(50.00);
+  const [displayRoll, setDisplayRoll] = useState(50);
   const [history, setHistory] = useState([]);
+  const animRef = useRef(null);
 
-  const winChance = rollOver ? (100 - target) : target;
-  const multiplier = parseFloat((99 / winChance).toFixed(4));
-  const profit = (bet * multiplier - bet).toFixed(2);
+  const winChance = isOver ? ROLL_MAX - target : target;
+  const multiplier = winChance > 0 ? (98 / winChance).toFixed(4) : 0;
+
+  useEffect(() => {
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, []);
 
   const roll = useCallback(() => {
     if (rolling || bet <= 0 || bet > state.balance) return;
-
     if (!placeBet(bet, 'dice')) return;
+
     setRolling(true);
     setResult(null);
+    audio.playBet();
 
-    let frame = 0;
-    const maxFrames = 30;
+    const finalRoll = Math.random() * 100;
+    const rollRounded = parseFloat(finalRoll.toFixed(2));
+
+    const duration = state.settings.fastMode ? 500 : 1500;
+    const startTime = Date.now();
 
     const animate = () => {
-      frame++;
-      setDisplayValue((Math.random() * 100).toFixed(2));
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
 
-      if (frame < maxFrames) {
-        requestAnimationFrame(animate);
+      if (progress < 1) {
+        setDisplayRoll(parseFloat((Math.random() * 100).toFixed(2)));
+        animRef.current = requestAnimationFrame(animate);
       } else {
-        const finalValue = parseFloat((Math.random() * 100).toFixed(2));
-        setDisplayValue(finalValue);
+        setDisplayRoll(rollRounded);
 
-        const won = rollOver ? finalValue > target : finalValue < target;
+        const won = isOver ? rollRounded > target : rollRounded < target;
 
         if (won) {
-          const winAmount = bet * multiplier;
-          addWin(winAmount, bet, 'dice', multiplier);
-          setResult({ won: true, value: finalValue, profit: (winAmount - bet).toFixed(2) });
+          const mult = parseFloat(multiplier);
+          const winAmount = bet * mult;
+          addWin(winAmount, bet, 'dice', mult);
+          audio.playWin();
+          setResult({ won: true, roll: rollRounded, multiplier: mult, profit: winAmount - bet });
         } else {
           addWin(0, bet, 'dice', 0);
-          setResult({ won: false, value: finalValue, profit: (-bet).toFixed(2) });
+          audio.playLose();
+          setResult({ won: false, roll: rollRounded, profit: -bet });
         }
 
-        setHistory(h => [{ value: finalValue, won }, ...h.slice(0, 9)]);
+        setHistory(h => [{ won, roll: rollRounded, target, isOver }, ...h.slice(0, 19)]);
         setRolling(false);
       }
     };
 
-    requestAnimationFrame(animate);
-  }, [bet, target, rollOver, rolling, state.balance, placeBet, addWin, multiplier]);
+    animate();
+  }, [bet, state.balance, state.settings.fastMode, target, isOver, multiplier, placeBet, addWin, rolling]);
 
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Game Display */}
-      <div className="lg:col-span-2 bg-[#1a1a2e] rounded-xl p-8">
+    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 game-card p-6">
+        {/* Roll Display */}
         <div className="text-center mb-8">
-          <div className={`text-8xl font-black mb-4 transition-all ${
-            result === null ? 'text-white' : result.won ? 'text-green-400' : 'text-red-400'
+          <div className={`text-8xl font-black tabular-nums ${
+            result
+              ? result.won
+                ? 'text-green-400'
+                : 'text-red-400'
+              : 'text-white'
           }`}>
-            {displayValue}
+            {displayRoll.toFixed(2)}
           </div>
-
           {result && (
-            <div className={`text-2xl font-bold ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? `+$${result.profit}` : `-$${bet.toFixed(2)}`}
+            <div className={`text-2xl font-bold mt-2 ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? `WIN +$${result.profit.toFixed(2)}` : `LOST -$${Math.abs(result.profit).toFixed(2)}`}
             </div>
           )}
         </div>
 
         {/* Slider */}
-        <div className="space-y-4">
-          <div className="relative h-4 bg-[#12121f] rounded-full overflow-hidden">
+        <div className="relative mb-8">
+          <div className="h-4 rounded-full bg-gray-700 overflow-hidden">
             <div
-              className={`absolute top-0 h-full transition-all ${rollOver ? 'bg-green-500/30' : 'bg-red-500/30'}`}
-              style={{
-                left: rollOver ? `${target}%` : '0%',
-                right: rollOver ? '0%' : `${100 - target}%`
-              }}
-            />
-            <div
-              className="absolute top-0 w-1 h-full bg-cyan-400"
-              style={{ left: `${target}%` }}
+              className={`h-full ${isOver ? 'bg-green-600' : 'bg-red-600'} transition-all`}
+              style={{ width: `${isOver ? 100 - target : target}%`, marginLeft: isOver ? `${target}%` : 0 }}
             />
           </div>
-
           <input
             type="range"
             min="2"
             max="98"
+            step="1"
             value={target}
             onChange={(e) => setTarget(parseInt(e.target.value))}
             disabled={rolling}
-            className="w-full"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
-
-          <div className="flex justify-between text-sm text-gray-500">
-            <span>0</span>
-            <span className="text-cyan-400 font-bold">{target}</span>
-            <span>100</span>
-          </div>
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-6 h-8 bg-white rounded shadow-lg pointer-events-none"
+            style={{ left: `calc(${target}% - 12px)` }}
+          />
         </div>
 
-        {/* Roll Type */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
+        {/* Over/Under Toggle */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <button
-            onClick={() => setRollOver(false)}
+            onClick={() => setIsOver(false)}
             disabled={rolling}
-            className={`py-3 rounded-xl font-bold transition ${
-              !rollOver
-                ? 'bg-red-500 text-white'
-                : 'bg-[#12121f] text-gray-400 hover:text-white'
+            className={`py-4 rounded-xl font-bold text-lg transition-all ${
+              !isOver
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
             }`}
           >
-            Roll Under {target}
+            UNDER {target}
           </button>
           <button
-            onClick={() => setRollOver(true)}
+            onClick={() => setIsOver(true)}
             disabled={rolling}
-            className={`py-3 rounded-xl font-bold transition ${
-              rollOver
-                ? 'bg-green-500 text-white'
-                : 'bg-[#12121f] text-gray-400 hover:text-white'
+            className={`py-4 rounded-xl font-bold text-lg transition-all ${
+              isOver
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
             }`}
           >
-            Roll Over {target}
+            OVER {target}
           </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="bg-[#12121f] rounded-xl p-4 text-center">
-            <div className="text-xs text-gray-500 uppercase mb-1">Multiplier</div>
-            <div className="text-xl font-bold text-cyan-400">{multiplier}x</div>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-gray-800/50 rounded-xl p-4 text-center">
+            <div className="text-gray-400 text-xs uppercase">Multiplier</div>
+            <div className="text-2xl font-bold text-green-400">{multiplier}x</div>
           </div>
-          <div className="bg-[#12121f] rounded-xl p-4 text-center">
-            <div className="text-xs text-gray-500 uppercase mb-1">Win Chance</div>
-            <div className="text-xl font-bold text-white">{winChance.toFixed(2)}%</div>
+          <div className="bg-gray-800/50 rounded-xl p-4 text-center">
+            <div className="text-gray-400 text-xs uppercase">Win Chance</div>
+            <div className="text-2xl font-bold text-cyan-400">{winChance.toFixed(2)}%</div>
           </div>
-          <div className="bg-[#12121f] rounded-xl p-4 text-center">
-            <div className="text-xs text-gray-500 uppercase mb-1">Profit</div>
-            <div className="text-xl font-bold text-green-400">+${profit}</div>
+          <div className="bg-gray-800/50 rounded-xl p-4 text-center">
+            <div className="text-gray-400 text-xs uppercase">Profit on Win</div>
+            <div className="text-2xl font-bold text-yellow-400">${(bet * multiplier - bet).toFixed(2)}</div>
           </div>
         </div>
 
-        {/* History */}
+        {/* Roll button */}
+        <button
+          onClick={roll}
+          disabled={rolling || bet <= 0 || bet > state.balance}
+          className={`w-full py-4 rounded-xl font-black text-xl transition-all ${
+            rolling
+              ? 'bg-gray-600 cursor-not-allowed'
+              : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400'
+          } text-white`}
+        >
+          {rolling ? 'ROLLING...' : `ROLL ${isOver ? '>' : '<'} ${target}`}
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <BetControls bet={bet} setBet={setBet} onPlay={roll} buttonText="ROLL" hideButton />
+
+        {/* Quick targets */}
+        <div className="game-card p-4">
+          <div className="text-xs text-gray-500 uppercase mb-3">Quick Target</div>
+          <div className="grid grid-cols-4 gap-2">
+            {[10, 25, 50, 75, 90].map(t => (
+              <button
+                key={t}
+                onClick={() => setTarget(t)}
+                disabled={rolling}
+                className={`py-2 rounded-lg font-bold text-sm transition-all ${
+                  target === t ? 'bg-cyan-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {history.length > 0 && (
-          <div className="mt-6">
-            <div className="text-xs text-gray-500 uppercase mb-2">Recent Rolls</div>
-            <div className="flex gap-2 flex-wrap">
+          <div className="game-card p-4">
+            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {history.map((h, i) => (
-                <div
-                  key={i}
-                  className={`px-3 py-1 rounded-lg text-sm font-bold ${
-                    h.won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                  }`}
-                >
-                  {h.value}
+                <div key={i} className={`flex justify-between text-sm ${h.won ? 'text-green-400' : 'text-red-400'}`}>
+                  <span>{h.roll.toFixed(2)}</span>
+                  <span>{h.isOver ? '>' : '<'} {h.target}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
-      </div>
-
-      {/* Controls */}
-      <div>
-        <BetControls
-          bet={bet}
-          setBet={setBet}
-          onPlay={roll}
-          disabled={rolling}
-          balance={state.balance}
-          buttonText={rolling ? 'ROLLING...' : 'ROLL DICE'}
-        />
       </div>
     </div>
   );

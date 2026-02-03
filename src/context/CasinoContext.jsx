@@ -1,114 +1,143 @@
-import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
+import { createContext, useContext, useEffect, useReducer } from 'react';
 
-const generateSeed = (length = 16) => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+const CasinoContext = createContext(null);
+
+// Simple encryption/decryption for export (base64 + character shifting)
+const ENCRYPTION_KEY = 'OfflineCasino2024';
+
+const encrypt = (data) => {
+  const json = JSON.stringify(data);
+  let encrypted = '';
+  for (let i = 0; i < json.length; i++) {
+    const charCode = json.charCodeAt(i) + ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
+    encrypted += String.fromCharCode(charCode);
+  }
+  return btoa(encrypted);
+};
+
+const decrypt = (data) => {
+  try {
+    const decoded = atob(data);
+    let decrypted = '';
+    for (let i = 0; i < decoded.length; i++) {
+      const charCode = decoded.charCodeAt(i) - ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
+      decrypted += String.fromCharCode(charCode);
+    }
+    return JSON.parse(decrypted);
+  } catch (e) {
+    console.error('Decryption failed:', e);
+    return null;
+  }
 };
 
 const initialState = {
   balance: 1000,
-  currentGame: null,
-  sidebarOpen: true,
-  modalOpen: null,
+  totalBets: 0,
+  totalWins: 0,
+  totalLosses: 0,
+  gamesPlayed: 0,
+  biggestWin: 0,
+  currentStreak: 0,
+  bestStreak: 0,
+  freeCreditsUsed: 0,
   history: [],
-  stats: {
-    totalBets: 0,
-    totalWagered: 0,
-    totalWon: 0,
-    netProfit: 0,
-    biggestWin: 0,
-    wins: 0,
-    losses: 0
-  },
   settings: {
     soundEnabled: true,
-    animations: true
-  },
-  clientSeed: generateSeed(16),
-  nonce: 0
-};
-
-const ACTIONS = {
-  SET_BALANCE: 'SET_BALANCE',
-  PLACE_BET: 'PLACE_BET',
-  ADD_WIN: 'ADD_WIN',
-  SET_GAME: 'SET_GAME',
-  TOGGLE_SIDEBAR: 'TOGGLE_SIDEBAR',
-  SET_MODAL: 'SET_MODAL',
-  UPDATE_SETTINGS: 'UPDATE_SETTINGS',
-  RESET_STATS: 'RESET_STATS',
-  LOAD_STATE: 'LOAD_STATE'
-};
-
-const reducer = (state, action) => {
-  switch (action.type) {
-    case ACTIONS.SET_BALANCE:
-      return { ...state, balance: Math.max(0, action.payload) };
-
-    case ACTIONS.PLACE_BET: {
-      const { amount } = action.payload;
-      return {
-        ...state,
-        balance: Math.max(0, state.balance - amount),
-        nonce: state.nonce + 1,
-        stats: {
-          ...state.stats,
-          totalBets: state.stats.totalBets + 1,
-          totalWagered: state.stats.totalWagered + amount
-        }
-      };
-    }
-
-    case ACTIONS.ADD_WIN: {
-      const { amount, bet, game, multiplier } = action.payload;
-      const profit = amount - bet;
-      const isWin = amount > 0;
-
-      const entry = {
-        game, bet, multiplier, payout: amount, profit, win: isWin, timestamp: Date.now()
-      };
-
-      return {
-        ...state,
-        balance: state.balance + amount,
-        history: [entry, ...state.history].slice(0, 100),
-        stats: {
-          ...state.stats,
-          totalWon: state.stats.totalWon + amount,
-          netProfit: state.stats.netProfit + profit,
-          biggestWin: Math.max(state.stats.biggestWin, profit),
-          wins: state.stats.wins + (isWin ? 1 : 0),
-          losses: state.stats.losses + (isWin ? 0 : 1)
-        }
-      };
-    }
-
-    case ACTIONS.SET_GAME:
-      return { ...state, currentGame: action.payload };
-
-    case ACTIONS.TOGGLE_SIDEBAR:
-      return { ...state, sidebarOpen: action.payload ?? !state.sidebarOpen };
-
-    case ACTIONS.SET_MODAL:
-      return { ...state, modalOpen: action.payload };
-
-    case ACTIONS.UPDATE_SETTINGS:
-      return { ...state, settings: { ...state.settings, ...action.payload } };
-
-    case ACTIONS.RESET_STATS:
-      return { ...state, stats: initialState.stats, history: [] };
-
-    case ACTIONS.LOAD_STATE:
-      return { ...state, ...action.payload };
-
-    default:
-      return state;
+    soundVolume: 0.5,
+    animationsEnabled: true,
+    fastMode: false,
+    hotkeys: true
   }
 };
 
-const CasinoContext = createContext(null);
+function reducer(state, action) {
+  switch (action.type) {
+    case 'PLACE_BET': {
+      if (action.amount > state.balance || action.amount <= 0) return state;
+      return {
+        ...state,
+        balance: state.balance - action.amount,
+        totalBets: state.totalBets + action.amount,
+        gamesPlayed: state.gamesPlayed + 1
+      };
+    }
+    case 'ADD_WIN': {
+      const profit = action.amount - action.bet;
+      const isWin = profit > 0;
+      const newStreak = isWin ? state.currentStreak + 1 : 0;
+      return {
+        ...state,
+        balance: state.balance + action.amount,
+        totalWins: state.totalWins + (isWin ? profit : 0),
+        biggestWin: Math.max(state.biggestWin, profit),
+        currentStreak: newStreak,
+        bestStreak: Math.max(state.bestStreak, newStreak),
+        history: [
+          {
+            game: action.game,
+            bet: action.bet,
+            win: action.amount,
+            profit,
+            multiplier: action.multiplier,
+            timestamp: Date.now()
+          },
+          ...state.history.slice(0, 99)
+        ]
+      };
+    }
+    case 'ADD_LOSS': {
+      return {
+        ...state,
+        totalLosses: state.totalLosses + action.amount,
+        currentStreak: 0,
+        history: [
+          {
+            game: action.game,
+            bet: action.amount,
+            win: 0,
+            profit: -action.amount,
+            multiplier: 0,
+            timestamp: Date.now()
+          },
+          ...state.history.slice(0, 99)
+        ]
+      };
+    }
+    case 'ADD_FREE_CREDITS': {
+      return {
+        ...state,
+        balance: state.balance + action.amount,
+        freeCreditsUsed: state.freeCreditsUsed + 1
+      };
+    }
+    case 'UPDATE_SETTINGS': {
+      return {
+        ...state,
+        settings: { ...state.settings, ...action.settings }
+      };
+    }
+    case 'RESET_STATS': {
+      return {
+        ...state,
+        totalBets: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        gamesPlayed: 0,
+        biggestWin: 0,
+        currentStreak: 0,
+        bestStreak: 0,
+        history: []
+      };
+    }
+    case 'LOAD_STATE': {
+      return { ...state, ...action.state };
+    }
+    default:
+      return state;
+  }
+}
 
-export const CasinoProvider = ({ children }) => {
+export function CasinoProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
@@ -116,7 +145,7 @@ export const CasinoProvider = ({ children }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        dispatch({ type: ACTIONS.LOAD_STATE, payload: parsed });
+        dispatch({ type: 'LOAD_STATE', state: parsed });
       } catch (e) {
         console.error('Failed to load state:', e);
       }
@@ -124,68 +153,99 @@ export const CasinoProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const toSave = {
+    localStorage.setItem('casino_state', JSON.stringify({
       balance: state.balance,
-      stats: state.stats,
+      totalBets: state.totalBets,
+      totalWins: state.totalWins,
+      totalLosses: state.totalLosses,
+      gamesPlayed: state.gamesPlayed,
+      biggestWin: state.biggestWin,
+      currentStreak: state.currentStreak,
+      bestStreak: state.bestStreak,
+      freeCreditsUsed: state.freeCreditsUsed,
       history: state.history.slice(0, 50),
       settings: state.settings
-    };
-    localStorage.setItem('casino_state', JSON.stringify(toSave));
-  }, [state.balance, state.stats, state.history, state.settings]);
+    }));
+  }, [state]);
 
-  const placeBet = useCallback((amount, game) => {
+  const placeBet = (amount, game) => {
     if (amount > state.balance || amount <= 0) return false;
-    dispatch({ type: ACTIONS.PLACE_BET, payload: { amount, game } });
+    dispatch({ type: 'PLACE_BET', amount, game });
     return true;
-  }, [state.balance]);
+  };
 
-  const addWin = useCallback((amount, bet, game, multiplier) => {
-    dispatch({ type: ACTIONS.ADD_WIN, payload: { amount, bet, game, multiplier } });
-  }, []);
+  const addWin = (amount, bet, game, multiplier) => {
+    dispatch({ type: 'ADD_WIN', amount, bet, game, multiplier });
+  };
 
-  const setCurrentGame = useCallback((game) => {
-    dispatch({ type: ACTIONS.SET_GAME, payload: game });
-  }, []);
+  const addLoss = (amount, game) => {
+    dispatch({ type: 'ADD_LOSS', amount, game });
+  };
 
-  const toggleSidebar = useCallback((value) => {
-    dispatch({ type: ACTIONS.TOGGLE_SIDEBAR, payload: value });
-  }, []);
+  const addFreeCredits = (amount = 1000) => {
+    if (state.freeCreditsUsed >= 3) return false;
+    dispatch({ type: 'ADD_FREE_CREDITS', amount });
+    return true;
+  };
 
-  const setModal = useCallback((modal) => {
-    dispatch({ type: ACTIONS.SET_MODAL, payload: modal });
-  }, []);
+  const updateSettings = (settings) => {
+    dispatch({ type: 'UPDATE_SETTINGS', settings });
+  };
 
-  const updateSettings = useCallback((settings) => {
-    dispatch({ type: ACTIONS.UPDATE_SETTINGS, payload: settings });
-  }, []);
+  const resetStats = () => {
+    dispatch({ type: 'RESET_STATS' });
+  };
 
-  const resetStats = useCallback(() => {
-    dispatch({ type: ACTIONS.RESET_STATS });
-  }, []);
+  const exportProgress = () => {
+    const exportData = {
+      balance: state.balance,
+      totalBets: state.totalBets,
+      totalWins: state.totalWins,
+      totalLosses: state.totalLosses,
+      gamesPlayed: state.gamesPlayed,
+      biggestWin: state.biggestWin,
+      currentStreak: state.currentStreak,
+      bestStreak: state.bestStreak,
+      freeCreditsUsed: state.freeCreditsUsed,
+      history: state.history.slice(0, 50),
+      settings: state.settings,
+      exportedAt: Date.now()
+    };
+    return encrypt(exportData);
+  };
 
-  const addFreeCredits = useCallback((amount = 1000) => {
-    dispatch({ type: ACTIONS.SET_BALANCE, payload: state.balance + amount });
-  }, [state.balance]);
+  const importProgress = (encryptedData) => {
+    const data = decrypt(encryptedData);
+    if (data && typeof data === 'object' && 'balance' in data) {
+      dispatch({ type: 'LOAD_STATE', state: data });
+      return true;
+    }
+    return false;
+  };
 
   return (
     <CasinoContext.Provider value={{
       state,
       placeBet,
       addWin,
-      setCurrentGame,
-      toggleSidebar,
-      setModal,
+      addLoss,
+      addFreeCredits,
       updateSettings,
       resetStats,
-      addFreeCredits
+      exportProgress,
+      importProgress
     }}>
       {children}
     </CasinoContext.Provider>
   );
-};
+}
 
-export const useCasino = () => {
+export function useCasino() {
   const context = useContext(CasinoContext);
-  if (!context) throw new Error('useCasino must be used within CasinoProvider');
+  if (!context) {
+    throw new Error('useCasino must be used within CasinoProvider');
+  }
   return context;
-};
+}
+
+export default CasinoContext;
