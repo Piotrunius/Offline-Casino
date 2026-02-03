@@ -123,6 +123,50 @@ const Icons = {
       <path d="M12 19l-7-7h14z"/>
     </svg>
   ),
+    Roulette: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="6"/>
+        <line x1="12" y1="2" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+      </svg>
+    ),
+    Horses: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 12c2 0 4-2 4-4s-2-4-4-4-4 2-4 4 2 4 4 4z"/>
+        <path d="M18 12c2 0 4-2 4-4s-2-4-4-4-4 2-4 4 2 4 4 4z"/>
+        <line x1="10" y1="16" x2="14" y2="16"/>
+        <line x1="8" y1="20" x2="16" y2="20"/>
+      </svg>
+    ),
+    Plinko: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="4" r="2" fill="currentColor"/>
+        <circle cx="8" cy="10" r="1.5"/>
+        <circle cx="16" cy="10" r="1.5"/>
+        <circle cx="6" cy="16" r="1.5"/>
+        <circle cx="12" cy="16" r="1.5"/>
+        <circle cx="18" cy="16" r="1.5"/>
+        <path d="M2 22h20"/>
+      </svg>
+    ),
+    Cups: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M4 8h4v8H4z"/>
+        <path d="M10 8h4v8h-4z"/>
+        <path d="M16 8h4v8h-4z"/>
+        <line x1="2" y1="18" x2="22" y2="18"/>
+      </svg>
+    ),
+    TicTacToe: () => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="4" y1="2" x2="4" y2="22"/>
+        <line x1="12" y1="2" x2="12" y2="22"/>
+        <line x1="20" y1="2" x2="20" y2="22"/>
+        <line x1="2" y1="10" x2="22" y2="10"/>
+        <line x1="2" y1="18" x2="22" y2="18"/>
+      </svg>
+    ),
   Menu: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="3" y1="6" x2="21" y2="6"/>
@@ -214,12 +258,17 @@ import CrashGame from './games/CrashGame';
 import DiceGame from './games/DiceGame';
 import DragonTigerGame from './games/DragonTigerGame';
 import HiLoGame from './games/HiLoGame';
+import HorsesGame from './games/HorsesGame';
 import KenoGame from './games/KenoGame';
 import LimboGame from './games/LimboGame';
 import MinesGame from './games/MinesGame';
+import PlinkoGame from './games/PlinkoGame';
+import RouletteGame from './games/RouletteGame';
 import SicboGame from './games/SicboGame';
 import SlotsGame from './games/SlotsGame';
 import ThreeCardPokerGame from './games/ThreeCardPokerGame';
+import ThreeCupsGame from './games/ThreeCupsGame';
+import TicTacToeGame from './games/TicTacToeGame';
 import TowerGame from './games/TowerGame';
 import VideoPokerGame from './games/VideoPokerGame';
 
@@ -239,7 +288,12 @@ const GAMES = [
   { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.DragonTiger, component: DragonTigerGame, color: '#ff6633' },
   { id: 'videopoker', name: 'Video Poker', icon: Icons.VideoPoker, component: VideoPokerGame, color: '#00ccaa' },
   { id: 'sicbo', name: 'Sicbo', icon: Icons.DiceThree, component: SicboGame, color: '#ff9933' },
-  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' }
+  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' },
+  { id: 'roulette', name: 'Roulette', icon: Icons.Roulette, component: RouletteGame, color: '#ff00ff' },
+  { id: 'horses', name: 'Horses', icon: Icons.Horses, component: HorsesGame, color: '#ffaa33' },
+  { id: 'plinko', name: 'Plinko', icon: Icons.Plinko, component: PlinkoGame, color: '#00ff88' },
+  { id: 'threecups', name: '3 Cups Game', icon: Icons.Cups, component: ThreeCupsGame, color: '#ff5555' },
+  { id: 'tictactoe', name: 'Tic Tac Toe', icon: Icons.TicTacToe, component: TicTacToeGame, color: '#55ff55' }
 ];
 
 export default function App() {
