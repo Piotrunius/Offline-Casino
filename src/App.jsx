@@ -386,13 +386,13 @@ export default function App() {
           </div>
 
           {/* Games List */}
-          <nav className="flex-1 overflow-y-auto py-4 px-2">
+          <nav className="flex-1 overflow-y-auto py-4 px-2 scrollbar-thin">
             <div className="space-y-1">
               {GAMES.map(game => (
                 <button
                   key={game.id}
                   onClick={() => handleGameChange(game.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                     activeGame === game.id
                       ? 'bg-gradient-to-r from-cyan-500/20 to-transparent border-l-2'
                       : 'hover:bg-white/5'
@@ -402,41 +402,16 @@ export default function App() {
                     color: activeGame === game.id ? game.color : '#888'
                   }}
                 >
-                  <div className="w-6 h-6">
+                  <div className="w-5 h-5">
                     <game.icon />
                   </div>
                   {sidebarOpen && (
-                    <span className={`font-medium ${activeGame === game.id ? 'text-white' : ''}`}>
+                    <span className={`font-medium text-sm ${activeGame === game.id ? 'text-white' : ''}`}>
                       {game.name}
                     </span>
                   )}
                 </button>
               ))}
-            </div>
-
-            {/* Stock Exchange - Special Button */}
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <button
-                onClick={() => handleGameChange('stockexchange')}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
-                  bg-gradient-to-r from-green-900/40 to-cyan-900/40 border border-green-500/30 ${
-                  activeGame === 'stockexchange'
-                    ? 'border-green-400 shadow-lg shadow-green-500/20'
-                    : 'hover:border-green-400/50'
-                }`}
-                style={{
-                  color: activeGame === 'stockexchange' ? '#00ff88' : '#00cc66'
-                }}
-              >
-                <div className="w-6 h-6 text-green-400">
-                  <STOCK_EXCHANGE.icon />
-                </div>
-                {sidebarOpen && (
-                  <span className="font-medium text-green-400">
-                    {STOCK_EXCHANGE.name}
-                  </span>
-                )}
-              </button>
             </div>
           </nav>
         </div>
@@ -504,6 +479,19 @@ export default function App() {
                 title="Statistics"
               >
                 <div className="w-5 h-5"><Icons.Stats /></div>
+              </button>
+
+              {/* Stock Exchange Button */}
+              <button
+                onClick={() => handleGameChange('stockexchange')}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                  activeGame === 'stockexchange'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-white/5 text-gray-400 hover:text-green-400 hover:bg-green-500/10'
+                }`}
+                title="Stock Exchange"
+              >
+                <div className="w-5 h-5"><Icons.Stock /></div>
               </button>
 
               {/* Save/Load Button */}

@@ -43,6 +43,11 @@ const initialState = {
   globalBet: 50, // Auto-calculated 5% of starting balance
   lastKnownBalance: 1000, // For tracking balance increases
   history: [],
+  stockExchange: {
+    portfolio: {},
+    orderHistory: [],
+    watchlist: ['NEON', 'BOLT', 'APEX']
+  },
   settings: {
     soundEnabled: true,
     soundVolume: 0.5,
@@ -166,6 +171,12 @@ function reducer(state, action) {
         adminSettings: { ...state.adminSettings, ...action.settings }
       };
     }
+    case 'UPDATE_STOCK_EXCHANGE': {
+      return {
+        ...state,
+        stockExchange: { ...state.stockExchange, ...action.data }
+      };
+    }
     case 'LOAD_STATE': {
       return { ...state, ...action.state };
     }
@@ -211,6 +222,7 @@ export function CasinoProvider({ children }) {
       globalBet: state.globalBet,
       lastKnownBalance: state.lastKnownBalance,
       history: state.history.slice(0, 50),
+      stockExchange: state.stockExchange,
       settings: state.settings,
       adminSettings: state.adminSettings
     }));
@@ -312,6 +324,10 @@ export function CasinoProvider({ children }) {
     dispatch({ type: 'UPDATE_ADMIN_SETTINGS', settings });
   };
 
+  const updateStockExchange = (data) => {
+    dispatch({ type: 'UPDATE_STOCK_EXCHANGE', data });
+  };
+
   const exportProgress = () => {
     const exportData = {
       balance: state.balance,
@@ -325,6 +341,7 @@ export function CasinoProvider({ children }) {
       freeCreditsUsed: state.freeCreditsUsed,
       globalBet: state.globalBet,
       history: state.history.slice(0, 50),
+      stockExchange: state.stockExchange,
       settings: state.settings,
       exportedAt: Date.now()
     };
@@ -352,6 +369,7 @@ export function CasinoProvider({ children }) {
       resetStats,
       setBalance,
       updateAdminSettings,
+      updateStockExchange,
       exportProgress,
       importProgress,
       showLargeBetConfirm,

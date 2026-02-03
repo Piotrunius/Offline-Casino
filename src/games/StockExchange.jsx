@@ -32,9 +32,9 @@ const NEWS_EVENTS = [
 const SECTORS = ['tech', 'energy', 'gaming', 'finance', 'industrial', 'healthcare', 'materials', 'consumer'];
 
 export default function StockExchange() {
-  const { state, setBalance } = useCasino();
+  const { state, setBalance, updateStockExchange } = useCasino();
   const [stocks, setStocks] = useState(INITIAL_STOCKS);
-  const [portfolio, setPortfolio] = useState({});
+  const [portfolio, setPortfolio] = useState(state.stockExchange?.portfolio || {});
   const [selectedStock, setSelectedStock] = useState(INITIAL_STOCKS[0]);
   const [orderType, setOrderType] = useState('buy'); // buy, sell
   const [orderAmount, setOrderAmount] = useState(1);
@@ -44,10 +44,15 @@ export default function StockExchange() {
   const [timeSpeed, setTimeSpeed] = useState(1); // 1x, 2x, 5x
   const [chartTimeframe, setChartTimeframe] = useState('1h'); // 1m, 5m, 1h, 1d
   const [totalPortfolioValue, setTotalPortfolioValue] = useState(0);
-  const [watchlist, setWatchlist] = useState(['NEON', 'BOLT', 'APEX']);
-  const [orderHistory, setOrderHistory] = useState([]);
+  const [watchlist, setWatchlist] = useState(state.stockExchange?.watchlist || ['NEON', 'BOLT', 'APEX']);
+  const [orderHistory, setOrderHistory] = useState(state.stockExchange?.orderHistory || []);
   const [marketTrend, setMarketTrend] = useState(0); // Overall market direction
   const tickRef = useRef(null);
+
+  // Save stock exchange state to context
+  useEffect(() => {
+    updateStockExchange({ portfolio, watchlist, orderHistory: orderHistory.slice(0, 20) });
+  }, [portfolio, watchlist, orderHistory]);
 
   // Initialize price history
   useEffect(() => {
