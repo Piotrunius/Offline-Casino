@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import BetControls from '../components/BetControls';
+import { useCallback, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// Multipliers for different risk levels and row counts
 const MULTIPLIERS = {
   8: {
     low: [5.6, 2.1, 1.1, 1, 0.5, 1, 1.1, 2.1, 5.6],
@@ -22,113 +20,20 @@ const MULTIPLIERS = {
   }
 };
 
-const HOUSE_EDGE = 0.01;
-
 export default function PlinkoGame() {
-  const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
+  const { state, placeBet, addWin, setGlobalBet } = useCasino();
+  const [bet, setBet] = useState(state.globalBet || 10);
   const [risk, setRisk] = useState('medium');
   const [rows, setRows] = useState(12);
   const [dropping, setDropping] = useState(false);
   const [result, setResult] = useState(null);
+  const [ballPath, setBallPath] = useState([]);
+  const [ballPos, setBallPos] = useState(null);
   const [history, setHistory] = useState([]);
-  const canvasRef = useRef(null);
   const animRef = useRef(null);
 
   const multipliers = MULTIPLIERS[rows][risk];
-  const bucketCount = rows + 1;
-
-  const drawBoard = useCallback((ballX = null, ballY = null, hitPegs = []) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
-
-    // Background
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, w, h);
-
-    const pegRadius = 4;
-    const startY = 50;
-    const endY = h - 70;
-    const rowSpacing = (endY - startY) / rows;
-
-    // Draw pegs
-    for (let row = 0; row < rows; row++) {
-      const pegsInRow = row + 3;
-      const rowWidth = w * 0.85;
-      const pegSpacing = rowWidth / pegsInRow;
-      const startX = (w - rowWidth) / 2 + pegSpacing / 2;
-
-      for (let peg = 0; peg < pegsInRow; peg++) {
-        const x = startX + peg * pegSpacing;
-        const y = startY + row * rowSpacing;
-        const isHit = hitPegs.some(p => p.row === row && p.peg === peg);
-
-        ctx.beginPath();
-        ctx.arc(x, y, pegRadius, 0, Math.PI * 2);
-        ctx.fillStyle = isHit ? '#00f5ff' : '#3a3a4e';
-        ctx.fill();
-
-        if (isHit) {
-          ctx.shadowColor = '#00f5ff';
-          ctx.shadowBlur = 10;
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        }
-      }
-    }
-
-    // Draw buckets
-    const bucketWidth = (w * 0.9) / bucketCount;
-    const bucketStartX = w * 0.05;
-
-    multipliers.forEach((mult, i) => {
-      const x = bucketStartX + i * bucketWidth;
-      let color = '#666';
-      if (mult >= 100) color = '#ff0066';
-      else if (mult >= 10) color = '#ff3366';
-      else if (mult >= 3) color = '#ff8800';
-      else if (mult >= 1) color = '#00ff88';
-      else if (mult >= 0.5) color = '#888';
-      else color = '#444';
-
-      // Bucket background
-      ctx.fillStyle = `${color}30`;
-      ctx.fillRect(x + 2, h - 60, bucketWidth - 4, 50);
-
-      // Bucket border
-      ctx.strokeStyle = `${color}80`;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x + 2, h - 60, bucketWidth - 4, 50);
-
-      // Multiplier text
-      ctx.fillStyle = color;
-      ctx.font = `bold ${bucketWidth > 30 ? '11px' : '9px'} sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(`${mult}x`, x + bucketWidth / 2, h - 30);
-    });
-
-    // Draw ball
-    if (ballX !== null && ballY !== null) {
-      // Glow
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, 14, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,245,255,0.3)';
-      ctx.fill();
-
-      // Ball
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, 10, 0, Math.PI * 2);
-      const grad = ctx.createRadialGradient(ballX - 3, ballY - 3, 0, ballX, ballY, 10);
-      grad.addColorStop(0, '#00ffff');
-      grad.addColorStop(0.5, '#0088ff');
-      grad.addColorStop(1, '#0044aa');
-      ctx.fillStyle = grad;
-      ctx.fill();
-    }
-  }, [rows, multipliers, bucketCount]);
+  const buckets = rows + 1;
 
   const drop = useCallback(() => {
     if (dropping || bet <= 0 || bet > state.balance) return;
@@ -136,179 +41,218 @@ export default function PlinkoGame() {
 
     setDropping(true);
     setResult(null);
+    setBallPath([]);
     audio.playBet();
 
-    const canvas = canvasRef.current;
-    const w = canvas.width;
-    const h = canvas.height;
-    const startY = 50;
-    const endY = h - 70;
-    const rowSpacing = (endY - startY) / rows;
-
-    // Pre-calculate the path (which direction at each peg)
+    // Calculate path - ball goes left or right at each row
     const path = [];
+    let position = 0;
     for (let i = 0; i < rows; i++) {
-      path.push(Math.random() > 0.5 ? 1 : -1);
+      const goRight = Math.random() > 0.5;
+      position += goRight ? 1 : 0;
+      path.push({ row: i, pos: position, dir: goRight ? 'R' : 'L' });
     }
 
-    // Calculate final bucket from path
-    let position = 0;
-    path.forEach(dir => position += dir);
-    // Map position to bucket index
-    // position ranges from -rows to +rows, we need 0 to bucketCount-1
-    const bucketIdx = Math.round((position + rows) / 2);
-    const clampedBucket = Math.max(0, Math.min(bucketCount - 1, bucketIdx));
-    const mult = multipliers[clampedBucket];
+    const finalBucket = position;
+    const mult = multipliers[finalBucket];
+    const winAmount = bet * mult;
 
-    // Animation state
-    let ballX = w / 2;
-    let ballY = 20;
-    let currentRow = -1;
-    let hitPegs = [];
-    let velocityY = 0;
-    let velocityX = 0;
-
+    // Animate ball falling
+    let step = 0;
     const animate = () => {
-      // Calculate target for current row
-      const targetRow = Math.min(Math.floor((ballY - startY + rowSpacing / 2) / rowSpacing), rows - 1);
-
-      if (targetRow > currentRow && currentRow < rows - 1) {
-        currentRow = targetRow;
-        audio.playTick();
-
-        // Calculate peg position
-        const pegsInRow = currentRow + 3;
-        const rowWidth = w * 0.85;
-        const pegSpacing = rowWidth / pegsInRow;
-        const startX = (w - rowWidth) / 2 + pegSpacing / 2;
-
-        // Determine which peg we're hitting based on accumulated path
-        let posSum = 0;
-        for (let i = 0; i <= currentRow; i++) posSum += path[i];
-
-        // Calculate peg index from position
-        const centerPeg = (pegsInRow - 1) / 2;
-        const pegIdx = Math.round(centerPeg + posSum / 2);
-        const clampedPeg = Math.max(0, Math.min(pegsInRow - 1, pegIdx));
-
-        hitPegs.push({ row: currentRow, peg: clampedPeg });
-
-        // Set new target X based on direction
-        const targetX = startX + clampedPeg * pegSpacing + (path[currentRow] > 0 ? pegSpacing / 2 : -pegSpacing / 2);
-        velocityX = (targetX - ballX) * 0.3;
-      }
-
-      // Physics
-      velocityY += 0.8;
-      velocityY *= 0.95;
-      velocityX *= 0.92;
-
-      ballY += velocityY;
-      ballX += velocityX;
-
-      // Keep ball in bounds
-      ballX = Math.max(30, Math.min(w - 30, ballX));
-
-      drawBoard(ballX, ballY, hitPegs);
-
-      // Check if reached bottom
-      if (ballY >= h - 45) {
+      if (step <= rows) {
+        setBallPos({ row: step, pos: step === 0 ? rows / 2 : path[step - 1]?.pos + (rows - step) / 2 });
+        setBallPath(path.slice(0, step));
+        step++;
+        animRef.current = setTimeout(animate, state.settings.fastMode ? 50 : 120);
+      } else {
         setDropping(false);
+        setBallPos(null);
+        setResult({ bucket: finalBucket, mult, win: winAmount });
+        setHistory(h => [{ mult, win: winAmount > bet }, ...h.slice(0, 4)]);
 
-        // Center ball in bucket
-        const bucketWidth = (w * 0.9) / bucketCount;
-        const bucketStartX = w * 0.05;
-        const finalX = bucketStartX + clampedBucket * bucketWidth + bucketWidth / 2;
-        drawBoard(finalX, h - 45, hitPegs);
-
-        if (mult >= 1) {
-          const win = bet * mult;
-          addWin(win, bet, 'plinko', mult);
-          mult >= 3 ? audio.playWin() : audio.playTick();
-          setResult({ won: true, mult, profit: win - bet, bucket: clampedBucket });
+        if (winAmount > bet) {
+          addWin(winAmount, bet, 'plinko', mult);
+          audio.playWin();
         } else {
-          const win = bet * mult;
-          addWin(win, bet, 'plinko', mult);
-          audio.playLose();
-          setResult({ won: false, mult, profit: win - bet, bucket: clampedBucket });
+          addWin(winAmount, bet, 'plinko', mult);
+          if (mult === 0) audio.playLose();
         }
-
-        setHistory(h => [{ mult, won: mult >= 1 }, ...h.slice(0, 4)]);
-        return;
       }
-
-      animRef.current = requestAnimationFrame(animate);
     };
-
     animate();
-  }, [dropping, bet, state.balance, rows, multipliers, bucketCount, placeBet, addWin, drawBoard]);
 
-  useEffect(() => {
-    drawBoard();
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, [drawBoard]);
+    return () => clearTimeout(animRef.current);
+  }, [dropping, bet, state.balance, rows, risk, multipliers, placeBet, addWin, state.settings.fastMode]);
+
+  const handleBetChange = (val) => {
+    const v = Math.min(Math.max(1, val), state.balance);
+    setBet(v);
+    setGlobalBet(v);
+  };
+
+  // Calculate peg positions
+  const getPegX = (row, pegIndex) => {
+    const totalPegs = row + 3;
+    const spacing = 100 / (totalPegs + 1);
+    return spacing * (pegIndex + 1);
+  };
+
+  const getPegY = (row) => 8 + (row * (72 / rows));
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 game-card p-6">
-        <div className="flex justify-between items-center mb-2">
-          <div className="text-xs text-gray-500">House Edge: {(HOUSE_EDGE * 100).toFixed(0)}%</div>
-          <div className="text-sm text-gray-400">{rows} rows | {risk}</div>
+    <div className="h-full flex gap-3">
+      {/* Game Area - LEFT */}
+      <div className="flex-1 bg-[#0a0a12] rounded-xl p-3 flex flex-col">
+        <div className="flex-1 relative overflow-hidden">
+          {/* Pegs */}
+          <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+            {/* Draw pegs */}
+            {Array.from({ length: rows }).map((_, row) => {
+              const pegsInRow = row + 3;
+              return Array.from({ length: pegsInRow }).map((_, peg) => {
+                const x = getPegX(row, peg);
+                const y = getPegY(row);
+                const isHit = ballPath.some(p => p.row === row);
+                return (
+                  <circle
+                    key={`${row}-${peg}`}
+                    cx={x}
+                    cy={y}
+                    r={0.8}
+                    fill={isHit ? '#00f5ff' : '#444'}
+                    className={isHit ? 'animate-pulse' : ''}
+                  />
+                );
+              });
+            })}
+
+            {/* Ball */}
+            {ballPos && (
+              <circle
+                cx={getPegX(ballPos.row, ballPos.pos) || 50}
+                cy={getPegY(ballPos.row)}
+                r={1.5}
+                fill="#ff6600"
+                className="drop-shadow-lg"
+              />
+            )}
+
+            {/* Buckets */}
+            {multipliers.map((mult, i) => {
+              const w = 100 / buckets;
+              const x = i * w;
+              let color = '#333';
+              if (mult >= 100) color = '#ff0066';
+              else if (mult >= 10) color = '#ff3366';
+              else if (mult >= 3) color = '#ff8800';
+              else if (mult >= 1) color = '#00cc66';
+              else color = '#444';
+
+              return (
+                <g key={i}>
+                  <rect x={x + 1} y={85} width={w - 2} height={12} rx={1} fill={color} opacity={0.8} />
+                  <text x={x + w / 2} y={92} textAnchor="middle" fill="#fff" fontSize={rows > 12 ? 2 : 2.5} fontWeight="bold">
+                    {mult}x
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
 
-        <canvas ref={canvasRef} width={500} height={450} className="w-full rounded-xl mb-4" />
-
+        {/* Result */}
         {result && (
-          <div className={`text-center text-2xl font-bold mb-4 ${result.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {result.mult}x — {result.profit >= 0 ? '+' : ''}${result.profit.toFixed(2)}
+          <div className={`text-center py-2 rounded-lg mt-2 ${result.win ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
+            <span className={`text-lg font-black ${result.mult >= 1 ? 'text-green-400' : 'text-red-400'}`}>
+              {result.mult}x → ${(result.mult * bet).toFixed(2)}
+            </span>
           </div>
         )}
-
-        <button onClick={drop} disabled={dropping || bet <= 0 || bet > state.balance}
-          className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-black text-xl disabled:opacity-50">
-          {dropping ? 'DROPPING...' : 'DROP'}
-        </button>
       </div>
 
-      <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} disabled={dropping} />
-
-        <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-3">Rows</div>
-          <div className="grid grid-cols-3 gap-2">
-            {[8, 12, 16].map(r => (
-              <button key={r} onClick={() => !dropping && setRows(r)}
-                className={`py-2 rounded-lg font-bold ${rows === r ? 'bg-cyan-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                {r}
-              </button>
-            ))}
+      {/* Controls - RIGHT */}
+      <div className="w-64 flex flex-col gap-2">
+        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-3">
+          {/* Bet */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
+                disabled={dropping}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              <button onClick={() => handleBetChange(1)} disabled={dropping} className="btn-secondary py-1 text-xs">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={dropping} className="btn-secondary py-1 text-xs">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={dropping} className="btn-secondary py-1 text-xs">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={dropping} className="btn-secondary py-1 text-xs">MAX</button>
+            </div>
           </div>
-        </div>
 
-        <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-3">Risk</div>
-          <div className="grid grid-cols-3 gap-2">
-            {['low', 'medium', 'high'].map(r => (
-              <button key={r} onClick={() => !dropping && setRisk(r)}
-                className={`py-2 rounded-lg font-bold text-sm capitalize ${risk === r ? 'bg-cyan-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="flex flex-wrap gap-2">
-              {history.map((h, i) => (
-                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                  {h.mult}x
-                </span>
+          {/* Risk */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Risk Level</label>
+            <div className="grid grid-cols-3 gap-1 mt-1">
+              {['low', 'medium', 'high'].map(r => (
+                <button
+                  key={r}
+                  onClick={() => !dropping && setRisk(r)}
+                  disabled={dropping}
+                  className={`py-2 rounded-lg text-xs font-bold capitalize ${risk === r ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400'}`}
+                >
+                  {r}
+                </button>
               ))}
             </div>
           </div>
-        )}
+
+          {/* Rows */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Rows: {rows}</label>
+            <input
+              type="range"
+              min={8}
+              max={16}
+              step={4}
+              value={rows}
+              onChange={(e) => !dropping && setRows(Number(e.target.value))}
+              disabled={dropping}
+              className="w-full mt-1 accent-cyan-500"
+            />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>8</span><span>12</span><span>16</span>
+            </div>
+          </div>
+
+          {/* Drop Button */}
+          <button
+            onClick={drop}
+            disabled={dropping || bet <= 0 || bet > state.balance}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {dropping ? 'DROPPING...' : 'DROP BALL'}
+          </button>
+
+          {/* History */}
+          {history.length > 0 && (
+            <div>
+              <div className="text-xs text-gray-500 uppercase mb-1">History</div>
+              <div className="flex gap-1 flex-wrap">
+                {history.map((h, i) => (
+                  <span key={i} className={`px-2 py-1 rounded text-xs font-bold ${h.win ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                    {h.mult}x
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

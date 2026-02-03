@@ -1,358 +1,327 @@
 import { useCallback, useState } from 'react';
-import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const HOUSE_EDGE = 0.005;
 
-const createDeck = () => {
-  const deck = [];
-  for (const suit of SUITS) {
-    for (const value of VALUES) {
-      deck.push({ suit, value, color: suit === '♥' || suit === '♦' ? 'red' : 'black' });
-    }
-  }
-  return deck.sort(() => Math.random() - 0.5);
-};
+const getCard = () => ({
+  suit: SUITS[Math.floor(Math.random() * 4)],
+  value: VALUES[Math.floor(Math.random() * 13)],
+  idx: Math.floor(Math.random() * 13)
+});
 
-// FIXED: Added null/undefined checks to prevent crashes
 const calcValue = (cards) => {
-  if (!cards || !Array.isArray(cards) || cards.length === 0) return 0;
-  let total = 0;
-  let aces = 0;
-  for (const card of cards) {
-    if (!card || !card.value) continue;
-    if (card.value === 'A') { aces++; total += 11; }
-    else if (['K', 'Q', 'J'].includes(card.value)) total += 10;
-    else total += parseInt(card.value) || 0;
-  }
-  while (total > 21 && aces > 0) { total -= 10; aces--; }
-  return total;
+  if (!cards || cards.length === 0) return 0;
+  let val = 0, aces = 0;
+  cards.forEach(c => {
+    if (!c) return;
+    if (c.value === 'A') { val += 11; aces++; }
+    else if (['K', 'Q', 'J'].includes(c.value)) val += 10;
+    else val += parseInt(c.value);
+  });
+  while (val > 21 && aces > 0) { val -= 10; aces--; }
+  return val;
 };
 
-const Card = ({ card, hidden }) => (
-  <div className={`w-16 h-22 rounded-lg border-2 ${hidden ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} flex items-center justify-center shadow-lg`}>
-    {hidden ? (
-      <div className="w-12 h-16 bg-gradient-to-br from-gray-600 to-gray-800 rounded" />
-    ) : (
-      <div className={`text-center ${card?.color === 'red' ? 'text-red-600' : 'text-gray-900'}`}>
-        <div className="text-xl font-bold">{card?.value}</div>
-        <div className="text-2xl">{card?.suit}</div>
+const Card = ({ card, hidden = false }) => {
+  if (hidden) {
+    return (
+      <div className="w-14 h-20 rounded-lg bg-gradient-to-br from-blue-900 to-blue-950 flex items-center justify-center shadow-lg">
+        <span className="text-blue-400 text-2xl">?</span>
       </div>
-    )}
-  </div>
-);
+    );
+  }
+  const isRed = card?.suit === '♥' || card?.suit === '♦';
+  return (
+    <div className={`w-14 h-20 rounded-lg flex flex-col items-center justify-center shadow-lg ${isRed ? 'bg-white text-red-600' : 'bg-white text-gray-900'}`}>
+      <span className="font-black text-lg">{card?.value}</span>
+      <span className="text-sm">{card?.suit}</span>
+    </div>
+  );
+};
 
 export default function BlackjackGame() {
-  const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
-  const [deck, setDeck] = useState([]);
-  const [player, setPlayer] = useState([]);
-  const [dealer, setDealer] = useState([]);
-  const [playing, setPlaying] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
+  const { state, placeBet, addWin, setGlobalBet } = useCasino();
+  const [bet, setBet] = useState(state.globalBet || 10);
+  const [playerCards, setPlayerCards] = useState([]);
+  const [dealerCards, setDealerCards] = useState([]);
+  const [gamePhase, setGamePhase] = useState('betting'); // betting, playing, dealer, ended
   const [result, setResult] = useState(null);
-  const [insuranceBet, setInsuranceBet] = useState(0);
-  const [showInsurance, setShowInsurance] = useState(false);
-  const [dealerHidden, setDealerHidden] = useState(true);
   const [history, setHistory] = useState([]);
-
-  const isBlackjack = (cards) => cards && cards.length === 2 && calcValue(cards) === 21;
 
   const deal = useCallback(() => {
     if (bet <= 0 || bet > state.balance) return;
     if (!placeBet(bet, 'blackjack')) return;
 
-    const newDeck = createDeck();
-    const pCards = [newDeck.pop(), newDeck.pop()];
-    const dCards = [newDeck.pop(), newDeck.pop()];
-
-    setDeck(newDeck);
-    setPlayer(pCards);
-    setDealer(dCards);
-    setPlaying(true);
-    setGameOver(false);
+    audio.playBet();
     setResult(null);
-    setInsuranceBet(0);
-    setDealerHidden(true);
-    audio.playCardDeal();
 
-    if (dCards[0]?.value === 'A' && state.balance >= bet / 2) {
-      setShowInsurance(true);
-      return;
+    const pCards = [getCard(), getCard()];
+    const dCards = [getCard(), getCard()];
+
+    setPlayerCards(pCards);
+    setDealerCards(dCards);
+
+    // Check blackjack
+    const pVal = calcValue(pCards);
+    if (pVal === 21) {
+      const dVal = calcValue(dCards);
+      if (dVal === 21) {
+        endGame('push', pCards, dCards, 1);
+      } else {
+        endGame('blackjack', pCards, dCards, 2.5);
+      }
+    } else {
+      setGamePhase('playing');
     }
-
-    setTimeout(() => checkBlackjacks(pCards, dCards, newDeck, 0), 300);
   }, [bet, state.balance, placeBet]);
 
-  const checkBlackjacks = useCallback((pCards, dCards, currentDeck, insurance) => {
-    const playerBJ = isBlackjack(pCards);
-    const dealerBJ = isBlackjack(dCards);
-
-    if (playerBJ || dealerBJ) {
-      setDealerHidden(false);
-      setPlaying(false);
-      setGameOver(true);
-
-      let resultType, resultMsg, profit;
-
-      if (playerBJ && dealerBJ) {
-        addWin(bet, bet, 'blackjack', 1);
-        resultType = 'PUSH'; resultMsg = 'Both Blackjack - Push'; profit = 0;
-        audio.playLose();
-      } else if (playerBJ) {
-        const win = bet * 2.5;
-        addWin(win, bet, 'blackjack', 2.5);
-        resultType = 'BLACKJACK'; resultMsg = 'Blackjack!'; profit = win - bet;
-        audio.playWin();
-      } else if (dealerBJ) {
-        const insuranceWin = insurance > 0 ? insurance * 3 : 0;
-        if (insuranceWin > 0) {
-          addWin(insuranceWin, bet + insurance, 'blackjack', insuranceWin / (bet + insurance));
-          resultType = 'DEALER_BJ'; resultMsg = 'Dealer Blackjack - Insurance Pays'; profit = insuranceWin - bet - insurance;
-        } else {
-          addWin(0, bet, 'blackjack', 0);
-          resultType = 'DEALER_BJ'; resultMsg = 'Dealer Blackjack'; profit = -bet;
-        }
-        audio.playLose();
-      }
-      setResult({ type: resultType, msg: resultMsg, profit });
-      setHistory(h => [{ won: profit > 0, profit }, ...h.slice(0, 4)]);
-      return true;
-    }
-    return false;
-  }, [bet, addWin]);
-
-  const takeInsurance = useCallback(() => {
-    const insAmount = bet / 2;
-    if (!placeBet(insAmount, 'blackjack')) return;
-    setInsuranceBet(insAmount);
-    setShowInsurance(false);
-    checkBlackjacks(player, dealer, deck, insAmount);
-  }, [bet, player, dealer, deck, placeBet, checkBlackjacks]);
-
-  const declineInsurance = useCallback(() => {
-    setShowInsurance(false);
-    checkBlackjacks(player, dealer, deck, 0);
-  }, [player, dealer, deck, checkBlackjacks]);
-
   const hit = useCallback(() => {
-    if (!playing || gameOver) return;
-    const card = deck.pop();
-    if (!card) return;
-    const newPlayer = [...player, card];
-    setPlayer(newPlayer);
-    setDeck([...deck]);
-    audio.playCardDeal();
+    if (gamePhase !== 'playing') return;
 
-    const value = calcValue(newPlayer);
-    if (value > 21) {
-      setPlaying(false);
-      setGameOver(true);
-      setDealerHidden(false);
-      addWin(0, bet, 'blackjack', 0);
-      setResult({ type: 'BUST', msg: 'Bust!', profit: -bet - insuranceBet });
-      setHistory(h => [{ won: false, profit: -bet - insuranceBet }, ...h.slice(0, 4)]);
-      audio.playLose();
+    const newCard = getCard();
+    const newCards = [...playerCards, newCard];
+    setPlayerCards(newCards);
+    audio.playBet();
+
+    if (calcValue(newCards) > 21) {
+      endGame('bust', newCards, dealerCards, 0);
     }
-  }, [playing, gameOver, deck, player, bet, insuranceBet, addWin]);
+  }, [gamePhase, playerCards, dealerCards]);
 
   const stand = useCallback(() => {
-    if (!playing || gameOver) return;
-    setPlaying(false);
-    setDealerHidden(false);
+    if (gamePhase !== 'playing') return;
+    setGamePhase('dealer');
 
-    let currentDealer = [...dealer];
-    let currentDeck = [...deck];
-
-    const dealerPlay = () => {
-      const dealerVal = calcValue(currentDealer);
-
-      if (dealerVal < 17) {
-        setTimeout(() => {
-          const card = currentDeck.pop();
-          if (card) {
-            currentDealer.push(card);
-            setDealer([...currentDealer]);
-            setDeck([...currentDeck]);
-            audio.playCardDeal();
-          }
-          dealerPlay();
-        }, state.settings.fastMode ? 200 : 500);
+    let dCards = [...dealerCards];
+    const playDealer = () => {
+      if (calcValue(dCards) < 17) {
+        dCards = [...dCards, getCard()];
+        setDealerCards([...dCards]);
+        setTimeout(playDealer, state.settings.fastMode ? 200 : 400);
       } else {
-        setGameOver(true);
-        const finalDealerVal = calcValue(currentDealer);
-        const finalPlayerVal = calcValue(player);
+        const pVal = calcValue(playerCards);
+        const dVal = calcValue(dCards);
 
-        let resultType, resultMsg, profit;
-
-        if (finalDealerVal > 21) {
-          const win = bet * 2;
-          addWin(win, bet, 'blackjack', 2);
-          resultType = 'WIN'; resultMsg = 'Dealer Busts!'; profit = win - bet - insuranceBet;
-          audio.playWin();
-        } else if (finalPlayerVal > finalDealerVal) {
-          const win = bet * 2;
-          addWin(win, bet, 'blackjack', 2);
-          resultType = 'WIN'; resultMsg = 'You Win!'; profit = win - bet - insuranceBet;
-          audio.playWin();
-        } else if (finalPlayerVal < finalDealerVal) {
-          addWin(0, bet, 'blackjack', 0);
-          resultType = 'LOSE'; resultMsg = 'Dealer Wins'; profit = -bet - insuranceBet;
-          audio.playLose();
+        if (dVal > 21) {
+          endGame('win', playerCards, dCards, 2);
+        } else if (dVal > pVal) {
+          endGame('lose', playerCards, dCards, 0);
+        } else if (pVal > dVal) {
+          endGame('win', playerCards, dCards, 2);
         } else {
-          addWin(bet, bet, 'blackjack', 1);
-          resultType = 'PUSH'; resultMsg = 'Push'; profit = -insuranceBet;
-          audio.playLose();
+          endGame('push', playerCards, dCards, 1);
         }
-        setResult({ type: resultType, msg: resultMsg, profit });
-        setHistory(h => [{ won: profit > 0, profit }, ...h.slice(0, 4)]);
       }
     };
-
-    dealerPlay();
-  }, [playing, gameOver, dealer, deck, player, bet, insuranceBet, state.settings.fastMode, addWin]);
+    setTimeout(playDealer, state.settings.fastMode ? 200 : 400);
+  }, [gamePhase, dealerCards, playerCards, state.settings.fastMode]);
 
   const double = useCallback(() => {
-    if (!playing || gameOver || player.length !== 2 || bet > state.balance) return;
+    if (gamePhase !== 'playing' || playerCards.length !== 2) return;
+    if (bet > state.balance) return;
     if (!placeBet(bet, 'blackjack')) return;
 
-    const card = deck.pop();
-    if (!card) return;
-    const newPlayer = [...player, card];
-    setPlayer(newPlayer);
-    setDeck([...deck]);
-    audio.playCardDeal();
+    setBet(bet * 2);
+    const newCard = getCard();
+    const newCards = [...playerCards, newCard];
+    setPlayerCards(newCards);
+    audio.playBet();
 
-    const value = calcValue(newPlayer);
-    if (value > 21) {
-      setPlaying(false);
-      setGameOver(true);
-      setDealerHidden(false);
-      addWin(0, bet * 2, 'blackjack', 0);
-      setResult({ type: 'BUST', msg: 'Bust!', profit: -bet * 2 - insuranceBet });
-      setHistory(h => [{ won: false, profit: -bet * 2 - insuranceBet }, ...h.slice(0, 4)]);
-      audio.playLose();
+    if (calcValue(newCards) > 21) {
+      endGame('bust', newCards, dealerCards, 0);
     } else {
-      setBet(bet * 2);
-      setTimeout(() => { stand(); }, 500);
+      setTimeout(() => stand(), state.settings.fastMode ? 200 : 400);
     }
-  }, [playing, gameOver, player, bet, state.balance, deck, insuranceBet, placeBet, addWin, stand]);
+  }, [gamePhase, playerCards, bet, state.balance, dealerCards, placeBet, stand, state.settings.fastMode]);
 
-  const playerValue = player.length > 0 ? calcValue(player) : 0;
-  const dealerValue = dealer.length > 0 ? (dealerHidden ? calcValue([dealer[0]]) : calcValue(dealer)) : 0;
+  const endGame = (outcome, pCards, dCards, mult) => {
+    setGamePhase('ended');
+    const winAmount = bet * mult;
+    const profit = winAmount - bet;
+
+    setResult({ outcome, mult, profit, pVal: calcValue(pCards), dVal: calcValue(dCards) });
+    setHistory(h => [{ outcome, mult, bet }, ...h.slice(0, 4)]);
+
+    if (mult > 0) {
+      addWin(winAmount, bet, 'blackjack', mult);
+      if (mult > 1) audio.playWin(); else audio.playLose();
+    } else {
+      addWin(0, bet, 'blackjack', 0);
+      audio.playLose();
+    }
+  };
+
+  const newGame = () => {
+    setPlayerCards([]);
+    setDealerCards([]);
+    setGamePhase('betting');
+    setResult(null);
+    setBet(state.globalBet || bet);
+  };
+
+  const handleBetChange = (val) => {
+    const v = Math.min(Math.max(1, val), state.balance);
+    setBet(v);
+    setGlobalBet(v);
+  };
+
+  const pVal = calcValue(playerCards);
+  const dVal = gamePhase === 'ended' || gamePhase === 'dealer' ? calcValue(dealerCards) : calcValue([dealerCards[0]]);
 
   return (
-    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 game-card p-6">
-        <div className="text-xs text-gray-500 mb-4">House Edge: {(HOUSE_EDGE * 100).toFixed(1)}%</div>
-
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-sm text-gray-400 uppercase">Dealer</span>
-            <span className="text-lg font-bold text-yellow-400">
-              {dealer.length > 0 && dealerValue}
-              {!dealerHidden && dealerValue > 21 && <span className="text-red-500 ml-2">BUST</span>}
-            </span>
-          </div>
-          <div className="flex gap-2 justify-center min-h-[88px]">
-            {dealer.map((card, i) => (
-              <Card key={i} card={card} hidden={dealerHidden && i === 1} />
-            ))}
+    <div className="h-full flex gap-3">
+      {/* Game Area - LEFT */}
+      <div className="flex-1 bg-[#0a0a12] rounded-xl p-4 flex flex-col">
+        {/* Dealer */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <span className="text-xs text-gray-500 uppercase mb-2">Dealer {(gamePhase === 'ended' || gamePhase === 'dealer') && `(${calcValue(dealerCards)})`}</span>
+          <div className="flex gap-2">
+            {dealerCards.length > 0 ? (
+              dealerCards.map((c, i) => (
+                <Card key={i} card={c} hidden={i === 1 && gamePhase === 'playing'} />
+              ))
+            ) : (
+              <div className="w-14 h-20 border-2 border-dashed border-gray-700 rounded-lg" />
+            )}
           </div>
         </div>
 
+        {/* Result */}
         {result && (
-          <div className={`text-center py-4 mb-4 rounded-lg ${
-            result.type === 'WIN' || result.type === 'BLACKJACK' ? 'bg-green-900/50 text-green-400' :
-            result.type === 'PUSH' ? 'bg-yellow-900/50 text-yellow-400' :
-            'bg-red-900/50 text-red-400'
+          <div className={`text-center py-2 rounded-xl ${
+            result.outcome === 'blackjack' ? 'bg-yellow-900/50' :
+            result.outcome === 'win' ? 'bg-green-900/50' :
+            result.outcome === 'push' ? 'bg-gray-700/50' : 'bg-red-900/50'
           }`}>
-            <div className="text-2xl font-black">{result.msg}</div>
-            <div className="text-lg">
-              {result.profit >= 0 ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
-            </div>
-          </div>
-        )}
-
-        {showInsurance && (
-          <div className="text-center py-4 mb-4 rounded-lg bg-blue-900/50 border border-blue-500">
-            <div className="text-lg font-bold text-blue-300 mb-3">Insurance?</div>
-            <div className="text-sm text-gray-300 mb-4">Dealer shows Ace. Insurance costs ${(bet/2).toFixed(2)}</div>
-            <div className="flex gap-4 justify-center">
-              <button onClick={takeInsurance} className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-bold">
-                Yes (${(bet/2).toFixed(2)})
-              </button>
-              <button onClick={declineInsurance} className="px-6 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 font-bold">
-                No
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-sm text-gray-400 uppercase">Player</span>
-            <span className="text-lg font-bold text-cyan-400">
-              {player.length > 0 && playerValue}
-              {isBlackjack(player) && <span className="text-yellow-400 ml-2">BLACKJACK!</span>}
-              {playerValue > 21 && <span className="text-red-500 ml-2">BUST</span>}
+            <span className={`text-lg font-black ${
+              result.outcome === 'blackjack' ? 'text-yellow-400' :
+              result.outcome === 'win' ? 'text-green-400' :
+              result.outcome === 'push' ? 'text-gray-300' : 'text-red-400'
+            }`}>
+              {result.outcome === 'blackjack' ? `BLACKJACK! +$${result.profit.toFixed(2)}` :
+               result.outcome === 'win' ? `WIN! +$${result.profit.toFixed(2)}` :
+               result.outcome === 'push' ? 'PUSH' :
+               result.outcome === 'bust' ? `BUST! -$${bet.toFixed(2)}` :
+               `LOSE -$${bet.toFixed(2)}`}
             </span>
           </div>
-          <div className="flex gap-2 justify-center min-h-[88px]">
-            {player.map((card, i) => (
-              <Card key={i} card={card} hidden={false} />
-            ))}
+        )}
+
+        {/* Player */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="flex gap-2">
+            {playerCards.length > 0 ? (
+              playerCards.map((c, i) => <Card key={i} card={c} />)
+            ) : (
+              <div className="w-14 h-20 border-2 border-dashed border-gray-700 rounded-lg" />
+            )}
           </div>
+          <span className="text-xs text-gray-500 uppercase mt-2">You {pVal > 0 && `(${pVal})`}</span>
         </div>
 
-        <div className="grid grid-cols-4 gap-3">
-          <button onClick={deal} disabled={playing || showInsurance}
-            className="py-3 rounded-lg bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-bold disabled:opacity-50">
-            DEAL
-          </button>
-          <button onClick={hit} disabled={!playing || gameOver || showInsurance}
-            className="py-3 rounded-lg bg-gradient-to-r from-cyan-700 to-cyan-600 hover:from-cyan-600 hover:to-cyan-500 text-white font-bold disabled:opacity-50">
-            HIT
-          </button>
-          <button onClick={stand} disabled={!playing || gameOver || showInsurance}
-            className="py-3 rounded-lg bg-gradient-to-r from-yellow-700 to-yellow-600 hover:from-yellow-600 hover:to-yellow-500 text-white font-bold disabled:opacity-50">
-            STAND
-          </button>
-          <button onClick={double} disabled={!playing || gameOver || player.length !== 2 || bet > state.balance || showInsurance}
-            className="py-3 rounded-lg bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-white font-bold disabled:opacity-50">
-            DOUBLE
-          </button>
-        </div>
+        {/* History */}
+        {history.length > 0 && (
+          <div className="flex justify-center gap-2 mt-2">
+            {history.map((h, i) => (
+              <div key={i} className={`text-xs px-2 py-1 rounded ${
+                h.outcome === 'blackjack' || h.outcome === 'win' ? 'bg-green-900/50 text-green-400' :
+                h.outcome === 'push' ? 'bg-gray-700/50 text-gray-400' : 'bg-red-900/50 text-red-400'
+              }`}>
+                {h.mult}x
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} disabled={playing} />
-
-        <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-2">Payouts</div>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between"><span>Win</span><span className="text-green-400">2x</span></div>
-            <div className="flex justify-between"><span>Blackjack</span><span className="text-yellow-400">2.5x</span></div>
-            <div className="flex justify-between"><span>Insurance</span><span className="text-blue-400">3x</span></div>
-            <div className="flex justify-between"><span>Push</span><span className="text-gray-400">1x</span></div>
-          </div>
-        </div>
-
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="flex flex-wrap gap-2">
-              {history.map((h, i) => (
-                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                  {h.profit >= 0 ? '+' : ''}{h.profit.toFixed(0)}
-                </span>
-              ))}
+      {/* Controls - RIGHT */}
+      <div className="w-64 flex flex-col gap-2">
+        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-3">
+          {/* Bet Amount */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
+                disabled={gamePhase !== 'betting'}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">MAX</button>
             </div>
           </div>
-        )}
+
+          {/* Info */}
+          <div className="bg-black/30 rounded-lg p-2 text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Blackjack pays</span>
+              <span className="text-yellow-400 font-bold">3:2</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Win pays</span>
+              <span className="text-green-400 font-bold">2:1</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Push</span>
+              <span className="text-gray-400 font-bold">Bet back</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          {gamePhase === 'betting' ? (
+            <button
+              onClick={deal}
+              disabled={bet <= 0 || bet > state.balance}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black text-lg disabled:opacity-50"
+            >
+              DEAL
+            </button>
+          ) : gamePhase === 'playing' ? (
+            <div className="flex flex-col gap-2">
+              <button onClick={hit} className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black">
+                HIT
+              </button>
+              <button onClick={stand} className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black">
+                STAND
+              </button>
+              {playerCards.length === 2 && bet <= state.balance && (
+                <button onClick={double} className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black">
+                  DOUBLE DOWN
+                </button>
+              )}
+            </div>
+          ) : gamePhase === 'dealer' ? (
+            <button disabled className="w-full py-3 rounded-xl bg-gray-700 text-gray-400 font-black">
+              DEALER PLAYING...
+            </button>
+          ) : (
+            <button onClick={newGame} className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 text-white font-black text-lg">
+              NEW GAME
+            </button>
+          )}
+
+          {/* Status */}
+          <div className="mt-auto bg-black/30 rounded-lg p-2 text-center">
+            <span className={`text-sm font-bold ${
+              gamePhase === 'betting' ? 'text-gray-400' :
+              gamePhase === 'playing' ? 'text-cyan-400' :
+              gamePhase === 'dealer' ? 'text-orange-400' : 'text-green-400'
+            }`}>
+              {gamePhase === 'betting' ? 'Place your bet' :
+               gamePhase === 'playing' ? `Your turn (${pVal})` :
+               gamePhase === 'dealer' ? 'Dealer drawing...' : 'Game over'}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

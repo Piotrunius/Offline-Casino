@@ -1,327 +1,237 @@
 import { useCallback, useState } from 'react';
-import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const HOUSE_EDGE = 0.03;
 
-const createDeck = () => {
-  const deck = [];
-  for (const suit of SUITS) {
-    for (const value of VALUES) {
-      const numVal = value === 'A' ? 14 : value === 'K' ? 13 : value === 'Q' ? 12 : value === 'J' ? 11 : parseInt(value);
-      deck.push({ suit, value, numVal, color: suit === '♥' || suit === '♦' ? 'red' : 'black' });
-    }
-  }
-  return deck.sort(() => Math.random() - 0.5);
-};
+const getCard = () => ({
+  suit: SUITS[Math.floor(Math.random() * 4)],
+  value: VALUES[Math.floor(Math.random() * 13)],
+  numValue: Math.floor(Math.random() * 13) + 1
+});
 
-// EXPANDED bet types with odds calculations
 const BET_TYPES = {
-  higher: { label: 'Higher', desc: 'Next card higher', getOdds: (val) => (14 - val) / 13 },
-  lower: { label: 'Lower', desc: 'Next card lower', getOdds: (val) => (val - 2) / 13 },
-  same: { label: 'Same', desc: 'Exact same value', getOdds: () => 3 / 52 },
-  red: { label: 'Red', desc: 'Hearts or Diamonds', getOdds: () => 0.5 },
-  black: { label: 'Black', desc: 'Spades or Clubs', getOdds: () => 0.5 },
-  hearts: { label: '♥', desc: 'Hearts', getOdds: () => 0.25 },
-  diamonds: { label: '♦', desc: 'Diamonds', getOdds: () => 0.25 },
-  spades: { label: '♠', desc: 'Spades', getOdds: () => 0.25 },
-  clubs: { label: '♣', desc: 'Clubs', getOdds: () => 0.25 },
-  odd: { label: 'Odd', desc: 'Odd value (A,3,5,7,9,J,K)', getOdds: () => 7/13 },
-  even: { label: 'Even', desc: 'Even value (2,4,6,8,10,Q)', getOdds: () => 6/13 },
-  face: { label: 'Face', desc: 'J, Q, or K', getOdds: () => 3/13 },
-  ace: { label: 'Ace', desc: 'Next is Ace', getOdds: () => 4/52 },
-  low: { label: '2-6', desc: 'Value 2-6', getOdds: () => 5/13 },
-  mid: { label: '7-10', desc: 'Value 7-10', getOdds: () => 4/13 },
-  high: { label: 'J-A', desc: 'Value J-A', getOdds: () => 4/13 },
+  higher: { label: 'HIGHER', calc: (curr, next) => next.numValue > curr.numValue },
+  lower: { label: 'LOWER', calc: (curr, next) => next.numValue < curr.numValue },
+  same: { label: 'SAME', calc: (curr, next) => next.numValue === curr.numValue, mult: 12 },
+  red: { label: 'RED ♥♦', calc: (_, next) => next.suit === '♥' || next.suit === '♦' },
+  black: { label: 'BLACK ♠♣', calc: (_, next) => next.suit === '♠' || next.suit === '♣' },
+  hearts: { label: '♥', calc: (_, next) => next.suit === '♥', mult: 4 },
+  diamonds: { label: '♦', calc: (_, next) => next.suit === '♦', mult: 4 },
+  spades: { label: '♠', calc: (_, next) => next.suit === '♠', mult: 4 },
+  clubs: { label: '♣', calc: (_, next) => next.suit === '♣', mult: 4 },
+  odd: { label: 'ODD', calc: (_, next) => next.numValue % 2 === 1 },
+  even: { label: 'EVEN', calc: (_, next) => next.numValue % 2 === 0 },
+  face: { label: 'FACE', calc: (_, next) => next.numValue >= 11, mult: 4 },
+  ace: { label: 'ACE', calc: (_, next) => next.numValue === 1, mult: 13 }
 };
-
-const checkBet = (betType, currentCard, nextCard) => {
-  switch (betType) {
-    case 'higher': return nextCard.numVal > currentCard.numVal;
-    case 'lower': return nextCard.numVal < currentCard.numVal;
-    case 'same': return nextCard.numVal === currentCard.numVal;
-    case 'red': return nextCard.color === 'red';
-    case 'black': return nextCard.color === 'black';
-    case 'hearts': return nextCard.suit === '♥';
-    case 'diamonds': return nextCard.suit === '♦';
-    case 'spades': return nextCard.suit === '♠';
-    case 'clubs': return nextCard.suit === '♣';
-    case 'odd': return [1, 3, 5, 7, 9, 11, 13, 14].includes(nextCard.numVal);
-    case 'even': return [2, 4, 6, 8, 10, 12].includes(nextCard.numVal);
-    case 'face': return nextCard.numVal >= 11 && nextCard.numVal <= 13;
-    case 'ace': return nextCard.numVal === 14;
-    case 'low': return nextCard.numVal >= 2 && nextCard.numVal <= 6;
-    case 'mid': return nextCard.numVal >= 7 && nextCard.numVal <= 10;
-    case 'high': return nextCard.numVal >= 11;
-    default: return false;
-  }
-};
-
-const Card = ({ card, small }) => (
-  <div className={`${small ? 'w-10 h-14' : 'w-20 h-28'} rounded-lg bg-white border-2 border-gray-300 flex items-center justify-center shadow-lg`}>
-    <div className={`text-center ${card.color === 'red' ? 'text-red-600' : 'text-gray-900'}`}>
-      <div className={`${small ? 'text-sm' : 'text-2xl'} font-bold`}>{card.value}</div>
-      <div className={small ? 'text-lg' : 'text-3xl'}>{card.suit}</div>
-    </div>
-  </div>
-);
 
 export default function HiLoGame() {
-  const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
-  const [deck, setDeck] = useState([]);
-  const [currentCard, setCurrentCard] = useState(null);
-  const [streak, setStreak] = useState(0);
-  const [multiplier, setMultiplier] = useState(1);
+  const { state, placeBet, addWin, setGlobalBet } = useCasino();
+  const [bet, setBet] = useState(state.globalBet || 10);
+  const [currentCard, setCurrentCard] = useState(getCard());
+  const [nextCard, setNextCard] = useState(null);
+  const [betType, setBetType] = useState('higher');
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
-  const [selectedBet, setSelectedBet] = useState('higher');
-  const [lastWin, setLastWin] = useState(null);
 
-  const start = useCallback(() => {
-    if (bet <= 0 || bet > state.balance) return;
+  const getMultiplier = () => {
+    if (BET_TYPES[betType].mult) return BET_TYPES[betType].mult;
+    if (betType === 'higher') {
+      const cardsAbove = 13 - currentCard.numValue;
+      return cardsAbove > 0 ? (13 / cardsAbove * 0.97).toFixed(2) : 13;
+    }
+    if (betType === 'lower') {
+      const cardsBelow = currentCard.numValue - 1;
+      return cardsBelow > 0 ? (13 / cardsBelow * 0.97).toFixed(2) : 13;
+    }
+    return 2;
+  };
+
+  const play = useCallback(() => {
+    if (playing || bet <= 0 || bet > state.balance) return;
     if (!placeBet(bet, 'hilo')) return;
 
-    const newDeck = createDeck();
-    const firstCard = newDeck.pop();
-
-    setDeck(newDeck);
-    setCurrentCard(firstCard);
-    setStreak(0);
-    setMultiplier(1);
     setPlaying(true);
     setResult(null);
-    setLastWin(null);
-    audio.playCardDeal();
-  }, [bet, state.balance, placeBet]);
+    setNextCard(null);
+    audio.playBet();
 
-  const guess = useCallback(() => {
-    if (!playing || deck.length === 0) return;
+    const newCard = getCard();
+    const mult = parseFloat(getMultiplier());
+    const won = BET_TYPES[betType].calc(currentCard, newCard);
 
-    const nextCard = deck.pop();
-    const correct = checkBet(selectedBet, currentCard, nextCard);
-
-    audio.playCardDeal();
-
-    if (correct) {
-      const odds = BET_TYPES[selectedBet].getOdds(currentCard.numVal);
-      const betMult = Math.max(1.1, (1 / odds) * 0.95); // 5% house edge on multiplier
-      const newMult = multiplier * betMult;
-      const newStreak = streak + 1;
-
-      setCurrentCard(nextCard);
-      setMultiplier(newMult);
-      setStreak(newStreak);
-      setDeck([...deck]);
-      setLastWin({ betType: selectedBet, mult: betMult });
-      audio.playTick();
-    } else {
+    // Animate
+    setTimeout(() => {
+      setNextCard(newCard);
       setPlaying(false);
-      setCurrentCard(nextCard);
-      addWin(0, bet, 'hilo', 0);
-      setResult({ won: false, card: nextCard, profit: -bet });
-      setHistory(h => [{ won: false, streak }, ...h.slice(0, 4)]);
-      audio.playLose();
-    }
-  }, [playing, deck, currentCard, selectedBet, multiplier, streak, bet, addWin]);
 
-  const cashout = useCallback(() => {
-    if (!playing || multiplier <= 1) return;
-    const win = bet * multiplier;
-    addWin(win, bet, 'hilo', multiplier);
-    setPlaying(false);
-    setResult({ won: true, profit: win - bet, mult: multiplier });
-    setHistory(h => [{ won: true, streak, mult: multiplier }, ...h.slice(0, 4)]);
-    audio.playWin();
-  }, [playing, multiplier, bet, streak, addWin]);
+      const winAmount = won ? bet * mult : 0;
+      setResult({ won, mult: won ? mult : 0, profit: won ? winAmount - bet : -bet });
+      setHistory(h => [{ card: newCard, won }, ...h.slice(0, 4)]);
+      setCurrentCard(newCard);
 
-  const cardsLeft = deck.length;
-  const currentOdds = currentCard ? BET_TYPES[selectedBet].getOdds(currentCard.numVal) : 0;
-  const potentialMult = currentOdds > 0 ? Math.max(1.1, (1 / currentOdds) * 0.95) : 1;
+      if (won) {
+        addWin(winAmount, bet, 'hilo', mult);
+        audio.playWin();
+      } else {
+        addWin(0, bet, 'hilo', 0);
+        audio.playLose();
+      }
+    }, state.settings.fastMode ? 300 : 600);
+  }, [playing, bet, state.balance, betType, currentCard, state.settings.fastMode, placeBet, addWin]);
+
+  const handleBetChange = (val) => {
+    const v = Math.min(Math.max(1, val), state.balance);
+    setBet(v);
+    setGlobalBet(v);
+  };
+
+  const isRed = (suit) => suit === '♥' || suit === '♦';
 
   return (
-    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 game-card p-6">
-        <div className="text-xs text-gray-500 mb-2">House Edge: {(HOUSE_EDGE * 100).toFixed(0)}%</div>
+    <div className="h-full flex gap-3">
+      {/* Game Area - LEFT */}
+      <div className="flex-1 bg-[#0a0a12] rounded-xl p-4 flex flex-col items-center justify-center">
+        {/* Cards */}
+        <div className="flex gap-6 items-center">
+          {/* Current Card */}
+          <div className={`w-24 h-36 rounded-xl flex flex-col items-center justify-center text-4xl font-black shadow-xl ${
+            isRed(currentCard.suit) ? 'bg-white text-red-600' : 'bg-white text-gray-900'
+          }`}>
+            <span>{currentCard.value}</span>
+            <span className="text-2xl">{currentCard.suit}</span>
+          </div>
 
-        {/* Cards Left */}
-        <div className="text-center text-sm text-gray-400 mb-4">
-          Cards Left: {cardsLeft} / 52
-        </div>
+          <span className="text-3xl text-gray-600">→</span>
 
-        {/* Current Card */}
-        <div className="flex justify-center mb-6">
-          {currentCard ? (
-            <Card card={currentCard} />
-          ) : (
-            <div className="w-20 h-28 rounded-lg bg-gray-700 border-2 border-gray-600 flex items-center justify-center">
-              <span className="text-3xl text-gray-500">?</span>
-            </div>
-          )}
-        </div>
-
-        {/* Multiplier Display */}
-        {playing && (
-          <div className="text-center mb-4">
-            <div className="text-sm text-gray-400">Current Multiplier</div>
-            <div className="text-4xl font-black text-cyan-400">{multiplier.toFixed(2)}x</div>
-            <div className="text-sm text-gray-500">Streak: {streak} | Potential: ${(bet * multiplier).toFixed(2)}</div>
-            {lastWin && (
-              <div className="text-xs text-green-400 mt-1">
-                Last: {BET_TYPES[lastWin.betType].label} (+{lastWin.mult.toFixed(2)}x)
-              </div>
+          {/* Next Card */}
+          <div className={`w-24 h-36 rounded-xl flex flex-col items-center justify-center text-4xl font-black shadow-xl transition-all ${
+            nextCard
+              ? isRed(nextCard.suit) ? 'bg-white text-red-600' : 'bg-white text-gray-900'
+              : 'bg-gradient-to-br from-blue-900 to-blue-950 text-blue-400'
+          }`}>
+            {nextCard ? (
+              <>
+                <span>{nextCard.value}</span>
+                <span className="text-2xl">{nextCard.suit}</span>
+              </>
+            ) : (
+              <span className="text-3xl">?</span>
             )}
           </div>
-        )}
+        </div>
 
         {/* Result */}
         {result && (
-          <div className={`text-center py-4 mb-4 rounded-lg ${result.won ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
-            <div className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? `CASHED OUT ${result.mult.toFixed(2)}x` : 'WRONG GUESS'}
-            </div>
-            <div className="text-lg">
-              {result.profit >= 0 ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
-            </div>
+          <div className={`mt-4 text-center py-2 px-6 rounded-xl ${result.won ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
+            <span className={`text-xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? `WIN ${result.mult}x → +$${result.profit.toFixed(2)}` : `LOSE -$${bet.toFixed(2)}`}
+            </span>
           </div>
         )}
 
-        {/* Bet Type Selection */}
-        {playing && (
-          <div className="mb-4">
-            <div className="text-xs text-gray-500 uppercase mb-2">Select Your Bet</div>
-
-            {/* Main bets row */}
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              {['higher', 'lower', 'same'].map(type => (
-                <button key={type}
-                  onClick={() => setSelectedBet(type)}
-                  className={`py-3 rounded-lg font-bold text-sm transition-all ${
-                    selectedBet === type
-                      ? 'bg-cyan-600 text-white ring-2 ring-cyan-400'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}>
-                  <div>{BET_TYPES[type].label}</div>
-                  <div className="text-xs opacity-70">
-                    {(BET_TYPES[type].getOdds(currentCard?.numVal || 7) * 100).toFixed(0)}%
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Color bets */}
-            <div className="grid grid-cols-4 gap-2 mb-2">
-              {['red', 'black', 'odd', 'even'].map(type => (
-                <button key={type}
-                  onClick={() => setSelectedBet(type)}
-                  className={`py-2 rounded-lg font-bold text-xs transition-all ${
-                    selectedBet === type
-                      ? type === 'red' ? 'bg-red-600 text-white ring-2 ring-red-400' :
-                        type === 'black' ? 'bg-gray-900 text-white ring-2 ring-gray-400' :
-                        'bg-cyan-600 text-white ring-2 ring-cyan-400'
-                      : type === 'red' ? 'bg-red-900/50 text-red-300 hover:bg-red-800/50' :
-                        type === 'black' ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' :
-                        'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}>
-                  {BET_TYPES[type].label}
-                </button>
-              ))}
-            </div>
-
-            {/* Suit bets */}
-            <div className="grid grid-cols-4 gap-2 mb-2">
-              {['hearts', 'diamonds', 'spades', 'clubs'].map(type => (
-                <button key={type}
-                  onClick={() => setSelectedBet(type)}
-                  className={`py-2 rounded-lg font-bold text-lg transition-all ${
-                    selectedBet === type
-                      ? 'bg-purple-600 text-white ring-2 ring-purple-400'
-                      : 'bg-gray-700 hover:bg-gray-600'
-                  }`}
-                  style={{ color: selectedBet !== type ? (type === 'hearts' || type === 'diamonds' ? '#ff6666' : '#aaa') : undefined }}>
-                  {BET_TYPES[type].label}
-                </button>
-              ))}
-            </div>
-
-            {/* Range bets */}
-            <div className="grid grid-cols-4 gap-2">
-              {['low', 'mid', 'high', 'face'].map(type => (
-                <button key={type}
-                  onClick={() => setSelectedBet(type)}
-                  className={`py-2 rounded-lg font-bold text-xs transition-all ${
-                    selectedBet === type
-                      ? 'bg-yellow-600 text-white ring-2 ring-yellow-400'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}>
-                  {BET_TYPES[type].label}
-                </button>
-              ))}
-            </div>
-
-            {/* Selected bet info */}
-            <div className="mt-3 p-3 bg-gray-800/50 rounded-lg text-center">
-              <div className="text-sm text-gray-300">{BET_TYPES[selectedBet].desc}</div>
-              <div className="text-lg font-bold text-cyan-400">
-                {(currentOdds * 100).toFixed(0)}% chance → {potentialMult.toFixed(2)}x
+        {/* History */}
+        {history.length > 0 && (
+          <div className="flex gap-2 mt-4">
+            {history.map((h, i) => (
+              <div key={i} className={`w-10 h-14 rounded flex flex-col items-center justify-center text-sm font-bold ${
+                isRed(h.card.suit) ? 'bg-white text-red-600' : 'bg-white text-gray-900'
+              } ${h.won ? 'ring-2 ring-green-500' : 'ring-2 ring-red-500'}`}>
+                <span>{h.card.value}</span>
+                <span className="text-xs">{h.card.suit}</span>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Controls */}
-        {!playing ? (
-          <button onClick={start} disabled={bet <= 0 || bet > state.balance}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-black text-xl disabled:opacity-50">
-            START GAME
-          </button>
-        ) : (
-          <div className="space-y-3">
-            <button onClick={guess}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-700 to-cyan-600 hover:from-cyan-600 hover:to-cyan-500 text-white font-black text-lg">
-              BET: {BET_TYPES[selectedBet].label.toUpperCase()} ({potentialMult.toFixed(2)}x)
-            </button>
-            {multiplier > 1 && (
-              <button onClick={cashout}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-black text-lg">
-                CASHOUT ${(bet * multiplier).toFixed(2)}
-              </button>
-            )}
+            ))}
           </div>
         )}
       </div>
 
-      <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} disabled={playing} />
-
-        <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-2">Bet Types</div>
-          <div className="space-y-1 text-xs max-h-32 overflow-y-auto">
-            {Object.entries(BET_TYPES).slice(0, 8).map(([key, bt]) => (
-              <div key={key} className="flex justify-between">
-                <span className="text-gray-400">{bt.label}</span>
-                <span className="text-gray-500">{bt.desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="flex flex-wrap gap-2">
-              {history.map((h, i) => (
-                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                  {h.won ? `${h.mult?.toFixed(1)}x` : `${h.streak}`}
-                </span>
-              ))}
+      {/* Controls - RIGHT */}
+      <div className="w-64 flex flex-col gap-2">
+        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-2">
+          {/* Bet Type */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Prediction</label>
+            <div className="grid grid-cols-2 gap-1 mt-1">
+              <button onClick={() => !playing && setBetType('higher')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'higher' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                HIGHER ↑
+              </button>
+              <button onClick={() => !playing && setBetType('lower')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'lower' ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                LOWER ↓
+              </button>
+              <button onClick={() => !playing && setBetType('same')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'same' ? 'bg-yellow-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                SAME =
+              </button>
+              <button onClick={() => !playing && setBetType('red')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'red' ? 'bg-red-700 text-white' : 'bg-gray-800 text-red-400'}`}>
+                RED ♥♦
+              </button>
+              <button onClick={() => !playing && setBetType('black')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'black' ? 'bg-gray-900 text-white ring-1 ring-white' : 'bg-gray-800 text-gray-400'}`}>
+                BLACK ♠♣
+              </button>
+              <button onClick={() => !playing && setBetType('odd')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'odd' ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                ODD
+              </button>
+              <button onClick={() => !playing && setBetType('even')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'even' ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                EVEN
+              </button>
+              <button onClick={() => !playing && setBetType('face')} disabled={playing}
+                className={`py-1.5 rounded text-xs font-bold ${betType === 'face' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                FACE
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Bet */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
+                disabled={playing}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              <button onClick={() => handleBetChange(1)} disabled={playing} className="btn-secondary py-1 text-xs">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={playing} className="btn-secondary py-1 text-xs">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={playing} className="btn-secondary py-1 text-xs">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={playing} className="btn-secondary py-1 text-xs">MAX</button>
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="bg-black/30 rounded-lg p-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Multiplier</span>
+              <span className="text-cyan-400 font-bold">{getMultiplier()}x</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-gray-500">Profit</span>
+              <span className="text-green-400 font-bold">${(bet * parseFloat(getMultiplier()) - bet).toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Play Button */}
+          <button
+            onClick={play}
+            disabled={playing || bet <= 0 || bet > state.balance}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+          >
+            {playing ? 'DRAWING...' : 'DRAW CARD'}
+          </button>
+        </div>
       </div>
     </div>
   );

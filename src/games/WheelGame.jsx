@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import BetControls from '../components/BetControls';
+import { useCallback, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// FIXED: Wheel segments with proper arrangement - pointer at TOP (12 o'clock)
 const SEGMENTS = [
   { mult: 0, color: '#1a1a2e', label: '0x' },
   { mult: 1.5, color: '#16213e', label: '1.5x' },
@@ -27,86 +25,15 @@ const SEGMENTS = [
   { mult: 1.5, color: '#16213e', label: '1.5x' },
 ];
 
-const HOUSE_EDGE = 0.05;
-
 export default function WheelGame() {
-  const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
+  const { state, placeBet, addWin, setGlobalBet } = useCasino();
+  const [bet, setBet] = useState(state.globalBet || 10);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
-  const canvasRef = useRef(null);
-  const animRef = useRef(null);
 
   const segAngle = 360 / SEGMENTS.length;
-
-  const drawWheel = useCallback((rot) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const size = canvas.width;
-    const cx = size / 2;
-    const cy = size / 2;
-    const r = size / 2 - 20;
-
-    ctx.clearRect(0, 0, size, size);
-
-    // Draw wheel
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate((rot * Math.PI) / 180);
-
-    SEGMENTS.forEach((seg, i) => {
-      const startAngle = (i * segAngle - 90) * Math.PI / 180;
-      const endAngle = ((i + 1) * segAngle - 90) * Math.PI / 180;
-
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, r, startAngle, endAngle);
-      ctx.closePath();
-      ctx.fillStyle = seg.color;
-      ctx.fill();
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Label
-      ctx.save();
-      ctx.rotate((startAngle + endAngle) / 2);
-      ctx.translate(r * 0.7, 0);
-      ctx.rotate(Math.PI / 2);
-      ctx.fillStyle = seg.mult > 0 ? '#fff' : '#666';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(seg.label, 0, 0);
-      ctx.restore();
-    });
-
-    ctx.restore();
-
-    // Center circle
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.15, 0, Math.PI * 2);
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fill();
-    ctx.strokeStyle = '#00f5ff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // FIXED: Pointer at TOP (12 o'clock position) - pointing DOWN into wheel
-    ctx.beginPath();
-    ctx.moveTo(cx, 15);
-    ctx.lineTo(cx - 12, 0);
-    ctx.lineTo(cx + 12, 0);
-    ctx.closePath();
-    ctx.fillStyle = '#00f5ff';
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }, [segAngle]);
 
   const spin = useCallback(() => {
     if (spinning || bet <= 0 || bet > state.balance) return;
@@ -116,116 +43,182 @@ export default function WheelGame() {
     setResult(null);
     audio.playBet();
 
-    // Weighted random selection
-    const weights = SEGMENTS.map(s => s.mult === 0 ? 3 : s.mult >= 10 ? 0.1 : s.mult >= 5 ? 0.3 : 1);
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    let rand = Math.random() * totalWeight;
-    let resultIdx = 0;
-    for (let i = 0; i < weights.length; i++) {
-      rand -= weights[i];
-      if (rand <= 0) { resultIdx = i; break; }
-    }
+    // Pick winning segment
+    const winIdx = Math.floor(Math.random() * SEGMENTS.length);
+    const segment = SEGMENTS[winIdx];
+    const mult = segment.mult;
 
-    const resultSeg = SEGMENTS[resultIdx];
+    // Calculate rotation to land on winning segment
+    // Pointer is at TOP (270 degrees in standard coords, or -90)
+    // Segment 0 starts at top, going clockwise
+    const segmentCenter = winIdx * segAngle + segAngle / 2;
+    // We need to rotate so that segment center is at top (0 degrees visual)
+    const targetAngle = 360 - segmentCenter;
+    const spins = 5 + Math.floor(Math.random() * 3);
+    const finalRotation = rotation + spins * 360 + targetAngle + Math.random() * (segAngle * 0.6) - segAngle * 0.3;
 
-    // FIXED: Calculate rotation so pointer at TOP points to winning segment
-    // Pointer is at 12 o'clock (top), which is -90 degrees or 270 degrees
-    // We need the CENTER of the winning segment to align with the pointer
-    const segmentCenterAngle = resultIdx * segAngle + segAngle / 2;
-    const spins = 5 + Math.random() * 3;
-    // To align segment center with top pointer, we rotate so that:
-    // -segmentCenterAngle + offset lands segment at top
-    // Since wheel rotates clockwise visually, we add rotation
-    const targetRotation = spins * 360 + (360 - segmentCenterAngle);
-
-    const startRotation = rotation % 360;
-    const duration = state.settings.fastMode ? 3000 : 6000;
-    const startTime = Date.now();
+    const duration = state.settings.fastMode ? 2000 : 4000;
+    const start = Date.now();
+    const startRot = rotation;
 
     const animate = () => {
-      const elapsed = Date.now() - startTime;
+      const elapsed = Date.now() - start;
       const progress = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(1 - progress, 4);
-      const currentRotation = startRotation + targetRotation * eased;
-
-      setRotation(currentRotation);
-      drawWheel(currentRotation);
+      // Ease out cubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setRotation(startRot + (finalRotation - startRot) * ease);
 
       if (progress < 1) {
-        animRef.current = requestAnimationFrame(animate);
+        requestAnimationFrame(animate);
       } else {
         setSpinning(false);
+        setRotation(finalRotation % 360 + 360 * 5); // Normalize
 
-        if (resultSeg.mult > 0) {
-          const win = bet * resultSeg.mult;
-          addWin(win, bet, 'wheel', resultSeg.mult);
+        const winAmount = bet * mult;
+        setResult({ mult, win: winAmount });
+        setHistory(h => [{ mult, win: winAmount > 0 }, ...h.slice(0, 4)]);
+
+        if (mult > 0) {
+          addWin(winAmount, bet, 'wheel', mult);
           audio.playWin();
-          setResult({ won: true, mult: resultSeg.mult, profit: win - bet });
         } else {
           addWin(0, bet, 'wheel', 0);
           audio.playLose();
-          setResult({ won: false, mult: 0, profit: -bet });
         }
-
-        setHistory(h => [{ mult: resultSeg.mult, won: resultSeg.mult > 0 }, ...h.slice(0, 4)]);
       }
     };
-
     animate();
-  }, [spinning, bet, state.balance, state.settings.fastMode, rotation, placeBet, addWin, drawWheel, segAngle]);
+  }, [spinning, bet, state.balance, rotation, state.settings.fastMode, placeBet, addWin]);
 
-  useEffect(() => {
-    drawWheel(rotation);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, []);
+  const handleBetChange = (val) => {
+    const v = Math.min(Math.max(1, val), state.balance);
+    setBet(v);
+    setGlobalBet(v);
+  };
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 game-card p-6">
-        <div className="text-xs text-gray-500 mb-2">House Edge: {(HOUSE_EDGE * 100).toFixed(0)}%</div>
-
-        <div className="flex justify-center mb-4">
-          <canvas ref={canvasRef} width={350} height={350} />
+    <div className="h-full flex gap-3">
+      {/* Game Area - LEFT */}
+      <div className="flex-1 bg-[#0a0a12] rounded-xl p-3 flex flex-col items-center justify-center relative">
+        {/* Pointer at TOP */}
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
+          <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-cyan-400" />
         </div>
 
+        {/* Wheel */}
+        <svg viewBox="0 0 200 200" className="w-full max-w-[300px] max-h-[300px]">
+          <g transform={`rotate(${rotation} 100 100)`}>
+            {SEGMENTS.map((seg, i) => {
+              const startAngle = (i * segAngle - 90) * Math.PI / 180;
+              const endAngle = ((i + 1) * segAngle - 90) * Math.PI / 180;
+              const x1 = 100 + 90 * Math.cos(startAngle);
+              const y1 = 100 + 90 * Math.sin(startAngle);
+              const x2 = 100 + 90 * Math.cos(endAngle);
+              const y2 = 100 + 90 * Math.sin(endAngle);
+              const largeArc = segAngle > 180 ? 1 : 0;
+
+              const midAngle = (startAngle + endAngle) / 2;
+              const textX = 100 + 65 * Math.cos(midAngle);
+              const textY = 100 + 65 * Math.sin(midAngle);
+
+              return (
+                <g key={i}>
+                  <path
+                    d={`M 100 100 L ${x1} ${y1} A 90 90 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                    fill={seg.color}
+                    stroke="#333"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={textX}
+                    y={textY}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill={seg.mult > 0 ? '#fff' : '#555'}
+                    fontSize="8"
+                    fontWeight="bold"
+                    transform={`rotate(${i * segAngle + segAngle / 2} ${textX} ${textY})`}
+                  >
+                    {seg.label}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+          {/* Center */}
+          <circle cx="100" cy="100" r="15" fill="#0a0a12" stroke="#00f5ff" strokeWidth="2" />
+        </svg>
+
+        {/* Result */}
         {result && (
-          <div className={`text-center text-3xl font-bold mb-4 ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-            {result.won ? `${result.mult}x — +$${result.profit.toFixed(2)}` : 'No Win'}
+          <div className={`mt-4 text-center py-2 px-6 rounded-xl ${result.mult > 0 ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
+            <span className={`text-2xl font-black ${result.mult > 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {result.mult}x → ${result.win.toFixed(2)}
+            </span>
           </div>
         )}
-
-        <button onClick={spin} disabled={spinning || bet <= 0 || bet > state.balance}
-          className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-black text-xl disabled:opacity-50">
-          {spinning ? 'SPINNING...' : 'SPIN'}
-        </button>
       </div>
 
-      <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} disabled={spinning} />
-
-        <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-2">Multipliers</div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            {[...new Set(SEGMENTS.filter(s => s.mult > 0).map(s => s.mult))].sort((a, b) => a - b).map(m => (
-              <div key={m} className="bg-gray-800 rounded px-2 py-1 text-center">
-                <span className={m >= 5 ? 'text-yellow-400' : 'text-cyan-400'}>{m}x</span>
-              </div>
-            ))}
+      {/* Controls - RIGHT */}
+      <div className="w-64 flex flex-col gap-2">
+        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-3">
+          {/* Bet */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
+                disabled={spinning}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              <button onClick={() => handleBetChange(1)} disabled={spinning} className="btn-secondary py-1 text-xs">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={spinning} className="btn-secondary py-1 text-xs">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={spinning} className="btn-secondary py-1 text-xs">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={spinning} className="btn-secondary py-1 text-xs">MAX</button>
+            </div>
           </div>
-        </div>
 
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="flex flex-wrap gap-2">
-              {history.map((h, i) => (
-                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                  {h.mult}x
-                </span>
+          {/* Multipliers Info */}
+          <div className="bg-black/30 rounded-lg p-2 text-xs">
+            <div className="text-gray-500 uppercase mb-1">Possible Wins</div>
+            <div className="grid grid-cols-2 gap-1">
+              {[10, 5, 3, 2, 1.5, 1.2].map(m => (
+                <div key={m} className="flex justify-between">
+                  <span className="text-gray-400">{m}x</span>
+                  <span className="text-green-400">${(bet * m).toFixed(0)}</span>
+                </div>
               ))}
             </div>
           </div>
-        )}
+
+          {/* Spin Button */}
+          <button
+            onClick={spin}
+            disabled={spinning || bet <= 0 || bet > state.balance}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {spinning ? 'SPINNING...' : 'SPIN WHEEL'}
+          </button>
+
+          {/* History */}
+          {history.length > 0 && (
+            <div>
+              <div className="text-xs text-gray-500 uppercase mb-1">History</div>
+              <div className="flex gap-1">
+                {history.map((h, i) => (
+                  <span key={i} className={`px-2 py-1 rounded text-xs font-bold ${h.win ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                    {h.mult}x
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

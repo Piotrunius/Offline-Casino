@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import BetControls from '../components/BetControls';
+import { useCallback, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// European roulette wheel layout (numbers in order around wheel)
-const NUMBERS = [
+const WHEEL_NUMBERS = [
   { n: 0, c: 'green' }, { n: 32, c: 'red' }, { n: 15, c: 'black' }, { n: 19, c: 'red' },
   { n: 4, c: 'black' }, { n: 21, c: 'red' }, { n: 2, c: 'black' }, { n: 25, c: 'red' },
   { n: 17, c: 'black' }, { n: 34, c: 'red' }, { n: 6, c: 'black' }, { n: 27, c: 'red' },
@@ -18,132 +16,26 @@ const NUMBERS = [
 ];
 
 const BET_TYPES = {
-  red: { label: 'RED', mult: 2, check: n => NUMBERS.find(x => x.n === n)?.c === 'red' },
-  black: { label: 'BLACK', mult: 2, check: n => NUMBERS.find(x => x.n === n)?.c === 'black' },
-  green: { label: 'GREEN 0', mult: 36, check: n => n === 0 },
+  red: { label: 'RED', mult: 2, check: n => WHEEL_NUMBERS.find(x => x.n === n)?.c === 'red' },
+  black: { label: 'BLACK', mult: 2, check: n => WHEEL_NUMBERS.find(x => x.n === n)?.c === 'black' },
+  green: { label: 'GREEN', mult: 36, check: n => n === 0 },
   odd: { label: 'ODD', mult: 2, check: n => n > 0 && n % 2 === 1 },
   even: { label: 'EVEN', mult: 2, check: n => n > 0 && n % 2 === 0 },
   low: { label: '1-18', mult: 2, check: n => n >= 1 && n <= 18 },
   high: { label: '19-36', mult: 2, check: n => n >= 19 && n <= 36 }
 };
 
-const HOUSE_EDGE = 0.027;
-
 export default function RouletteGame() {
-  const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
+  const { state, placeBet, addWin, setGlobalBet } = useCasino();
+  const [bet, setBet] = useState(state.globalBet || 10);
   const [betType, setBetType] = useState('red');
   const [spinning, setSpinning] = useState(false);
+  const [wheelRot, setWheelRot] = useState(0);
+  const [ballAngle, setBallAngle] = useState(0);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
-  const [winningNumber, setWinningNumber] = useState(null);
-  const canvasRef = useRef(null);
-  const animRef = useRef(null);
-  const wheelRotRef = useRef(0);
-  const ballAngleRef = useRef(0);
 
-  const segAngle = 360 / NUMBERS.length;
-
-  const drawRoulette = useCallback((wheelRot, ballAngle, showBall = true) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const size = canvas.width;
-    const cx = size / 2;
-    const cy = size / 2;
-    const r = size / 2 - 35;
-
-    ctx.clearRect(0, 0, size, size);
-
-    // Outer wood frame
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 30, 0, Math.PI * 2);
-    ctx.fillStyle = '#2a1810';
-    ctx.fill();
-    ctx.strokeStyle = '#8b7355';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    // Ball track
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 15, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fill();
-
-    // Wheel background
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate((wheelRot * Math.PI) / 180);
-
-    // Draw segments
-    NUMBERS.forEach((num, i) => {
-      const startAngle = (i * segAngle - 90) * Math.PI / 180;
-      const endAngle = ((i + 1) * segAngle - 90) * Math.PI / 180;
-
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, r, startAngle, endAngle);
-      ctx.closePath();
-
-      ctx.fillStyle = num.c === 'green' ? '#00aa55' : num.c === 'red' ? '#cc0000' : '#111';
-      ctx.fill();
-      ctx.strokeStyle = '#c9a73f';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Number label
-      ctx.save();
-      ctx.rotate((startAngle + endAngle) / 2);
-      ctx.translate(r * 0.8, 0);
-      ctx.rotate(Math.PI / 2);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(num.n.toString(), 0, 0);
-      ctx.restore();
-    });
-
-    ctx.restore();
-
-    // Center hub
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.3, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fill();
-    ctx.strokeStyle = '#c9a73f';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Inner decorative circle
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.15, 0, Math.PI * 2);
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fill();
-
-    // Ball
-    if (showBall) {
-      const ballDist = r + 10;
-      const ballRad = (ballAngle - 90) * Math.PI / 180;
-      const ballX = cx + Math.cos(ballRad) * ballDist;
-      const ballY = cy + Math.sin(ballRad) * ballDist;
-
-      // Ball shadow
-      ctx.beginPath();
-      ctx.arc(ballX + 2, ballY + 2, 8, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fill();
-
-      // Ball
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
-      const ballGrad = ctx.createRadialGradient(ballX - 2, ballY - 2, 0, ballX, ballY, 8);
-      ballGrad.addColorStop(0, '#ffffff');
-      ballGrad.addColorStop(0.5, '#e0e0e0');
-      ballGrad.addColorStop(1, '#a0a0a0');
-      ctx.fillStyle = ballGrad;
-      ctx.fill();
-    }
-  }, [segAngle]);
+  const segAngle = 360 / WHEEL_NUMBERS.length;
 
   const spin = useCallback(() => {
     if (spinning || bet <= 0 || bet > state.balance) return;
@@ -151,181 +43,227 @@ export default function RouletteGame() {
 
     setSpinning(true);
     setResult(null);
-    setWinningNumber(null);
     audio.playBet();
 
-    // Pick random winning number
-    const resultIdx = Math.floor(Math.random() * NUMBERS.length);
-    const resultNum = NUMBERS[resultIdx];
+    // Pick winning number
+    const winIdx = Math.floor(Math.random() * WHEEL_NUMBERS.length);
+    const winNum = WHEEL_NUMBERS[winIdx];
 
-    // FIXED: Proper ball and wheel animation
-    // Ball spins opposite to wheel, then lands in the winning segment
-    const wheelSpins = 2 + Math.random();
-    const ballSpins = 5 + Math.random() * 2;
+    const duration = state.settings.fastMode ? 2500 : 4500;
+    const wheelSpins = 3 + Math.floor(Math.random() * 2);
+    const ballSpins = 5 + Math.floor(Math.random() * 3);
 
-    // Calculate final positions
-    // The winning segment center angle on the wheel
-    const segmentCenterAngle = resultIdx * segAngle + segAngle / 2;
+    // Final positions
+    const finalWheelRot = wheelRot + wheelSpins * 360;
+    const winSegmentAngle = winIdx * segAngle;
+    const finalBallAngle = ballAngle + ballSpins * 360 + (360 - winSegmentAngle - segAngle / 2);
 
-    // Final wheel position (arbitrary, just needs to spin)
-    const finalWheelRot = wheelRotRef.current + wheelSpins * 360;
-
-    // FIXED: Ball must land on the segment that corresponds to resultIdx
-    // Ball angle relative to screen = wheel rotation + segment position
-    // Since ball is on outer track, it needs to align with the segment
-    const finalBallAngle = finalWheelRot + segmentCenterAngle;
-
-    const startWheelRot = wheelRotRef.current;
-    const startBallAngle = ballAngleRef.current;
-    const duration = state.settings.fastMode ? 3500 : 6000;
-    const startTime = Date.now();
+    const start = Date.now();
+    const startWheelRot = wheelRot;
+    const startBallAngle = ballAngle;
 
     const animate = () => {
-      const elapsed = Date.now() - startTime;
+      const elapsed = Date.now() - start;
       const progress = Math.min(1, elapsed / duration);
+      const wheelEase = 1 - Math.pow(1 - progress, 2);
+      const ballEase = 1 - Math.pow(1 - progress, 4);
 
-      // Easing functions
-      const wheelEase = 1 - Math.pow(1 - progress, 3);
-      const ballEase = 1 - Math.pow(1 - progress, 5);
-
-      const currentWheelRot = startWheelRot + (finalWheelRot - startWheelRot) * wheelEase;
-
-      // Ball spins faster in opposite direction initially, then settles
-      const ballTotalRotation = ballSpins * 360 * (progress < 0.5 ? -1 : 1);
-      const currentBallAngle = progress < 0.3
-        ? startBallAngle - elapsed * 0.5 // Fast opposite spin
-        : startBallAngle + (finalBallAngle - startBallAngle) * ballEase;
-
-      wheelRotRef.current = currentWheelRot;
-      ballAngleRef.current = currentBallAngle;
-
-      drawRoulette(currentWheelRot, currentBallAngle);
+      setWheelRot(startWheelRot + (finalWheelRot - startWheelRot) * wheelEase);
+      setBallAngle(startBallAngle + (finalBallAngle - startBallAngle) * ballEase);
 
       if (progress < 1) {
-        animRef.current = requestAnimationFrame(animate);
+        requestAnimationFrame(animate);
       } else {
         setSpinning(false);
-        setWinningNumber(resultNum);
 
-        const won = BET_TYPES[betType].check(resultNum.n);
+        const won = BET_TYPES[betType].check(winNum.n);
+        const mult = won ? BET_TYPES[betType].mult : 0;
+        const winAmount = bet * mult;
+
+        setResult({ number: winNum.n, color: winNum.c, won, mult, win: winAmount });
+        setHistory(h => [{ n: winNum.n, c: winNum.c }, ...h.slice(0, 4)]);
+
         if (won) {
-          const mult = BET_TYPES[betType].mult;
-          const win = bet * mult;
-          addWin(win, bet, 'roulette', mult);
+          addWin(winAmount, bet, 'roulette', mult);
           audio.playWin();
-          setResult({ won: true, number: resultNum.n, color: resultNum.c, profit: win - bet });
         } else {
           addWin(0, bet, 'roulette', 0);
           audio.playLose();
-          setResult({ won: false, number: resultNum.n, color: resultNum.c, profit: -bet });
         }
-
-        setHistory(h => [{ n: resultNum.n, c: resultNum.c, won }, ...h.slice(0, 4)]);
       }
     };
-
     animate();
-  }, [spinning, bet, betType, state.balance, state.settings.fastMode, placeBet, addWin, drawRoulette, segAngle]);
+  }, [spinning, bet, state.balance, betType, wheelRot, ballAngle, state.settings.fastMode, placeBet, addWin]);
 
-  useEffect(() => {
-    drawRoulette(wheelRotRef.current, ballAngleRef.current, false);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, [drawRoulette]);
+  const handleBetChange = (val) => {
+    const v = Math.min(Math.max(1, val), state.balance);
+    setBet(v);
+    setGlobalBet(v);
+  };
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 game-card p-6">
-        <div className="text-xs text-gray-500 mb-2">House Edge: {(HOUSE_EDGE * 100).toFixed(1)}%</div>
+    <div className="h-full flex gap-3">
+      {/* Game Area - LEFT */}
+      <div className="flex-1 bg-[#0a0a12] rounded-xl p-2 flex flex-col items-center justify-center">
+        <svg viewBox="0 0 220 220" className="w-full max-w-[280px] max-h-[280px]">
+          {/* Outer ring */}
+          <circle cx="110" cy="110" r="105" fill="#1a1008" stroke="#8b7355" strokeWidth="3" />
+          <circle cx="110" cy="110" r="95" fill="#111" />
 
-        <div className="flex justify-center mb-4">
-          <canvas ref={canvasRef} width={350} height={350} />
-        </div>
+          {/* Wheel */}
+          <g transform={`rotate(${wheelRot} 110 110)`}>
+            {WHEEL_NUMBERS.map((num, i) => {
+              const startA = (i * segAngle - 90) * Math.PI / 180;
+              const endA = ((i + 1) * segAngle - 90) * Math.PI / 180;
+              const x1 = 110 + 85 * Math.cos(startA);
+              const y1 = 110 + 85 * Math.sin(startA);
+              const x2 = 110 + 85 * Math.cos(endA);
+              const y2 = 110 + 85 * Math.sin(endA);
 
-        {/* Winning Number Display */}
-        {winningNumber && (
-          <div className="text-center mb-4">
-            <div className={`inline-block px-6 py-3 rounded-xl text-3xl font-black ${
-              winningNumber.c === 'green' ? 'bg-green-600' :
-              winningNumber.c === 'red' ? 'bg-red-600' : 'bg-gray-900'
-            } text-white`}>
-              {winningNumber.n}
-            </div>
-          </div>
-        )}
+              const midA = (startA + endA) / 2;
+              const textX = 110 + 70 * Math.cos(midA);
+              const textY = 110 + 70 * Math.sin(midA);
 
+              return (
+                <g key={i}>
+                  <path
+                    d={`M 110 110 L ${x1} ${y1} A 85 85 0 0 1 ${x2} ${y2} Z`}
+                    fill={num.c === 'green' ? '#00aa55' : num.c === 'red' ? '#cc0000' : '#111'}
+                    stroke="#c9a73f"
+                    strokeWidth="0.5"
+                  />
+                  <text
+                    x={textX}
+                    y={textY}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="#fff"
+                    fontSize="6"
+                    fontWeight="bold"
+                    transform={`rotate(${i * segAngle} ${textX} ${textY})`}
+                  >
+                    {num.n}
+                  </text>
+                </g>
+              );
+            })}
+            <circle cx="110" cy="110" r="25" fill="#2a1810" stroke="#c9a73f" strokeWidth="2" />
+          </g>
+
+          {/* Ball */}
+          <circle
+            cx={110 + 75 * Math.cos((ballAngle - 90) * Math.PI / 180)}
+            cy={110 + 75 * Math.sin((ballAngle - 90) * Math.PI / 180)}
+            r="5"
+            fill="#eee"
+            stroke="#999"
+            strokeWidth="1"
+          />
+        </svg>
+
+        {/* Result */}
         {result && (
-          <div className={`text-center py-3 rounded-lg mb-4 ${result.won ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
-            <div className={`text-xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? `WIN! +$${result.profit.toFixed(2)}` : `Lost on ${result.number}`}
+          <div className={`mt-2 text-center py-2 px-4 rounded-xl ${result.won ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
+            <div className={`text-3xl font-black ${result.color === 'red' ? 'text-red-500' : result.color === 'green' ? 'text-green-500' : 'text-white'}`}>
+              {result.number}
+            </div>
+            <div className={`text-sm ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won ? `+$${(result.win - bet).toFixed(2)}` : `-$${bet.toFixed(2)}`}
             </div>
           </div>
         )}
 
-        {/* Bet Type Selection */}
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          {Object.entries(BET_TYPES).slice(0, 4).map(([key, bt]) => (
-            <button key={key}
-              onClick={() => !spinning && setBetType(key)}
-              className={`py-3 rounded-lg font-bold text-sm transition-all ${
-                betType === key
-                  ? key === 'red' ? 'bg-red-600 text-white ring-2 ring-red-400' :
-                    key === 'black' ? 'bg-gray-800 text-white ring-2 ring-gray-400' :
-                    key === 'green' ? 'bg-green-600 text-white ring-2 ring-green-400' :
-                    'bg-cyan-600 text-white ring-2 ring-cyan-400'
-                  : key === 'red' ? 'bg-red-900/50 text-red-300 hover:bg-red-800/50' :
-                    key === 'black' ? 'bg-gray-900/50 text-gray-300 hover:bg-gray-800/50' :
-                    key === 'green' ? 'bg-green-900/50 text-green-300 hover:bg-green-800/50' :
-                    'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}>
-              {bt.label}
-              <div className="text-xs opacity-70">{bt.mult}x</div>
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {Object.entries(BET_TYPES).slice(4).map(([key, bt]) => (
-            <button key={key}
-              onClick={() => !spinning && setBetType(key)}
-              className={`py-3 rounded-lg font-bold text-sm transition-all ${
-                betType === key
-                  ? 'bg-cyan-600 text-white ring-2 ring-cyan-400'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}>
-              {bt.label}
-              <div className="text-xs opacity-70">{bt.mult}x</div>
-            </button>
-          ))}
-        </div>
-
-        <button onClick={spin} disabled={spinning || bet <= 0 || bet > state.balance}
-          className="w-full py-4 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-black text-xl disabled:opacity-50">
-          {spinning ? 'SPINNING...' : 'SPIN'}
-        </button>
+        {/* History */}
+        {history.length > 0 && (
+          <div className="flex gap-1 mt-2">
+            {history.map((h, i) => (
+              <div key={i} className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white ${h.c === 'red' ? 'bg-red-600' : h.c === 'green' ? 'bg-green-600' : 'bg-gray-800'}`}>
+                {h.n}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} disabled={spinning} />
-
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="flex flex-wrap gap-2">
-              {history.map((h, i) => (
-                <span key={i} className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white ${
-                  h.c === 'green' ? 'bg-green-600' : h.c === 'red' ? 'bg-red-600' : 'bg-gray-800'
-                } ${h.won ? 'ring-2 ring-yellow-400' : ''}`}>
-                  {h.n}
-                </span>
-              ))}
+      {/* Controls - RIGHT */}
+      <div className="w-64 flex flex-col gap-2">
+        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-2">
+          {/* Bet Type */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Bet Type</label>
+            <div className="grid grid-cols-2 gap-1 mt-1">
+              <button onClick={() => !spinning && setBetType('red')} disabled={spinning}
+                className={`py-2 rounded-lg font-bold text-sm ${betType === 'red' ? 'bg-red-600 text-white' : 'bg-gray-800 text-red-400'}`}>
+                RED
+              </button>
+              <button onClick={() => !spinning && setBetType('black')} disabled={spinning}
+                className={`py-2 rounded-lg font-bold text-sm ${betType === 'black' ? 'bg-gray-900 text-white ring-2 ring-white' : 'bg-gray-800 text-gray-400'}`}>
+                BLACK
+              </button>
+              <button onClick={() => !spinning && setBetType('green')} disabled={spinning}
+                className={`py-2 rounded-lg font-bold text-sm ${betType === 'green' ? 'bg-green-600 text-white' : 'bg-gray-800 text-green-400'}`}>
+                GREEN 0
+              </button>
+              <button onClick={() => !spinning && setBetType('odd')} disabled={spinning}
+                className={`py-2 rounded-lg font-bold text-sm ${betType === 'odd' ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                ODD
+              </button>
+              <button onClick={() => !spinning && setBetType('even')} disabled={spinning}
+                className={`py-2 rounded-lg font-bold text-sm ${betType === 'even' ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                EVEN
+              </button>
+              <button onClick={() => !spinning && setBetType('low')} disabled={spinning}
+                className={`py-2 rounded-lg font-bold text-sm ${betType === 'low' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                1-18
+              </button>
+              <button onClick={() => !spinning && setBetType('high')} disabled={spinning}
+                className={`py-2 rounded-lg font-bold text-sm col-span-2 ${betType === 'high' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                19-36
+              </button>
             </div>
           </div>
-        )}
 
-        <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-2">Current Bet</div>
-          <div className="text-lg font-bold text-cyan-400">
-            {BET_TYPES[betType].label} ({BET_TYPES[betType].mult}x)
+          {/* Bet */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
+                disabled={spinning}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              <button onClick={() => handleBetChange(1)} disabled={spinning} className="btn-secondary py-1 text-xs">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={spinning} className="btn-secondary py-1 text-xs">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={spinning} className="btn-secondary py-1 text-xs">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={spinning} className="btn-secondary py-1 text-xs">MAX</button>
+            </div>
           </div>
+
+          {/* Info */}
+          <div className="bg-black/30 rounded-lg p-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Multiplier</span>
+              <span className="text-cyan-400 font-bold">{BET_TYPES[betType].mult}x</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-gray-500">Win Amount</span>
+              <span className="text-green-400 font-bold">${(bet * BET_TYPES[betType].mult).toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Spin */}
+          <button
+            onClick={spin}
+            disabled={spinning || bet <= 0 || bet > state.balance}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+          >
+            {spinning ? 'SPINNING...' : 'SPIN'}
+          </button>
         </div>
       </div>
     </div>

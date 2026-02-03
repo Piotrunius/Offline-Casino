@@ -1,276 +1,241 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import BetControls from '../components/BetControls';
+import { useCallback, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// 5 Different Slot Machines with unique themes and paylines
+// 5 Slot machines with different VOLATILITY (not just themes)
+// Low volatility = frequent small wins, High volatility = rare big wins
 const MACHINES = {
   classic: {
-    name: 'Classic Fruits',
-    symbols: ['7', 'BAR', 'Cherry', 'Lemon', 'Orange', 'Plum', 'Bell', 'Melon'],
-    colors: ['#ff0000', '#444', '#ff4466', '#ffee00', '#ff8800', '#9944ff', '#ffcc00', '#00ff88'],
-    payouts: { '777': 100, 'BARBARBAR': 50, 'BellBellBell': 25, 'MelonMelonMelon': 15, 'CherryCherryCherry': 10, 'OrangeOrangeOrange': 8, 'PlumPlumPlum': 6, 'LemonLemonLemon': 4 },
-    bgColor: 'from-red-900 to-red-950'
+    name: 'Classic',
+    volatility: 'Low',
+    symbols: ['🍒', '🍋', '🍊', '🔔', '⭐', '7️⃣'],
+    weights: [30, 25, 20, 15, 8, 2], // Higher = more common
+    payouts: { '🍒🍒🍒': 3, '🍋🍋🍋': 4, '🍊🍊🍊': 5, '🔔🔔🔔': 10, '⭐⭐⭐': 25, '7️⃣7️⃣7️⃣': 50 },
+    bgColor: 'from-red-900/50 to-red-950/50'
   },
   gems: {
-    name: 'Gem Rush',
-    symbols: ['Diamond', 'Ruby', 'Emerald', 'Sapphire', 'Gold', 'Silver', 'Amethyst', 'Topaz'],
-    colors: ['#00ffff', '#ff0044', '#00ff44', '#0044ff', '#ffd700', '#c0c0c0', '#9966ff', '#ffaa00'],
-    payouts: { 'DiamondDiamondDiamond': 150, 'RubyRubyRuby': 75, 'EmeraldEmeraldEmerald': 40, 'SapphireSapphireSapphire': 30, 'GoldGoldGold': 20, 'AmethystAmethystAmethyst': 12, 'TopazTopazTopaz': 8, 'SilverSilverSilver': 5 },
-    bgColor: 'from-purple-900 to-purple-950'
+    name: 'Gems',
+    volatility: 'Medium',
+    symbols: ['💎', '💠', '🔷', '🔶', '⬜', '🟣'],
+    weights: [5, 10, 20, 25, 25, 15],
+    payouts: { '💎💎💎': 100, '💠💠💠': 40, '🔷🔷🔷': 15, '🔶🔶🔶': 8, '⬜⬜⬜': 4, '🟣🟣🟣': 6 },
+    bgColor: 'from-purple-900/50 to-purple-950/50'
   },
   space: {
-    name: 'Space Odyssey',
-    symbols: ['Star', 'Planet', 'Rocket', 'Alien', 'Moon', 'Comet', 'UFO', 'Nebula'],
-    colors: ['#ffff00', '#ff6600', '#ff3366', '#00ff00', '#aaaaaa', '#00ffff', '#ff00ff', '#6644ff'],
-    payouts: { 'StarStarStar': 200, 'AlienAlienAlien': 80, 'RocketRocketRocket': 50, 'UFOUFOufo': 35, 'PlanetPlanetPlanet': 20, 'CometCometComet': 15, 'MoonMoonMoon': 10, 'NebulaNebulaNebula': 6 },
-    bgColor: 'from-blue-900 to-slate-950'
+    name: 'Space',
+    volatility: 'High',
+    symbols: ['🚀', '👽', '🌟', '🪐', '☄️', '🛸'],
+    weights: [2, 5, 15, 25, 28, 25],
+    payouts: { '🚀🚀🚀': 200, '👽👽👽': 75, '🌟🌟🌟': 20, '🪐🪐🪐': 8, '☄️☄️☄️': 4, '🛸🛸🛸': 6 },
+    bgColor: 'from-blue-900/50 to-slate-950/50'
   },
-  egyptian: {
-    name: 'Pharaoh\'s Gold',
-    symbols: ['Pharaoh', 'Scarab', 'Ankh', 'Eye', 'Pyramid', 'Cat', 'Scroll', 'Lotus'],
-    colors: ['#ffd700', '#00aa44', '#00ffff', '#ffcc00', '#ff8800', '#ff6688', '#f4e4bc', '#ff66aa'],
-    payouts: { 'PharaohPharaohPharaoh': 250, 'ScarabScarabScarab': 100, 'AnkhAnkhAnkh': 60, 'EyeEyeEye': 40, 'PyramidPyramidPyramid': 25, 'CatCatCat': 15, 'ScrollScrollScroll': 10, 'LotusLotusLotus': 5 },
-    bgColor: 'from-yellow-800 to-amber-950'
+  egypt: {
+    name: 'Egypt',
+    volatility: 'Very High',
+    symbols: ['👑', '🐍', '🏺', '🔱', '💀', '🪲'],
+    weights: [1, 4, 10, 20, 30, 35],
+    payouts: { '👑👑👑': 500, '🐍🐍🐍': 100, '🏺🏺🏺': 30, '🔱🔱🔱': 12, '💀💀💀': 5, '🪲🪲🪲': 3 },
+    bgColor: 'from-yellow-900/50 to-amber-950/50'
   },
-  vegas: {
-    name: 'Vegas Nights',
-    symbols: ['Jackpot', 'Dice', 'Chips', 'Cards', 'Crown', 'Ring', 'Watch', 'Car'],
-    colors: ['#ff0066', '#ffffff', '#00ff00', '#ff4444', '#ffd700', '#00ffff', '#ff8800', '#ff00ff'],
-    payouts: { 'JackpotJackpotJackpot': 500, 'CrownCrownCrown': 120, 'RingRingRing': 70, 'DiceDiceDice': 45, 'ChipsChipsChips': 30, 'CardsCardsCards': 18, 'WatchWatchWatch': 12, 'CarCarCar': 8 },
-    bgColor: 'from-pink-900 to-fuchsia-950'
+  jackpot: {
+    name: 'Jackpot',
+    volatility: 'Extreme',
+    symbols: ['💰', '💵', '💴', '💶', '💷', '🪙'],
+    weights: [1, 2, 8, 20, 30, 39],
+    payouts: { '💰💰💰': 1000, '💵💵💵': 150, '💴💴💴': 40, '💶💶💶': 15, '💷💷💷': 6, '🪙🪙🪙': 2 },
+    bgColor: 'from-green-900/50 to-emerald-950/50'
   }
 };
 
-const HOUSE_EDGE = 0.04;
-
 export default function SlotsGame() {
-  const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
+  const { state, placeBet, addWin, setGlobalBet } = useCasino();
+  const [bet, setBet] = useState(state.globalBet || 10);
   const [machineId, setMachineId] = useState('classic');
-  const [reels, setReels] = useState([
-    [0, 1, 2], [0, 1, 2], [0, 1, 2]
-  ]);
-  const [spinning, setSpinning] = useState([false, false, false]);
+  const [reels, setReels] = useState(['🍒', '🍋', '🍊']);
+  const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
-  const animRefs = useRef([null, null, null]);
 
   const machine = MACHINES[machineId];
-  const symbols = machine.symbols;
 
-  const getSymbolDisplay = (idx) => {
-    return symbols[idx] || symbols[0];
+  const getWeightedSymbol = () => {
+    const total = machine.weights.reduce((a, b) => a + b, 0);
+    let rand = Math.random() * total;
+    for (let i = 0; i < machine.weights.length; i++) {
+      rand -= machine.weights[i];
+      if (rand <= 0) return machine.symbols[i];
+    }
+    return machine.symbols[0];
   };
 
   const spin = useCallback(() => {
-    if (spinning.some(s => s) || bet <= 0 || bet > state.balance) return;
+    if (spinning || bet <= 0 || bet > state.balance) return;
     if (!placeBet(bet, 'slots')) return;
 
+    setSpinning(true);
     setResult(null);
-    setSpinning([true, true, true]);
     audio.playBet();
 
-    // Generate weighted results
-    const finalSymbols = [];
-    for (let i = 0; i < 3; i++) {
-      const rand = Math.random();
-      let idx;
-      if (rand < 0.35) idx = Math.floor(Math.random() * 3) + 4; // Common symbols (idx 4-6)
-      else if (rand < 0.6) idx = Math.floor(Math.random() * 2) + 2; // Medium symbols (idx 2-3)
-      else if (rand < 0.85) idx = Math.floor(Math.random() * 2) + 5; // Less common
-      else if (rand < 0.95) idx = 1; // Rare
-      else idx = 0; // Very rare (top symbol)
-      finalSymbols.push(idx);
-    }
+    // Generate final symbols using weights
+    const finals = [getWeightedSymbol(), getWeightedSymbol(), getWeightedSymbol()];
+    const duration = state.settings.fastMode ? 1000 : 2000;
 
-    // Animate each reel
-    const animateReel = (reelIdx, duration) => {
-      const startTime = Date.now();
-      const finalIdx = finalSymbols[reelIdx];
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(1, elapsed / duration);
-
-        if (progress < 0.85) {
-          // Random spinning
-          const randomSyms = [
-            Math.floor(Math.random() * symbols.length),
-            Math.floor(Math.random() * symbols.length),
-            Math.floor(Math.random() * symbols.length)
-          ];
-          setReels(prev => {
-            const next = [...prev];
-            next[reelIdx] = randomSyms;
-            return next;
-          });
-        } else {
-          // Settle on final
-          const above = (finalIdx + symbols.length - 1) % symbols.length;
-          const below = (finalIdx + 1) % symbols.length;
-          setReels(prev => {
-            const next = [...prev];
-            next[reelIdx] = [above, finalIdx, below];
-            return next;
-          });
-        }
-
-        if (progress < 1) {
-          animRefs.current[reelIdx] = requestAnimationFrame(animate);
-        } else {
-          setSpinning(prev => {
-            const next = [...prev];
-            next[reelIdx] = false;
-            return next;
-          });
-        }
-      };
-      animate();
-    };
-
-    const baseDelay = state.settings.fastMode ? 500 : 900;
-    animateReel(0, baseDelay);
-    setTimeout(() => animateReel(1, baseDelay), baseDelay / 2);
-    setTimeout(() => animateReel(2, baseDelay), baseDelay);
-
-    // Check results after all reels stop
-    setTimeout(() => {
-      const key = finalSymbols.map(i => symbols[i]).join('');
-      const mult = machine.payouts[key] || 0;
-
-      if (mult > 0) {
-        const win = bet * mult;
-        addWin(win, bet, 'slots', mult);
-        setResult({ won: true, symbols: finalSymbols, mult, profit: win - bet });
-        audio.playWin();
-      } else if (finalSymbols[0] === finalSymbols[1] || finalSymbols[1] === finalSymbols[2]) {
-        // Two matching = small win
-        const smallMult = 1.5;
-        const win = bet * smallMult;
-        addWin(win, bet, 'slots', smallMult);
-        setResult({ won: true, symbols: finalSymbols, mult: smallMult, profit: win - bet });
-        audio.playTick();
+    // Animate
+    let frame = 0;
+    const maxFrames = state.settings.fastMode ? 20 : 40;
+    const animate = () => {
+      if (frame < maxFrames) {
+        setReels([
+          frame < maxFrames * 0.6 ? machine.symbols[Math.floor(Math.random() * machine.symbols.length)] : finals[0],
+          frame < maxFrames * 0.75 ? machine.symbols[Math.floor(Math.random() * machine.symbols.length)] : finals[1],
+          frame < maxFrames * 0.9 ? machine.symbols[Math.floor(Math.random() * machine.symbols.length)] : finals[2]
+        ]);
+        frame++;
+        setTimeout(animate, duration / maxFrames);
       } else {
-        addWin(0, bet, 'slots', 0);
-        setResult({ won: false, symbols: finalSymbols, mult: 0, profit: -bet });
-        audio.playLose();
+        setReels(finals);
+        setSpinning(false);
+
+        // Check win
+        const key = finals.join('');
+        const mult = machine.payouts[key] || 0;
+        const winAmount = bet * mult;
+
+        setResult({ symbols: finals, mult, win: winAmount });
+        setHistory(h => [{ mult, win: mult > 0 }, ...h.slice(0, 4)]);
+
+        if (mult > 0) {
+          addWin(winAmount, bet, 'slots', mult);
+          audio.playWin();
+        } else {
+          addWin(0, bet, 'slots', 0);
+          audio.playLose();
+        }
       }
+    };
+    animate();
+  }, [spinning, bet, state.balance, machine, state.settings.fastMode, placeBet, addWin]);
 
-      setHistory(h => [{ won: mult > 0 || finalSymbols[0] === finalSymbols[1] || finalSymbols[1] === finalSymbols[2], mult: mult || (finalSymbols[0] === finalSymbols[1] || finalSymbols[1] === finalSymbols[2] ? 1.5 : 0) }, ...h.slice(0, 4)]);
-    }, baseDelay * 1.8);
-  }, [spinning, bet, state.balance, state.settings.fastMode, machine, symbols, placeBet, addWin]);
-
-  useEffect(() => {
-    return () => animRefs.current.forEach(ref => ref && cancelAnimationFrame(ref));
-  }, []);
-
-  const isSpinning = spinning.some(s => s);
+  const handleBetChange = (val) => {
+    const v = Math.min(Math.max(1, val), state.balance);
+    setBet(v);
+    setGlobalBet(v);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 game-card p-6">
-        <div className="text-xs text-gray-500 mb-3">House Edge: {(HOUSE_EDGE * 100).toFixed(0)}%</div>
+    <div className="h-full flex gap-3">
+      {/* Game Area - LEFT */}
+      <div className="flex-1 bg-[#0a0a12] rounded-xl p-3 flex flex-col items-center justify-center">
+        {/* Machine Display */}
+        <div className={`bg-gradient-to-b ${machine.bgColor} rounded-2xl p-4 border-2 border-yellow-600/50 w-full max-w-xs`}>
+          <div className="text-center text-yellow-400 font-black text-lg mb-2">{machine.name}</div>
+          <div className="text-center text-xs text-gray-400 mb-3">Volatility: {machine.volatility}</div>
 
-        {/* Machine Selector */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-          {Object.entries(MACHINES).map(([id, m]) => (
-            <button key={id}
-              onClick={() => !isSpinning && setMachineId(id)}
-              className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-                machineId === id
-                  ? 'bg-gradient-to-r ' + m.bgColor + ' text-white ring-2 ring-white/50'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}>
-              {m.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Slot Machine */}
-        <div className={`bg-gradient-to-b ${machine.bgColor} rounded-xl p-4 border-4 border-yellow-600 mb-4`}>
-          <div className="text-center text-lg font-bold text-yellow-400 mb-3">{machine.name}</div>
-
-          <div className="bg-black rounded-lg p-3 mb-3">
-            <div className="grid grid-cols-3 gap-2">
-              {reels.map((reel, ri) => (
-                <div key={ri} className="bg-gray-900 rounded-lg overflow-hidden">
-                  {reel.map((symIdx, si) => (
-                    <div key={si}
-                      className={`text-center py-3 text-sm font-bold ${
-                        si === 1 ? 'bg-gray-800 border-y-2 border-yellow-500 text-lg' : 'opacity-40'
-                      }`}
-                      style={{ color: machine.colors[symIdx] }}>
-                      {getSymbolDisplay(symIdx)}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+          {/* Reels */}
+          <div className="flex justify-center gap-2 bg-black/50 rounded-xl p-3">
+            {reels.map((sym, i) => (
+              <div key={i} className={`w-16 h-16 flex items-center justify-center text-4xl bg-gray-900 rounded-lg border-2 border-gray-700 ${spinning ? 'animate-pulse' : ''}`}>
+                {sym}
+              </div>
+            ))}
           </div>
 
-          {/* Win line indicators */}
-          <div className="flex justify-center gap-2 mb-3">
-            {[0, 1, 2].map(i => (
-              <div key={i}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  result?.won && result.mult >= 3 ? 'bg-yellow-400 animate-pulse' : 'bg-gray-600'
-                }`} />
-            ))}
+          {/* Payline indicator */}
+          <div className="flex justify-center mt-2">
+            <div className="h-1 w-48 bg-yellow-500 rounded-full" />
           </div>
         </div>
 
         {/* Result */}
         {result && (
-          <div className={`text-center py-3 rounded-lg mb-4 ${result.won ? 'bg-green-900/50' : 'bg-red-900/30'}`}>
-            <div className={`text-xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? `WIN ${result.mult}x` : 'NO WIN'}
-            </div>
-            {result.won && <div className="text-lg text-yellow-400">+${result.profit.toFixed(2)}</div>}
+          <div className={`mt-4 text-center py-2 px-6 rounded-xl ${result.mult > 0 ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
+            <span className={`text-xl font-black ${result.mult > 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {result.mult > 0 ? `${result.mult}x WIN! +$${(result.win - bet).toFixed(2)}` : 'NO WIN'}
+            </span>
           </div>
         )}
-
-        {/* Spin Button */}
-        <button onClick={spin} disabled={isSpinning || bet <= 0 || bet > state.balance}
-          className="w-full py-4 rounded-xl bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-white font-black text-xl disabled:opacity-50">
-          {isSpinning ? 'SPINNING...' : 'SPIN'}
-        </button>
       </div>
 
-      <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} disabled={isSpinning} />
-
-        {/* Paytable */}
-        <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-2">{machine.name} Payouts</div>
-          <div className="space-y-1 text-xs max-h-40 overflow-y-auto">
-            {Object.entries(machine.payouts).slice(0, 5).map(([key, mult]) => {
-              const sym = key.match(/[A-Z][a-z]*/g)?.[0] || key.slice(0, key.length / 3);
-              return (
-                <div key={key} className="flex justify-between bg-gray-800/50 px-2 py-1 rounded">
-                  <span className="truncate">{sym} x3</span>
-                  <span className={mult >= 50 ? 'text-yellow-400' : 'text-green-400'}>{mult}x</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="text-xs text-gray-500 mt-2 border-t border-gray-700 pt-2">
-            2 matching = 1.5x
-          </div>
-        </div>
-
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="flex flex-wrap gap-2">
-              {history.map((h, i) => (
-                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                  {h.mult}x
-                </span>
+      {/* Controls - RIGHT */}
+      <div className="w-64 flex flex-col gap-2">
+        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-2">
+          {/* Machine Select */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Machine</label>
+            <div className="grid grid-cols-1 gap-1 mt-1 max-h-32 overflow-y-auto">
+              {Object.entries(MACHINES).map(([id, m]) => (
+                <button
+                  key={id}
+                  onClick={() => !spinning && setMachineId(id)}
+                  disabled={spinning}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold text-left flex justify-between items-center ${
+                    machineId === id ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  <span>{m.name}</span>
+                  <span className={`text-[10px] ${
+                    m.volatility === 'Low' ? 'text-green-400' :
+                    m.volatility === 'Medium' ? 'text-yellow-400' :
+                    m.volatility === 'High' ? 'text-orange-400' :
+                    m.volatility === 'Very High' ? 'text-red-400' : 'text-pink-400'
+                  }`}>{m.volatility}</span>
+                </button>
               ))}
             </div>
           </div>
-        )}
+
+          {/* Paytable */}
+          <div className="bg-black/30 rounded-lg p-2 text-xs max-h-24 overflow-y-auto">
+            <div className="text-gray-500 uppercase mb-1">Paytable</div>
+            {Object.entries(machine.payouts).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([combo, mult]) => (
+              <div key={combo} className="flex justify-between">
+                <span>{combo}</span>
+                <span className="text-green-400">{mult}x</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Bet */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
+                disabled={spinning}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              <button onClick={() => handleBetChange(1)} disabled={spinning} className="btn-secondary py-1 text-xs">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={spinning} className="btn-secondary py-1 text-xs">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={spinning} className="btn-secondary py-1 text-xs">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={spinning} className="btn-secondary py-1 text-xs">MAX</button>
+            </div>
+          </div>
+
+          {/* Spin Button */}
+          <button
+            onClick={spin}
+            disabled={spinning || bet <= 0 || bet > state.balance}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+          >
+            {spinning ? 'SPINNING...' : 'SPIN'}
+          </button>
+
+          {/* History */}
+          {history.length > 0 && (
+            <div className="flex gap-1">
+              {history.map((h, i) => (
+                <span key={i} className={`px-2 py-1 rounded text-xs font-bold ${h.win ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                  {h.mult > 0 ? `${h.mult}x` : '0'}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
