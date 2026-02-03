@@ -34,7 +34,6 @@ export default function WarGame() {
   }, []);
 
   const drawRiggedCard = useCallback((targetValue, higher, excludeCards = []) => {
-    // Draw card higher or lower than target
     const validRanks = RANKS.filter(r =>
       higher ? RANK_VALUES[r] > targetValue : RANK_VALUES[r] < targetValue
     );
@@ -57,7 +56,6 @@ export default function WarGame() {
     setWarCards({ player: [], dealer: [] });
     audio.playBet();
 
-    // Deal cards with animation delay
     await new Promise(r => setTimeout(r, state.settings.fastMode ? 200 : 400));
 
     const pCard = drawCard();
@@ -67,7 +65,6 @@ export default function WarGame() {
 
     let dCard;
     if (godMode) {
-      // God mode: always lose (draw lower card)
       dCard = drawRiggedCard(pCard.value, false, [pCard]);
     } else {
       dCard = drawCard([pCard]);
@@ -76,22 +73,18 @@ export default function WarGame() {
 
     await new Promise(r => setTimeout(r, state.settings.fastMode ? 300 : 600));
 
-    // Determine winner
     if (pCard.value > dCard.value) {
-      // Player wins
       const winAmount = bet * WIN_MULTIPLIER;
       setResult({ outcome: 'win', winAmount, mult: WIN_MULTIPLIER });
       setHistory(h => [{ outcome: 'win', pCard, dCard }, ...h.slice(0, 5)]);
       addWin(winAmount, bet, 'war', WIN_MULTIPLIER);
       audio.playWin();
     } else if (pCard.value < dCard.value) {
-      // Dealer wins
       setResult({ outcome: 'lose', winAmount: 0, mult: 0 });
       setHistory(h => [{ outcome: 'lose', pCard, dCard }, ...h.slice(0, 5)]);
       addWin(0, bet, 'war', 0);
       audio.playLose();
     } else {
-      // WAR! (tie)
       setWarMode(true);
       setResult({ outcome: 'war', winAmount: 0, mult: 0 });
     }
@@ -100,68 +93,66 @@ export default function WarGame() {
   }, [playing, bet, state.balance, state.settings.fastMode, placeBet, drawCard, drawRiggedCard, godMode, addWin]);
 
   const goToWar = useCallback(async () => {
-    if (playing) return;
+    if (playing || bet > state.balance) return;
 
-    // War costs same as original bet
     const confirmed = await placeBet(bet, 'war');
     if (!confirmed) return;
 
     setPlaying(true);
     audio.playBet();
 
-    // Burn 3 cards each (just visual)
-    const burnPlayer = [drawCard(), drawCard(), drawCard()];
-    const burnDealer = [drawCard(), drawCard(), drawCard()];
+    await new Promise(r => setTimeout(r, state.settings.fastMode ? 200 : 400));
+
+    const burnCards = { player: [], dealer: [] };
+    for (let i = 0; i < 3; i++) {
+      burnCards.player.push(drawCard());
+      burnCards.dealer.push(drawCard());
+    }
+    setWarCards(burnCards);
 
     await new Promise(r => setTimeout(r, state.settings.fastMode ? 300 : 600));
-    setWarCards({ player: burnPlayer, dealer: burnDealer });
 
-    await new Promise(r => setTimeout(r, state.settings.fastMode ? 300 : 600));
-
-    // Draw final war cards
-    const pWarCard = drawCard([...burnPlayer, ...burnDealer, playerCard, dealerCard]);
-    const newPlayerCard = pWarCard;
-    setPlayerCard(pWarCard);
+    const pCard = drawCard();
+    setPlayerCard(pCard);
 
     await new Promise(r => setTimeout(r, state.settings.fastMode ? 200 : 400));
 
-    let dWarCard;
+    let dCard;
     if (godMode) {
-      dWarCard = drawRiggedCard(pWarCard.value, false, [...burnPlayer, ...burnDealer, playerCard, dealerCard, pWarCard]);
+      dCard = drawRiggedCard(pCard.value, false, [pCard, ...burnCards.player, ...burnCards.dealer]);
     } else {
-      dWarCard = drawCard([...burnPlayer, ...burnDealer, playerCard, dealerCard, pWarCard]);
+      dCard = drawCard([pCard, ...burnCards.player, ...burnCards.dealer]);
     }
-    setDealerCard(dWarCard);
+    setDealerCard(dCard);
 
     await new Promise(r => setTimeout(r, state.settings.fastMode ? 300 : 600));
 
-    // In war, if player wins they get original bet back + win on war bet
-    if (pWarCard.value >= dWarCard.value) {
-      // Player wins war (ties go to player in war)
-      const winAmount = bet * WAR_MULTIPLIER; // Both bets paid at 1:1 + bonus
-      setResult({ outcome: 'win', winAmount, mult: WAR_MULTIPLIER });
-      setHistory(h => [{ outcome: 'war-win', pCard: pWarCard, dCard: dWarCard }, ...h.slice(0, 5)]);
-      addWin(winAmount, bet, 'war', WAR_MULTIPLIER);
+    const totalBet = bet * 2;
+
+    if (pCard.value >= dCard.value) {
+      const winAmount = totalBet * WAR_MULTIPLIER;
+      setResult({ outcome: 'warWin', winAmount, mult: WAR_MULTIPLIER });
+      setHistory(h => [{ outcome: 'warWin', pCard, dCard }, ...h.slice(0, 5)]);
+      addWin(winAmount, totalBet, 'war', WAR_MULTIPLIER);
       audio.playWin();
     } else {
-      // Dealer wins war
-      setResult({ outcome: 'lose', winAmount: 0, mult: 0 });
-      setHistory(h => [{ outcome: 'war-lose', pCard: pWarCard, dCard: dWarCard }, ...h.slice(0, 5)]);
-      addWin(0, bet, 'war', 0);
+      setResult({ outcome: 'warLose', winAmount: 0, mult: 0 });
+      setHistory(h => [{ outcome: 'warLose', pCard, dCard }, ...h.slice(0, 5)]);
+      addWin(0, totalBet, 'war', 0);
       audio.playLose();
     }
 
     setWarMode(false);
     setPlaying(false);
-  }, [playing, bet, placeBet, drawCard, drawRiggedCard, godMode, playerCard, dealerCard, state.settings.fastMode, addWin]);
+  }, [playing, bet, state.balance, state.settings.fastMode, placeBet, drawCard, drawRiggedCard, godMode, addWin]);
 
   const surrender = useCallback(() => {
-    // Surrender returns half bet
     const returnAmount = bet * 0.5;
     setResult({ outcome: 'surrender', winAmount: returnAmount, mult: 0.5 });
     setHistory(h => [{ outcome: 'surrender', pCard: playerCard, dCard: dealerCard }, ...h.slice(0, 5)]);
     addWin(returnAmount, bet, 'war', 0.5);
     setWarMode(false);
+    audio.playLose();
   }, [bet, playerCard, dealerCard, addWin]);
 
   const handleBetChange = (val) => {
@@ -170,195 +161,211 @@ export default function WarGame() {
     setGlobalBet(v);
   };
 
-  const Card = ({ card, faceDown, small }) => {
-    if (!card) {
-      return (
-        <div className={`${small ? 'w-12 h-16' : 'w-28 h-40'} rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-700 flex items-center justify-center`}>
-          <span className="text-gray-600 text-2xl">?</span>
-        </div>
-      );
-    }
-
-    if (faceDown) {
-      return (
-        <div className={`${small ? 'w-12 h-16' : 'w-28 h-40'} rounded-xl bg-gradient-to-br from-blue-900 to-blue-950 border-2 border-blue-700`}>
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-3/4 h-3/4 rounded border border-blue-600 bg-blue-800/50" />
+  const CardDisplay = ({ card, label, faceDown = false }) => (
+    <div className="flex flex-col items-center">
+      <span className="text-gray-400 text-sm mb-3 font-semibold">{label}</span>
+      <div className={`w-24 h-36 rounded-xl flex items-center justify-center text-5xl font-black shadow-2xl transition-all duration-300 ${
+        faceDown
+          ? 'bg-gradient-to-br from-blue-800 to-blue-950 border-2 border-blue-600'
+          : card
+          ? 'bg-gradient-to-br from-white to-gray-200 border-2 border-gray-600 shadow-lg'
+          : 'bg-gradient-to-br from-gray-600 to-gray-800 border-2 border-gray-500'
+      }`}>
+        {faceDown ? (
+          <span className="text-blue-400 text-3xl">?</span>
+        ) : card ? (
+          <div className="flex flex-col items-center">
+            <span className="text-black drop-shadow-md">
+              {card.suit}
+            </span>
+            <span className="text-black leading-none drop-shadow-md">
+              {card.rank}
+            </span>
           </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className={`${small ? 'w-12 h-16' : 'w-28 h-40'} rounded-xl bg-white border-2 border-gray-300 flex flex-col items-center justify-center shadow-lg`}>
-        <span className={`${small ? 'text-lg' : 'text-4xl'} font-black ${SUIT_COLORS[card.suit]}`}>
-          {card.rank}
-        </span>
-        <span className={`${small ? 'text-lg' : 'text-3xl'} ${SUIT_COLORS[card.suit]}`}>
-          {card.suit}
-        </span>
+        ) : (
+          <span className="text-gray-600 text-4xl font-black">-</span>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
     <div className="h-full flex gap-4">
       {/* Game Area */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d0a18] rounded-2xl p-6 flex flex-col items-center justify-center relative">
-        {/* Result Banner */}
-        {result && !warMode && (
-          <div className={`absolute top-4 left-1/2 -translate-x-1/2 text-center py-3 px-8 rounded-2xl z-10 ${
-            result.outcome === 'win'
-              ? 'bg-gradient-to-r from-green-900/80 to-emerald-900/80 border border-green-500/50'
-              : result.outcome === 'surrender'
-              ? 'bg-gradient-to-r from-yellow-900/80 to-amber-900/80 border border-yellow-500/50'
-              : 'bg-gradient-to-r from-red-900/80 to-rose-900/80 border border-red-500/50'
-          }`}>
-            <span className={`text-xl font-black ${
-              result.outcome === 'win' ? 'text-green-400' :
-              result.outcome === 'surrender' ? 'text-yellow-400' : 'text-red-400'
-            }`}>
-              {result.outcome === 'win' && `WIN ${result.mult.toFixed(2)}x → +$${result.winAmount.toFixed(2)}`}
-              {result.outcome === 'lose' && 'DEALER WINS'}
-              {result.outcome === 'surrender' && `SURRENDER → $${result.winAmount.toFixed(2)} returned`}
-            </span>
-          </div>
-        )}
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] via-[#0a1020] to-[#0a0a12] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500 rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-blue-500 rounded-full blur-[80px]" />
+        </div>
 
-        {/* WAR Banner */}
+        {/* War Banner */}
         {warMode && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-center py-3 px-8 rounded-2xl z-10 bg-gradient-to-r from-orange-900/80 to-red-900/80 border border-orange-500/50 animate-pulse">
-            <span className="text-2xl font-black text-orange-400">⚔️ WAR! ⚔️</span>
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-orange-600 px-8 py-3 rounded-full animate-pulse">
+            <span className="text-white font-black text-2xl">⚔️ WAR! ⚔️</span>
           </div>
         )}
 
         {/* Cards Area */}
-        <div className="flex items-center justify-center gap-16">
-          {/* Player Side */}
-          <div className="text-center">
-            <div className="text-sm text-cyan-400 font-bold mb-4 uppercase tracking-wider">Your Card</div>
-            <Card card={playerCard} />
-            {playerCard && (
-              <div className="mt-2 text-lg font-bold text-white">{playerCard.rank} of {playerCard.suit}</div>
-            )}
-          </div>
+        <div className="relative z-10 flex items-center gap-16">
+          <CardDisplay card={playerCard} label="YOUR CARD" />
 
-          {/* VS */}
           <div className="text-4xl font-black text-gray-600">VS</div>
 
-          {/* Dealer Side */}
-          <div className="text-center">
-            <div className="text-sm text-orange-400 font-bold mb-4 uppercase tracking-wider">Dealer Card</div>
-            <Card card={dealerCard} />
-            {dealerCard && (
-              <div className="mt-2 text-lg font-bold text-white">{dealerCard.rank} of {dealerCard.suit}</div>
-            )}
-          </div>
+          <CardDisplay card={dealerCard} label="DEALER" />
         </div>
 
-        {/* War cards (burned) */}
+        {/* War Burn Cards */}
         {warCards.player.length > 0 && (
-          <div className="flex items-center justify-center gap-8 mt-6">
+          <div className="mt-8 flex gap-16">
             <div className="flex gap-1">
-              {warCards.player.map((_, i) => <Card key={i} faceDown small />)}
+              {warCards.player.map((_, i) => (
+                <div key={i} className="w-12 h-18 rounded bg-gradient-to-br from-blue-800 to-blue-950 border border-blue-600" />
+              ))}
             </div>
-            <span className="text-gray-500 text-sm">burned</span>
             <div className="flex gap-1">
-              {warCards.dealer.map((_, i) => <Card key={i} faceDown small />)}
+              {warCards.dealer.map((_, i) => (
+                <div key={i} className="w-12 h-18 rounded bg-gradient-to-br from-blue-800 to-blue-950 border border-blue-600" />
+              ))}
             </div>
           </div>
         )}
 
+        {/* Result */}
+        {result && (
+          <div className={`mt-8 px-8 py-4 rounded-2xl text-center ${
+            result.outcome === 'win' || result.outcome === 'warWin'
+              ? 'bg-green-500/20 border border-green-500/50'
+              : result.outcome === 'war'
+              ? 'bg-yellow-500/20 border border-yellow-500/50'
+              : 'bg-red-500/20 border border-red-500/50'
+          }`}>
+            <div className={`text-2xl font-black ${
+              result.outcome === 'win' || result.outcome === 'warWin' ? 'text-green-400' :
+              result.outcome === 'war' ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {result.outcome === 'win' && 'YOU WIN!'}
+              {result.outcome === 'lose' && 'YOU LOSE'}
+              {result.outcome === 'war' && 'IT\'S WAR!'}
+              {result.outcome === 'warWin' && 'WAR WON!'}
+              {result.outcome === 'warLose' && 'WAR LOST'}
+              {result.outcome === 'surrender' && 'SURRENDERED'}
+            </div>
+            {result.winAmount > 0 && (
+              <div className="text-xl text-white mt-2">
+                +${result.winAmount.toFixed(2)} <span className="text-gray-400">({result.mult}x)</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* War Options */}
-        {warMode && !playing && (
-          <div className="flex gap-4 mt-8">
+        {warMode && (
+          <div className="mt-6 flex gap-4">
             <button
               onClick={goToWar}
-              disabled={bet > state.balance}
-              className="px-8 py-4 rounded-xl font-black text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white shadow-lg shadow-orange-500/30 transition-all"
+              disabled={playing || bet > state.balance}
+              className="px-8 py-3 bg-gradient-to-r from-red-500 to-orange-600 rounded-xl font-bold text-white hover:scale-105 transition-all disabled:opacity-50"
             >
-              GO TO WAR (${bet})
+              ⚔️ GO TO WAR (${bet})
             </button>
             <button
               onClick={surrender}
-              className="px-8 py-4 rounded-xl font-black text-lg bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white transition-all"
+              disabled={playing}
+              className="px-8 py-3 bg-gray-700 rounded-xl font-bold text-gray-300 hover:bg-gray-600 transition-all disabled:opacity-50"
             >
-              SURRENDER (get ${(bet * 0.5).toFixed(2)})
+              🏳️ Surrender (Get ${(bet * 0.5).toFixed(0)} back)
             </button>
           </div>
         )}
 
         {/* History */}
         {history.length > 0 && (
-          <div className="flex gap-2 mt-8 flex-wrap justify-center">
+          <div className="absolute bottom-4 left-4 flex gap-2">
             {history.map((h, i) => (
-              <span key={i} className={`px-3 py-2 rounded-xl font-bold text-sm ${
-                h.outcome === 'win' || h.outcome === 'war-win' ? 'bg-green-900/50 text-green-400' :
-                h.outcome === 'surrender' ? 'bg-yellow-900/50 text-yellow-400' :
-                'bg-red-900/50 text-red-400'
-              }`}>
-                {h.pCard.rank}{h.pCard.suit} vs {h.dCard.rank}{h.dCard.suit}
-              </span>
+              <div
+                key={i}
+                className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${
+                  h.outcome === 'win' || h.outcome === 'warWin' ? 'bg-green-500/30 text-green-400' :
+                  h.outcome === 'surrender' ? 'bg-yellow-500/30 text-yellow-400' :
+                  'bg-red-500/30 text-red-400'
+                }`}
+              >
+                {h.outcome === 'win' ? 'W' : h.outcome === 'warWin' ? '⚔' : h.outcome === 'surrender' ? 'S' : 'L'}
+              </div>
             ))}
           </div>
         )}
       </div>
 
       {/* Controls */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
-          {/* Bet Amount */}
-          <div>
-            <label className="text-sm text-gray-400 uppercase font-bold">Bet Amount</label>
-            <div className="flex items-center gap-2 mt-2">
-              <button onClick={() => handleBetChange(bet / 2)} className="px-3 py-2 bg-gray-800 rounded-lg text-gray-400 hover:bg-gray-700 flex-shrink-0">½</button>
-              <input
-                type="number"
-                value={bet}
-                onChange={(e) => handleBetChange(parseFloat(e.target.value) || 1)}
-                className="w-full min-w-0 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-center font-bold"
-              />
-              <button onClick={() => handleBetChange(bet * 2)} className="px-3 py-2 bg-gray-800 rounded-lg text-gray-400 hover:bg-gray-700 flex-shrink-0">2×</button>
-            </div>
+      <div className="w-80 bg-gradient-to-b from-[#12121a] to-[#0a0a10] rounded-2xl p-6 flex flex-col">
+        <h2 className="text-xl font-black text-white mb-6">WAR</h2>
+
+        {/* Bet Amount */}
+        <div className="mb-6">
+          <label className="text-gray-400 text-sm mb-2 block">Bet Amount</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold">$</span>
+            <input
+              type="number"
+              value={bet}
+              onChange={(e) => handleBetChange(Number(e.target.value))}
+              min="1"
+              max={state.balance}
+              disabled={warMode}
+              className="w-full bg-black/40 border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-bold focus:border-cyan-500 outline-none disabled:opacity-50"
+            />
           </div>
-
-          {/* Payout Info */}
-          <div className="bg-black/30 rounded-xl p-3">
-            <div className="flex justify-between text-gray-400">
-              <span>Win Payout:</span>
-              <span className="text-green-400 font-bold">{WIN_MULTIPLIER}x</span>
-            </div>
-            <div className="flex justify-between text-gray-400 mt-1">
-              <span>War Win:</span>
-              <span className="text-orange-400 font-bold">{WAR_MULTIPLIER}x</span>
-            </div>
-            <div className="flex justify-between text-gray-400 mt-1">
-              <span>Potential Win:</span>
-              <span className="text-cyan-400 font-bold">${(bet * WIN_MULTIPLIER).toFixed(2)}</span>
-            </div>
+          <div className="flex gap-2 mt-2">
+            {[10, 25, 50, 100].map(amount => (
+              <button
+                key={amount}
+                onClick={() => handleBetChange(amount)}
+                disabled={warMode}
+                className="flex-1 py-1 text-xs bg-gray-800 hover:bg-gray-700 rounded text-gray-300 disabled:opacity-50"
+              >
+                ${amount}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Play Button */}
-          {!warMode && (
-            <button
-              onClick={play}
-              disabled={playing || bet <= 0 || bet > state.balance}
-              className={`w-full py-4 rounded-xl font-black text-lg transition-all ${
-                playing
-                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/30'
-              }`}
-            >
-              {playing ? 'DEALING...' : 'DEAL CARDS'}
-            </button>
-          )}
+        {/* Play Button */}
+        <button
+          onClick={play}
+          disabled={playing || bet > state.balance || bet <= 0 || warMode}
+          className={`py-4 rounded-xl font-black text-lg transition-all ${
+            playing || bet > state.balance || bet <= 0 || warMode
+              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              : 'bg-gradient-to-r from-red-500 to-orange-600 text-white hover:scale-[1.02] active:scale-[0.98]'
+          }`}
+        >
+          {playing ? 'DEALING...' : 'DRAW CARD'}
+        </button>
 
-          {/* Balance */}
-          <div className="mt-auto pt-4 border-t border-gray-800">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">Balance</span>
-              <span className="text-xl font-black text-green-400">${state.balance.toFixed(2)}</span>
-            </div>
+        {/* Rules */}
+        <div className="mt-6 space-y-2 text-sm">
+          <div className="flex justify-between text-gray-400">
+            <span>Win Payout:</span>
+            <span className="text-green-400 font-bold">{WIN_MULTIPLIER}x</span>
+          </div>
+          <div className="flex justify-between text-gray-400">
+            <span>War Win:</span>
+            <span className="text-yellow-400 font-bold">{WAR_MULTIPLIER}x</span>
+          </div>
+          <div className="flex justify-between text-gray-400">
+            <span>Surrender:</span>
+            <span className="text-gray-400 font-bold">0.5x (half back)</span>
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="mt-auto pt-4 border-t border-gray-800">
+          <div className="text-xs text-gray-500 space-y-1">
+            <p>• Higher card wins</p>
+            <p>• Tie triggers WAR - double bet or surrender</p>
+            <p>• A is highest, 2 is lowest</p>
           </div>
         </div>
       </div>

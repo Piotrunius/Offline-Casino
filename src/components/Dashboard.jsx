@@ -27,14 +27,6 @@ const Icons = {
       <path d="M17 7h4v4" />
     </svg>
   ),
-  plinko: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <circle cx="12" cy="4" r="2" />
-      <circle cx="8" cy="10" r="1" /><circle cx="16" cy="10" r="1" />
-      <circle cx="6" cy="16" r="1" /><circle cx="12" cy="16" r="1" /><circle cx="18" cy="16" r="1" />
-      <path d="M12 6l-2 4l2 6" />
-    </svg>
-  ),
   mines: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
       <circle cx="12" cy="12" r="6" />
@@ -130,6 +122,13 @@ const Icons = {
       <path d="M8 8h2M14 8h2M8 14h2M14 14h2M11 11h2v2h-2z" />
     </svg>
   ),
+  war: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="3" y="4" width="8" height="11" rx="1"/>
+      <rect x="13" y="9" width="8" height="11" rx="1"/>
+      <path d="M7 7v5M17 12v5"/>
+    </svg>
+  ),
 };
 
 const GAMES_INFO = [
@@ -138,13 +137,13 @@ const GAMES_INFO = [
   { id: 'slots', name: 'Slots', description: 'Spin reels for matching symbols', edge: '3-5%', icon: 'slots' },
   { id: 'crash', name: 'Crash', description: 'Cash out before the multiplier crashes', edge: '3%', icon: 'crash' },
   { id: 'mines', name: 'Mines', description: 'Find gems while avoiding mines', edge: '3%', icon: 'mines' },
-  { id: 'plinko', name: 'Plinko', description: 'Drop balls through pegs for multipliers', edge: '3%', icon: 'plinko' },
+  { id: 'scratchcards', name: 'Scratch Cards', description: 'Scratch to reveal matching symbols', edge: '3%', icon: 'scratchcard' },
   { id: 'hilo', name: 'Hi-Lo', description: 'Predict the next card high or low', edge: '3%', icon: 'hilo' },
   { id: 'tower', name: 'Tower', description: 'Climb the tower without hitting traps', edge: '3%', icon: 'tower' },
   { id: 'limbo', name: 'Limbo', description: 'Hit your target multiplier', edge: '2%', icon: 'limbo' },
   { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%', icon: 'coinflip' },
   { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%', icon: 'keno' },
-  { id: 'war', name: 'War', description: 'Higher card wins - ties trigger War', edge: '2.5%', icon: 'coinflip' },
+  { id: 'war', name: 'War', description: 'Higher card wins in this classic game', edge: '2.5%', icon: 'war' },
   { id: 'tictactoe', name: 'Tic Tac Toe', description: 'Beat the AI in classic game', edge: '5%', icon: 'keno' },
   { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%', icon: 'baccarat' },
   { id: 'dragontiger', name: 'Dragon Tiger', description: 'Bet on dragon or tiger to win', edge: '2.5%', icon: 'dragontiger' },

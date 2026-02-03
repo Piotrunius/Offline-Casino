@@ -4,25 +4,73 @@ import audio from '../utils/audioEngine';
 
 const SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '⭐', '7️⃣', '💎', '🔔', '🍀'];
 
-const PAYTABLE = {
-  '7️⃣': { 3: 100, 4: 500, 5: 2500 },
-  '💎': { 3: 50, 4: 200, 5: 1000 },
-  '⭐': { 3: 25, 4: 100, 5: 500 },
-  '🔔': { 3: 15, 4: 60, 5: 300 },
-  '🍀': { 3: 15, 4: 60, 5: 300 },
-  '🍇': { 3: 10, 4: 40, 5: 200 },
-  '🍊': { 3: 8, 4: 30, 5: 150 },
-  '🍋': { 3: 5, 4: 20, 5: 100 },
-  '🍒': { 3: 3, 4: 12, 5: 50 },
+// Base paytable - gets multiplied by volatility
+const BASE_PAYTABLE = {
+  '7️⃣': { 3: 50, 4: 200, 5: 1000 },
+  '💎': { 3: 25, 4: 100, 5: 500 },
+  '⭐': { 3: 15, 4: 60, 5: 300 },
+  '🔔': { 3: 10, 4: 40, 5: 200 },
+  '🍀': { 3: 10, 4: 40, 5: 200 },
+  '🍇': { 3: 6, 4: 24, 5: 120 },
+  '🍊': { 3: 4, 4: 16, 5: 80 },
+  '🍋': { 3: 3, 4: 12, 5: 60 },
+  '🍒': { 3: 2, 4: 8, 5: 40 },
 };
 
-// Better win rates - higher weights for common symbols
+// Volatility affects win frequency AND payout multiplier
 const VOLATILITY = {
-  low: { name: 'Low', weights: [20, 20, 18, 15, 10, 4, 5, 5, 3] },      // More common symbols
-  medium: { name: 'Medium', weights: [16, 16, 15, 14, 12, 6, 8, 8, 5] },
-  high: { name: 'High', weights: [10, 10, 10, 12, 14, 10, 12, 14, 8] },
-  extreme: { name: 'Extreme', weights: [6, 6, 6, 8, 16, 16, 16, 18, 8] },
-  jackpot: { name: 'Jackpot', weights: [4, 4, 4, 6, 18, 20, 18, 20, 6] },
+  low: {
+    name: 'Low',
+    // Frequent wins but tiny payouts
+    weights: [30, 25, 22, 18, 3, 0.5, 0.8, 0.5, 0.2],
+    payMultiplier: 0.3,
+    winChance: 0.25,  // 25% chance to force a win
+    description: 'Frequent small wins'
+  },
+  medium: {
+    name: 'Medium',
+    weights: [18, 17, 16, 15, 12, 6, 7, 6, 3],
+    payMultiplier: 0.6,
+    winChance: 0.15,  // 15% chance
+    description: 'Balanced gameplay'
+  },
+  high: {
+    name: 'High',
+    // Rare wins but bigger payouts
+    weights: [12, 12, 11, 10, 15, 12, 13, 10, 5],
+    payMultiplier: 1.2,
+    winChance: 0.08,  // 8% chance
+    description: 'Rare big wins'
+  },
+  extreme: {
+    name: 'Extreme',
+    // Very rare wins, huge payouts
+    weights: [6, 6, 6, 6, 18, 18, 18, 16, 6],
+    payMultiplier: 2.5,
+    winChance: 0.04,  // 4% chance
+    description: 'Jackpot hunting'
+  },
+  jackpot: {
+    name: 'Jackpot',
+    // Almost no wins, massive payouts when hit
+    weights: [3, 3, 3, 4, 20, 25, 22, 15, 5],
+    payMultiplier: 5.0,
+    winChance: 0.02,  // 2% chance
+    description: 'Max risk max reward'
+  },
+};
+
+// Generate dynamic paytable based on volatility
+const getPaytable = (volatilityKey) => {
+  const mult = VOLATILITY[volatilityKey].payMultiplier;
+  const table = {};
+  Object.keys(BASE_PAYTABLE).forEach(symbol => {
+    table[symbol] = {};
+    Object.keys(BASE_PAYTABLE[symbol]).forEach(count => {
+      table[symbol][count] = Math.round(BASE_PAYTABLE[symbol][count] * mult);
+    });
+  });
+  return table;
 };
 
 export default function SlotsGame() {
@@ -73,9 +121,10 @@ export default function SlotsGame() {
     return SYMBOLS[0];
   };
 
-  const checkWins = (grid) => {
+  const checkWins = (grid, volKey) => {
     let totalMult = 0;
     const winLines = [];
+    const PAYTABLE = getPaytable(volKey);
 
     // Check ALL rows for matching symbols
     for (let rowIdx = 0; rowIdx < rowCount; rowIdx++) {
@@ -100,16 +149,54 @@ export default function SlotsGame() {
       }
     }
 
-    // Scatter bonus: count clover symbols anywhere
+    // Scatter bonus: count clover symbols anywhere - scaled by volatility
     let scatterCount = 0;
     grid.forEach(col => col.forEach(s => { if (s === '🍀') scatterCount++; }));
     if (scatterCount >= 3) {
-      const scatterMult = scatterCount === 3 ? 5 : scatterCount === 4 ? 15 : 50;
+      const baseMult = scatterCount === 3 ? 5 : scatterCount === 4 ? 15 : 50;
+      const scatterMult = Math.round(baseMult * VOLATILITY[volKey].payMultiplier);
       totalMult += scatterMult;
       winLines.push({ symbol: '🍀', count: scatterCount, mult: scatterMult, scatter: true });
     }
 
     return { totalMult, winLines };
+  };
+
+  // Generate final reels with volatility-based win chance
+  const generateFinalReels = () => {
+    const winChance = VOLATILITY[volatility].winChance;
+
+    // Only force a win based on actual win chance (much lower now)
+    if (Math.random() < winChance) {
+      // Force some matching on middle row - but only 3 matches most of the time
+      const targetSymbol = weightedRandom();
+      const matchLength = Math.random() < 0.15 ? 4 : 3; // Only 15% chance for 4-match
+
+      const newReels = [];
+      for (let r = 0; r < reelCount; r++) {
+        const col = [];
+        for (let row = 0; row < rowCount; row++) {
+          if (row === Math.floor(rowCount / 2) && r < matchLength) {
+            col.push(targetSymbol);
+          } else {
+            col.push(weightedRandom());
+          }
+        }
+        newReels.push(col);
+      }
+      return newReels;
+    }
+
+    // Most of the time - completely random (natural wins are rare)
+    const newReels = [];
+    for (let r = 0; r < reelCount; r++) {
+      const col = [];
+      for (let row = 0; row < rowCount; row++) {
+        col.push(weightedRandom());
+      }
+      newReels.push(col);
+    }
+    return newReels;
   };
 
   const spin = useCallback(async () => {
@@ -150,19 +237,12 @@ export default function SlotsGame() {
             finalReels.push(col);
           }
         } else {
-          finalReels = [];
-          for (let r = 0; r < reelCount; r++) {
-            const col = [];
-            for (let row = 0; row < rowCount; row++) {
-              col.push(weightedRandom());
-            }
-            finalReels.push(col);
-          }
+          finalReels = generateFinalReels();
         }
 
         setReels(finalReels);
 
-        const { totalMult, winLines } = checkWins(finalReels);
+        const { totalMult, winLines } = checkWins(finalReels, volatility);
         const winAmount = bet * totalMult;
         const won = totalMult > 0;
 
@@ -224,14 +304,20 @@ export default function SlotsGame() {
           )}
         </div>
 
-        {/* Paytable Preview */}
-        <div className="mt-6 bg-black/50 rounded-xl p-4 grid grid-cols-3 gap-3 text-center">
-          {['7️⃣', '💎', '⭐'].map(sym => (
-            <div key={sym} className="text-sm">
-              <span className="text-2xl">{sym}</span>
-              <div className="text-gray-400">3x: <span className="text-yellow-400">{PAYTABLE[sym][3]}x</span></div>
-            </div>
-          ))}
+        {/* Paytable Preview - Dynamic based on volatility */}
+        <div className="mt-6 bg-black/50 rounded-xl p-4">
+          <div className="text-xs text-gray-500 text-center mb-2 uppercase">{VOLATILITY[volatility].description}</div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {['7️⃣', '💎', '⭐'].map(sym => {
+              const paytable = getPaytable(volatility);
+              return (
+                <div key={sym} className="text-sm">
+                  <span className="text-2xl">{sym}</span>
+                  <div className="text-gray-400">3x: <span className="text-yellow-400">{paytable[sym][3]}x</span></div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* History */}
@@ -281,11 +367,15 @@ export default function SlotsGame() {
                   key={key}
                   onClick={() => setVolatility(key)}
                   disabled={spinning}
-                  className={`py-3 rounded-xl font-bold transition-all text-sm ${
-                    volatility === key ? 'bg-purple-600 text-white scale-105' : 'bg-gray-800 text-gray-400'
+                  className={`py-2 px-2 rounded-xl font-bold transition-all text-xs ${
+                    volatility === key ? 'bg-purple-600 text-white scale-105' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                   }`}
+                  title={val.description}
                 >
-                  {val.name}
+                  <div>{val.name}</div>
+                  <div className={`text-[10px] ${volatility === key ? 'text-purple-200' : 'text-gray-500'}`}>
+                    {val.payMultiplier}x pay
+                  </div>
                 </button>
               ))}
             </div>

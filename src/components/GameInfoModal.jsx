@@ -17,20 +17,22 @@ export const GAME_INFO = {
   },
   war: {
     name: 'War',
-    emoji: '🎴',
-    description: 'The classic card game War! Draw a card against the dealer - higher card wins. Ties trigger an epic War battle for double the stakes!',
+    emoji: '⚔️',
+    description: 'The classic card game of War! Draw a card and beat the dealer. Ties trigger the exciting WAR mode for double the stakes!',
     houseEdge: '2.5%',
     maxMultiplier: '3.8x (War win)',
     rules: [
-      'Place your bet and draw a card',
-      'Dealer draws a card too',
-      'Higher card wins (A is highest, 2 is lowest)',
+      'Place your bet to start',
+      'You and the dealer each draw a card',
+      'Higher card wins (Ace is highest)',
       'Win pays 1.95x your bet',
-      'Tie triggers WAR - match your bet or surrender',
-      'War win pays 3.8x, surrender returns half your bet'
+      'If cards tie, you can Go to War or Surrender',
+      'Going to War burns 3 cards, then draws new cards',
+      'Winning a War pays 3.8x your original bet',
+      'Surrender returns 0.5x your bet'
     ],
-    history: 'War evolved from 18th century European card games. The simple rules made it one of the first card games many people learn as children.',
-    strategy: 'Always go to War on ties if you can afford it - the payout is worth the risk. Surrendering gives the house a bigger edge.'
+    history: 'War is one of the simplest card games, dating back centuries. The casino version adds betting and the exciting War mechanic for ties.',
+    strategy: 'Always go to War on ties - surrendering has worse expected value. The War bonus makes ties exciting rather than frustrating.'
   },
   tictactoe: {
     name: 'Tic Tac Toe',
@@ -48,22 +50,22 @@ export const GAME_INFO = {
     history: 'Tic Tac Toe dates back to ancient Egypt around 1300 BCE. The Romans played a version called Terni Lapilli.',
     strategy: 'Easy mode is beatable with basic strategy. Hard mode uses optimal play - look for opportunities when the AI makes mistakes.'
   },
-  plinko: {
-    name: 'Plinko',
-    emoji: '📍',
-    description: 'Drop a ball from the top and watch it bounce through pegs to land on multipliers. Choose your risk level for bigger potential wins!',
-    houseEdge: '1-5% (varies by risk)',
-    maxMultiplier: '1000x (High risk, 16 rows)',
+  scratchcards: {
+    name: 'Scratch Cards',
+    emoji: '🎫',
+    description: 'Buy scratch cards and reveal symbols to match three of a kind! Different card tiers offer different prizes and win chances.',
+    houseEdge: '3-5% (varies by card)',
+    maxMultiplier: '100x (Jackpot card)',
     rules: [
-      'Select number of rows (8-16)',
-      'Choose risk level: Low, Medium, or High',
-      'Drop the ball from the top',
-      'Ball bounces randomly through pegs',
-      'Win based on which multiplier slot it lands in',
-      'Higher risk = more extreme multipliers'
+      'Select a card type (Classic, Lucky 7, Diamond, or Jackpot)',
+      'Pay the card price to start',
+      'Scratch cells to reveal symbols',
+      'Match 3 identical symbols to win',
+      'Higher priced cards have bigger prizes',
+      'Use "Reveal All" for quick play'
     ],
-    history: 'Plinko was popularized by the TV game show The Price Is Right in 1983. It became a casino favorite in online gambling.',
-    strategy: 'Low risk for steady small wins, high risk for jackpot hunting. More rows = more volatility.'
+    history: 'Scratch cards were first introduced in the US in 1974 by Scientific Games Corporation. They became a worldwide lottery phenomenon.',
+    strategy: 'Classic cards offer frequent small wins. Jackpot cards are high risk but can pay 100x your purchase price.'
   },
   stockexchange: {
     name: 'Stock Exchange',

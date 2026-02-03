@@ -26,7 +26,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
     hilo: { showNextCard: false },
     baccarat: { forceBankerWin: false, forcePlayerWin: false },
     sicbo: { forceTriple: false },
-    plinko: { forceHighMultiplier: false },
+    scratchcards: { alwaysWin: false },
     war: { alwaysWin: false },
     tictactoe: { aiMakesStupidMoves: false },
   });
@@ -405,23 +405,23 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                 </label>
               </div>
 
-              {/* Plinko */}
+              {/* Scratch Cards */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">📍 Plinko</div>
+                <div className="font-bold text-cyan-400 mb-2">🎫 Scratch Cards</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
-                    checked={gameSettings.plinko?.forceHighMultiplier}
-                    onChange={(e) => updateGameSetting('plinko', 'forceHighMultiplier', e.target.checked)}
+                    checked={gameSettings.scratchcards?.alwaysWin}
+                    onChange={(e) => updateGameSetting('scratchcards', 'alwaysWin', e.target.checked)}
                     className="accent-red-500"
                   />
-                  Force High Multiplier
+                  Always Win
                 </label>
               </div>
 
               {/* War */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎴 War</div>
+                <div className="font-bold text-cyan-400 mb-2">⚔️ War</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -429,7 +429,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                     onChange={(e) => updateGameSetting('war', 'alwaysWin', e.target.checked)}
                     className="accent-red-500"
                   />
-                  Always Win (Higher Card)
+                  Always Win
                 </label>
               </div>
 

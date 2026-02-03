@@ -235,7 +235,7 @@ export default function CoinFlipGame() {
                     : 'bg-gray-800/80 text-gray-400 hover:bg-gray-700/80 border border-gray-700'
                 }`}
               >
-                <span className="text-2xl block mb-1">🪙</span>
+                <span className="text-2xl block mb-1"></span>
                 HEADS
               </button>
               <button
@@ -247,7 +247,7 @@ export default function CoinFlipGame() {
                     : 'bg-gray-800/80 text-gray-400 hover:bg-gray-700/80 border border-gray-700'
                 }`}
               >
-                <span className="text-2xl block mb-1">🌟</span>
+                <span className="text-2xl block mb-1"></span>
                 TAILS
               </button>
             </div>

@@ -187,7 +187,7 @@ export default function DragonTigerGame() {
                     : 'bg-gray-800 text-red-400 hover:bg-gray-700'
                 }`}
               >
-                🐉 DRAGON
+                DRAGON
                 <div className="text-xs opacity-70 mt-1">2x</div>
               </button>
               <button
@@ -199,7 +199,7 @@ export default function DragonTigerGame() {
                     : 'bg-gray-800 text-green-400 hover:bg-gray-700'
                 }`}
               >
-                🤝 TIE
+                TIE
                 <div className="text-xs opacity-70 mt-1">8x</div>
               </button>
               <button
@@ -211,7 +211,7 @@ export default function DragonTigerGame() {
                     : 'bg-gray-800 text-blue-400 hover:bg-gray-700'
                 }`}
               >
-                🐯 TIGER
+                TIGER
                 <div className="text-xs opacity-70 mt-1">2x</div>
               </button>
             </div>

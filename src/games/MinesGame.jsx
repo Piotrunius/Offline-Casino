@@ -21,12 +21,28 @@ export default function MinesGame() {
   const totalTiles = gridSize * gridSize;
   const maxMines = totalTiles - 1;
 
+  // Calculate multiplier based on probability of surviving each click
+  // Formula: for each revealed safe tile, multiply by (remaining tiles / remaining safe tiles)
+  // Then apply house edge (3%)
   const calculateMult = (safe, mines, total) => {
-    let mult = 1;
+    if (safe === 0) return 1;
+
+    let probability = 1;
     for (let i = 0; i < safe; i++) {
-      mult *= (total - mines - i) / (total - i);
+      const remainingTiles = total - i;
+      const remainingSafe = total - mines - i;
+      if (remainingSafe <= 0) break;
+      probability *= remainingSafe / remainingTiles;
     }
-    return 0.97 / mult;
+
+    // Multiplier is inverse of probability with 3% house edge
+    const rawMult = 1 / probability;
+    return rawMult * 0.97;
+  };
+
+  // Get next multiplier (what you'll get if you reveal one more tile)
+  const getNextMult = (safe, mines, total) => {
+    return calculateMult(safe + 1, mines, total);
   };
 
   const startGame = useCallback(() => {
@@ -221,18 +237,43 @@ export default function MinesGame() {
 
           {/* Info */}
           <div className="bg-black/40 rounded-xl p-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Safe Tiles</span>
-              <span className="text-cyan-400 font-black text-lg">{totalTiles - mineCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">First Click</span>
-              <span className="text-green-400 font-black text-lg">{calculateMult(1, mineCount, totalTiles).toFixed(2)}x</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Max Win</span>
-              <span className="text-yellow-400 font-black text-lg">{calculateMult(totalTiles - mineCount, mineCount, totalTiles).toFixed(2)}x</span>
-            </div>
+            {playing ? (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Revealed</span>
+                  <span className="text-cyan-400 font-black text-lg">{revealed}/{totalTiles - mineCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Current Mult</span>
+                  <span className="text-green-400 font-black text-lg">{currentMult.toFixed(2)}x</span>
+                </div>
+                {revealed < totalTiles - mineCount && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Next Click</span>
+                    <span className="text-yellow-400 font-black text-lg">{getNextMult(revealed, mineCount, totalTiles).toFixed(2)}x</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                  <span className="text-gray-500">Current Win</span>
+                  <span className="text-green-400 font-black text-lg">${(bet * currentMult).toFixed(2)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Safe Tiles</span>
+                  <span className="text-cyan-400 font-black text-lg">{totalTiles - mineCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">First Click</span>
+                  <span className="text-green-400 font-black text-lg">{calculateMult(1, mineCount, totalTiles).toFixed(2)}x</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Max Win</span>
+                  <span className="text-yellow-400 font-black text-lg">{calculateMult(totalTiles - mineCount, mineCount, totalTiles).toFixed(2)}x</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* History */}

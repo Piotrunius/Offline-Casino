@@ -195,10 +195,10 @@ export default function DiceGame() {
             <label className="text-sm text-gray-400 uppercase font-bold">Bet Type</label>
             <div className="grid grid-cols-2 gap-2 mt-2">
               {[
-                { value: 'under', label: '⬇️ Under' },
-                { value: 'over', label: '⬆️ Over' },
-                { value: 'exact', label: '🎯 Exact' },
-                { value: 'range', label: '↔️ Range' }
+                { value: 'under', label: 'Under' },
+                { value: 'over', label: 'Over' },
+                { value: 'exact', label: 'Exact' },
+                { value: 'range', label: 'Range' }
               ].map(m => (
                 <button
                   key={m.value}

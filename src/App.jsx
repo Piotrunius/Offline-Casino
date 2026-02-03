@@ -129,6 +129,27 @@ const Icons = {
       <rect x="10" y="6" width="10" height="14" rx="1"/>
     </svg>
   ),
+  Plinko: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="3" r="2"/>
+      <circle cx="8" cy="8" r="1" fill="currentColor"/>
+      <circle cx="12" cy="8" r="1" fill="currentColor"/>
+      <circle cx="16" cy="8" r="1" fill="currentColor"/>
+      <circle cx="6" cy="12" r="1" fill="currentColor"/>
+      <circle cx="10" cy="12" r="1" fill="currentColor"/>
+      <circle cx="14" cy="12" r="1" fill="currentColor"/>
+      <circle cx="18" cy="12" r="1" fill="currentColor"/>
+      <circle cx="4" cy="16" r="1" fill="currentColor"/>
+      <circle cx="8" cy="16" r="1" fill="currentColor"/>
+      <circle cx="12" cy="16" r="1" fill="currentColor"/>
+      <circle cx="16" cy="16" r="1" fill="currentColor"/>
+      <circle cx="20" cy="16" r="1" fill="currentColor"/>
+      <rect x="2" y="20" width="4" height="3" rx="0.5"/>
+      <rect x="7" y="20" width="4" height="3" rx="0.5"/>
+      <rect x="12" y="20" width="4" height="3" rx="0.5"/>
+      <rect x="17" y="20" width="4" height="3" rx="0.5"/>
+    </svg>
+  ),
   Menu: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="3" y1="6" x2="21" y2="6"/>
@@ -221,15 +242,13 @@ const Icons = {
       <circle cx="19" cy="6" r="1" fill="currentColor"/>
     </svg>
   ),
-  Plinko: () => (
+  ScratchCard: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="4" r="2"/>
-      <circle cx="8" cy="9" r="1"/>
-      <circle cx="16" cy="9" r="1"/>
-      <circle cx="6" cy="14" r="1"/>
-      <circle cx="12" cy="14" r="1"/>
-      <circle cx="18" cy="14" r="1"/>
-      <rect x="4" y="19" width="16" height="3" rx="1"/>
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <path d="M7 8h2M11 8h2M15 8h2"/>
+      <path d="M7 12h2M11 12h2M15 12h2"/>
+      <path d="M7 16h2M11 16h2M15 16h2"/>
+      <path d="M3 3l18 18" strokeWidth="1.5" strokeDasharray="2 2"/>
     </svg>
   ),
   TicTacToe: () => (
@@ -280,7 +299,7 @@ import HiLoGame from './games/HiLoGame';
 import KenoGame from './games/KenoGame';
 import LimboGame from './games/LimboGame';
 import MinesGame from './games/MinesGame';
-import PlinkoGame from './games/PlinkoGame';
+import ScratchCardsGame from './games/ScratchCardsGame';
 import SicboGame from './games/SicboGame';
 import SlotsGame from './games/SlotsGame';
 import StockExchange from './games/StockExchange';
@@ -295,14 +314,14 @@ const GAMES = [
   { id: 'dice', name: 'Dice', icon: Icons.Dice, component: DiceGame, color: '#00f5ff' },
   { id: 'mines', name: 'Mines', icon: Icons.Mine, component: MinesGame, color: '#ff3366' },
   { id: 'crash', name: 'Crash', icon: Icons.Rocket, component: CrashGame, color: '#ff8800' },
-  { id: 'plinko', name: 'Plinko', icon: Icons.Plinko, component: PlinkoGame, color: '#00ddff' },
+  { id: 'scratchcards', name: 'Scratch Cards', icon: Icons.ScratchCard, component: ScratchCardsGame, color: '#ff9900' },
   { id: 'limbo', name: 'Limbo', icon: Icons.Target, component: LimboGame, color: '#aa00ff' },
   { id: 'coinflip', name: 'Coin Flip', icon: Icons.Coin, component: CoinFlipGame, color: '#ffee00' },
   { id: 'tower', name: 'Tower', icon: Icons.Tower, component: TowerGame, color: '#00ccff' },
   { id: 'keno', name: 'Keno', icon: Icons.Grid, component: KenoGame, color: '#ff6600' },
   { id: 'blackjack', name: 'Blackjack', icon: Icons.Blackjack, component: BlackjackGame, color: '#ff4444' },
   { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
-  { id: 'war', name: 'War', icon: Icons.Cards, component: WarGame, color: '#ff4444' },
+  { id: 'war', name: 'War', icon: Icons.Cards, component: WarGame, color: '#ff6600' },
   { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' },
   { id: 'baccarat', name: 'Baccarat', icon: Icons.Baccarat, component: BaccaratGame, color: '#8844ff' },
   { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.DragonTiger, component: DragonTigerGame, color: '#ff6633' },
@@ -748,18 +767,7 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-gray-300">Notifications</span>
-                      <p className="text-xs text-gray-500">Show big win notifications</p>
-                    </div>
-                    <button
-                      onClick={() => updateSettings({ notificationsEnabled: !state.settings.notificationsEnabled })}
-                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.notificationsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.notificationsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
+
                 </div>
               </div>
 
