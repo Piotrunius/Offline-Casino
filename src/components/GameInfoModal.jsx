@@ -22,7 +22,6 @@ export const GAME_INFO = {
     houseEdge: '2.5%',
     maxMultiplier: '3.8x (War win)',
     rules: [
-      'Place your bet to start',
       'You and the dealer each draw a card',
       'Higher card wins (Ace is highest)',
       'Win pays 1.95x your bet',
