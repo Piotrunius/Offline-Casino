@@ -60,6 +60,21 @@ const PAIR_PLUS_PAYOUTS = {
   'Pair': 1
 };
 
+// Wyjaśnienia kombinacji
+const HAND_EXPLANATIONS = {
+  'Straight Flush': 'Three cards of the same suit in sequence (e.g., 5♠ 6♠ 7♠)',
+  'Three of a Kind': 'Three cards of the same rank (e.g., K♠ K♥ K♦)',
+  'Straight': 'Three cards in sequence of different suits (e.g., 5♠ 6♥ 7♦)',
+  'Flush': 'Three cards of the same suit (e.g., 3♠ 9♠ K♠)',
+  'Pair': 'Two cards of the same rank (e.g., Q♥ Q♦ 5♠)',
+  'High Card': 'None of the above combinations - outcome depends on highest card',
+  'dealer_dnq': 'Dealer did not qualify (must have at least a Queen)',
+  'win': 'You win! Your hand is better',
+  'lose': 'You lose. Dealer had a better hand',
+  'tie': 'Tie! Both hands are equal',
+  'fold': 'You fold. The ante bet is lost'
+};
+
 const Card = ({ card, hidden }) => {
   if (hidden) {
     return (
@@ -328,22 +343,30 @@ export default function ThreeCardPokerGame() {
           <div className="bg-black/30 rounded-xl p-2 text-xs">
             <div className="text-gray-500 uppercase mb-1 font-bold">Pair Plus Pays</div>
             {Object.entries(PAIR_PLUS_PAYOUTS).map(([hand, mult]) => (
-              <div key={hand} className="flex justify-between text-gray-400">
-                <span>{hand}</span>
+              <div key={hand} className="flex justify-between text-gray-400 group relative cursor-help">
+                <span className="hover:text-gray-300 transition-colors">{hand}</span>
                 <span className="text-green-400">{mult}:1</span>
+                <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-48 z-10">
+                  {HAND_EXPLANATIONS[hand]}
+                </div>
               </div>
             ))}
           </div>
 
           {/* History */}
           {history.length > 0 && (
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center flex-wrap">
               {history.map((h, i) => (
-                <span key={i} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-                  h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
-                }`}>
-                  {h.outcome}
-                </span>
+                <div key={i} className="group relative">
+                  <span className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-help block ${
+                    h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
+                  }`}>
+                    {h.outcome}
+                  </span>
+                  <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-40 z-10 whitespace-normal">
+                    {HAND_EXPLANATIONS[h.outcome] || h.outcome}
+                  </div>
+                </div>
               ))}
             </div>
           )}

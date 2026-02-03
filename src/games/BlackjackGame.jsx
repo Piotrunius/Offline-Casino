@@ -5,6 +5,14 @@ import audio from '../utils/audioEngine';
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
+const OUTCOME_EXPLANATIONS = {
+  'blackjack': 'Blackjack! First two cards are an Ace + a 10-value card',
+  'win': 'You win! Your hand is higher than the dealer without exceeding 21',
+  'push': 'Tie - both hands have the same value',
+  'lose': 'You lose - dealer has a higher value or you busted over 21',
+  'dealer_bust': 'You win! The dealer busted (exceeded 21)'
+};
+
 const getCard = () => ({
   suit: SUITS[Math.floor(Math.random() * 4)],
   value: VALUES[Math.floor(Math.random() * 13)],
@@ -440,11 +448,14 @@ export default function BlackjackGame() {
           {history.length > 0 && (
             <div className="flex justify-center gap-2">
               {history.map((h, i) => (
-                <div key={i} className={`px-3 py-2 rounded-lg text-sm font-bold ${
+                <div key={i} className={`px-3 py-2 rounded-lg text-sm font-bold group relative cursor-help transition-all hover:scale-105 ${
                   h.outcome === 'blackjack' || h.outcome === 'win' ? 'bg-green-900/50 text-green-400' :
                   h.outcome === 'push' ? 'bg-gray-700/50 text-gray-400' : 'bg-red-900/50 text-red-400'
                 }`}>
                   {h.mult}x
+                  <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-48 z-10 text-center whitespace-normal font-normal">
+                    {OUTCOME_EXPLANATIONS[h.outcome] || h.outcome}
+                  </div>
                 </div>
               ))}
             </div>

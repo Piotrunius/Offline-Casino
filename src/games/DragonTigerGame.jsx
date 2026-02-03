@@ -5,6 +5,12 @@ import audio from '../utils/audioEngine';
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
+const OUTCOME_EXPLANATIONS = {
+  'dragon': 'Dragon wins - their card had a higher value',
+  'tiger': 'Tiger wins - their card had a higher value',
+  'tie': 'Tie - both cards had the same value'
+};
+
 const getCard = () => {
   const idx = Math.floor(Math.random() * 13);
   return {
@@ -150,12 +156,15 @@ export default function DragonTigerGame() {
         {history.length > 0 && (
           <div className="flex justify-center gap-2 mt-4">
             {history.map((h, i) => (
-              <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${
+              <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black group relative cursor-help transition-all hover:scale-110 ${
                 h.outcome === 'dragon' ? 'bg-red-600 text-white' :
                 h.outcome === 'tiger' ? 'bg-blue-600 text-white' :
                 'bg-green-600 text-white'
               }`}>
                 {h.outcome[0].toUpperCase()}
+                <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-40 z-10 text-center whitespace-normal font-normal">
+                  {OUTCOME_EXPLANATIONS[h.outcome] || h.outcome}
+                </div>
               </div>
             ))}
           </div>

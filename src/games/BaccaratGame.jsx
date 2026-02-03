@@ -5,6 +5,14 @@ import audio from '../utils/audioEngine';
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
+const OUTCOME_EXPLANATIONS = {
+  'player': 'Player wins - their hand had a higher value than the banker',
+  'banker': 'Banker wins - their hand had a higher value than the player',
+  'tie': 'Tie - both hands had the same value (baccarat)',
+  'playerPair': 'Player wins with bonus payout for a pair',
+  'bankerPair': 'Banker wins with bonus payout for a pair'
+};
+
 const getCard = () => ({
   suit: SUITS[Math.floor(Math.random() * 4)],
   value: VALUES[Math.floor(Math.random() * 13)],
@@ -275,12 +283,15 @@ export default function BaccaratGame() {
         {history.length > 0 && (
           <div className="flex justify-center gap-2 mt-3">
             {history.map((h, i) => (
-              <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black ${
+              <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black group relative cursor-help transition-all hover:scale-110 ${
                 h.outcome === 'player' ? 'bg-blue-600 text-white' :
                 h.outcome === 'banker' ? 'bg-red-600 text-white' :
                 'bg-green-600 text-white'
               }`}>
                 {h.outcome[0].toUpperCase()}
+                <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-48 z-10 text-center whitespace-normal font-normal">
+                  {OUTCOME_EXPLANATIONS[h.outcome] || h.outcome}
+                </div>
               </div>
             ))}
           </div>

@@ -26,6 +26,21 @@ const HANDS = [
   { name: 'Jacks or Better', mult: 1 }
 ];
 
+const HAND_EXPLANATIONS = {
+  'Royal Flush': 'Five cards of the same suit in sequence from 10 to Ace (10-J-Q-K-A)',
+  'Straight Flush': 'Five cards of the same suit in sequence (e.g., 5♠ 6♠ 7♠ 8♠ 9♠)',
+  'Four of a Kind': 'Four cards of the same rank (e.g., K♠ K♥ K♦ K♣ 5♠)',
+  'Full House': 'Three cards of one rank + two cards of another rank (e.g., Q♠ Q♥ Q♦ 3♠ 3♥)',
+  'Flush': 'Five cards of the same suit (e.g., 2♠ 5♠ 9♠ J♠ K♠)',
+  'Straight': 'Five cards in sequence of different suits (e.g., 4♠ 5♥ 6♦ 7♣ 8♠)',
+  'Three of a Kind': 'Three cards of the same rank (e.g., 9♠ 9♥ 9♦ 3♠ 7♥)',
+  'Two Pair': 'Two pairs of cards with the same rank (e.g., J♠ J♥ 5♦ 5♣ K♠)',
+  'Jacks or Better': 'A pair of Jacks, Queens, Kings, or Aces (e.g., J♠ J♥ 3♦ 7♣ 9♠)',
+  'No Win': 'No winning combination - bet is lost',
+  'win': 'You win! You receive payment according to the payout table.',
+  'lose': 'You lose. This combination does not win.'
+};
+
 const evaluateHand = (cards) => {
   const ranks = cards.map(c => c.rank).sort((a, b) => a - b);
   const suits = cards.map(c => c.suit);
@@ -149,9 +164,12 @@ export default function VideoPokerGame() {
         <div className="bg-black/40 rounded-xl p-3 mb-4">
           <div className="grid grid-cols-3 gap-x-6 gap-y-1 text-sm">
             {HANDS.map(h => (
-              <div key={h.name} className={`flex justify-between ${result?.name === h.name ? 'text-yellow-400 font-bold' : 'text-gray-400'}`}>
-                <span>{h.name}</span>
+              <div key={h.name} className={`flex justify-between group relative cursor-help ${result?.name === h.name ? 'text-yellow-400 font-bold' : 'text-gray-400'}`}>
+                <span className="hover:text-gray-300 transition-colors">{h.name}</span>
                 <span className="text-green-400">{h.mult}x</span>
+                <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-48 z-10">
+                  {HAND_EXPLANATIONS[h.name]}
+                </div>
               </div>
             ))}
           </div>
@@ -236,9 +254,12 @@ export default function VideoPokerGame() {
           {/* History */}
           {history.length > 0 && (
             <div className="space-y-1">
-              {history.map((h, i) => (
-                <div key={i} className={`text-xs px-2 py-1 rounded ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+              {history.slice(0, 4).map((h, i) => (
+                <div key={i} className={`text-xs px-2 py-1 rounded group relative cursor-help ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
                   {h.name}
+                  <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-gray-300 w-40 z-10">
+                    {h.won ? HAND_EXPLANATIONS['win'] : HAND_EXPLANATIONS['lose']}
+                  </div>
                 </div>
               ))}
             </div>
