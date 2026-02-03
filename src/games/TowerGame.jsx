@@ -3,247 +3,207 @@ import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-const ROWS = 10;
-const COLS_PER_ROW = [4, 4, 4, 3, 3, 3, 2, 2, 2, 2];
-const DIFFICULTY_MULT = {
-  easy: { safe: 3, mult: 1.3 },
-  medium: { safe: 2, mult: 1.7 },
-  hard: { safe: 1, mult: 3.0 },
+const DIFFICULTY = {
+  easy: { cols: 4, bombs: 1, mult: 1.31 },
+  medium: { cols: 3, bombs: 1, mult: 1.47 },
+  hard: { cols: 2, bombs: 1, mult: 1.96 },
+  expert: { cols: 3, bombs: 2, mult: 2.94 }
 };
 
-const generateTower = (difficulty) => {
-  const tower = [];
-  for (let row = 0; row < ROWS; row++) {
-    const cols = COLS_PER_ROW[row];
-    const safeCount = Math.min(DIFFICULTY_MULT[difficulty].safe, cols - 1);
-    const tiles = Array(cols).fill(false);
-
-    const safeIndices = [];
-    while (safeIndices.length < safeCount) {
-      const idx = Math.floor(Math.random() * cols);
-      if (!safeIndices.includes(idx)) safeIndices.push(idx);
-    }
-    safeIndices.forEach(idx => tiles[idx] = true);
-
-    tower.push(tiles);
-  }
-  return tower;
-};
+const ROWS = 9;
+const HOUSE_EDGE = 0.02;
 
 export default function TowerGame() {
   const { state, placeBet, addWin } = useCasino();
   const [bet, setBet] = useState(10);
   const [difficulty, setDifficulty] = useState('medium');
-  const [tower, setTower] = useState([]);
+  const [grid, setGrid] = useState([]);
+  const [revealed, setRevealed] = useState([]);
+  const [playing, setPlaying] = useState(false);
+  const [result, setResult] = useState(null);
   const [currentRow, setCurrentRow] = useState(0);
   const [multiplier, setMultiplier] = useState(1);
-  const [revealed, setRevealed] = useState([]);
-  const [phase, setPhase] = useState('betting');
-  const [result, setResult] = useState(null);
-  const [history, setHistory] = useState([]);
+
+  const config = DIFFICULTY[difficulty];
 
   const start = useCallback(() => {
     if (bet <= 0 || bet > state.balance) return;
     if (!placeBet(bet, 'tower')) return;
 
-    setTower(generateTower(difficulty));
+    // Generate grid
+    const newGrid = [];
+    for (let row = 0; row < ROWS; row++) {
+      const rowData = Array(config.cols).fill('safe');
+      // Place bombs
+      const bombPositions = [];
+      while (bombPositions.length < config.bombs) {
+        const pos = Math.floor(Math.random() * config.cols);
+        if (!bombPositions.includes(pos)) bombPositions.push(pos);
+      }
+      bombPositions.forEach(pos => { rowData[pos] = 'bomb'; });
+      newGrid.push(rowData);
+    }
+
+    setGrid(newGrid);
+    setRevealed(Array(ROWS).fill(null).map(() => Array(config.cols).fill(false)));
+    setPlaying(true);
+    setResult(null);
     setCurrentRow(0);
     setMultiplier(1);
-    setRevealed([]);
-    setPhase('playing');
-    setResult(null);
     audio.playBet();
-  }, [bet, state.balance, difficulty, placeBet]);
+  }, [bet, state.balance, config, placeBet]);
 
-  const selectTile = (col) => {
-    if (phase !== 'playing') return;
-    if (revealed[currentRow] !== undefined) return;
+  const selectTile = useCallback((row, col) => {
+    if (!playing || row !== currentRow) return;
 
-    const isSafe = tower[currentRow][col];
+    const tile = grid[row][col];
     const newRevealed = [...revealed];
-    newRevealed[currentRow] = col;
+    newRevealed[row][col] = true;
     setRevealed(newRevealed);
 
-    audio.playTick();
+    if (tile === 'bomb') {
+      // Reveal all bombs
+      const fullReveal = grid.map((r, ri) => r.map((t, ci) => t === 'bomb' || newRevealed[ri][ci]));
+      setRevealed(fullReveal);
+      setPlaying(false);
+      addWin(0, bet, 'tower', 0);
+      setResult({ won: false, profit: -bet });
+      audio.playLose();
+    } else {
+      const newMult = multiplier * config.mult;
+      setMultiplier(newMult);
+      audio.playCardDeal();
 
-    setTimeout(() => {
-      if (isSafe) {
-        const rowMult = DIFFICULTY_MULT[difficulty].mult;
-        const newMult = multiplier * rowMult;
-        setMultiplier(newMult);
-
-        if (currentRow === ROWS - 1) {
-          const win = bet * newMult;
-          addWin(win, bet, 'tower', newMult);
-          audio.playCashout();
-          setPhase('finished');
-          setResult({ won: true, multiplier: newMult, row: currentRow + 1 });
-          setHistory(h => [{ won: true, row: currentRow + 1 }, ...h.slice(0, 9)]);
-        } else {
-          setCurrentRow(currentRow + 1);
-        }
+      if (currentRow === ROWS - 1) {
+        // Reached top
+        const win = bet * newMult;
+        setPlaying(false);
+        addWin(win, bet, 'tower', newMult);
+        setResult({ won: true, profit: win - bet, mult: newMult, reachedTop: true });
+        audio.playWin();
       } else {
-        addWin(0, bet, 'tower', 0);
-        audio.playLose();
-        setPhase('finished');
-        setResult({ won: false, row: currentRow + 1 });
-        setHistory(h => [{ won: false, row: currentRow + 1 }, ...h.slice(0, 9)]);
+        setCurrentRow(currentRow + 1);
       }
-    }, state.settings.fastMode ? 200 : 400);
-  };
+    }
+  }, [playing, currentRow, grid, revealed, multiplier, config.mult, bet, addWin]);
 
-  const cashOut = () => {
-    if (phase !== 'playing' || currentRow === 0) return;
-
+  const cashout = useCallback(() => {
+    if (!playing || currentRow === 0) return;
     const win = bet * multiplier;
     addWin(win, bet, 'tower', multiplier);
-    audio.playCashout();
-    setPhase('finished');
-    setResult({ won: true, multiplier, row: currentRow, cashedOut: true });
-    setHistory(h => [{ won: true, row: currentRow }, ...h.slice(0, 9)]);
-  };
-
-  const newGame = () => {
-    setPhase('betting');
-    setTower([]);
-    setRevealed([]);
-    setResult(null);
-  };
-
-  const displayMultiplier = (row) => {
-    return Math.pow(DIFFICULTY_MULT[difficulty].mult, row + 1).toFixed(2);
-  };
+    setPlaying(false);
+    setResult({ won: true, profit: win - bet, mult: multiplier });
+    audio.playWin();
+  }, [playing, currentRow, bet, multiplier, addWin]);
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="max-w-2xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 game-card p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <div className="text-gray-400 text-sm">Floor</div>
-            <div className="text-3xl font-black text-cyan-400">{currentRow}/{ROWS}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-gray-400 text-sm">Multiplier</div>
-            <div className="text-3xl font-black text-green-400">{multiplier.toFixed(2)}x</div>
-          </div>
-        </div>
+        <div className="text-xs text-gray-500 mb-3">House Edge: {(HOUSE_EDGE * 100).toFixed(0)}%</div>
 
-        {/* Tower */}
-        <div className="flex flex-col-reverse gap-1.5 mb-6">
-          {Array(ROWS).fill(0).map((_, row) => {
-            const cols = COLS_PER_ROW[row];
-            const isActive = phase === 'playing' && currentRow === row;
-            const isPast = revealed[row] !== undefined;
-
-            return (
-              <div key={row} className="flex items-center gap-2">
-                <div className="w-14 text-right text-xs text-gray-500 font-mono">
-                  {displayMultiplier(row)}x
-                </div>
-                <div className="flex-1 flex justify-center gap-1.5">
-                  {Array(cols).fill(0).map((_, col) => {
-                    const isRevealed = revealed[row] === col;
-                    const isSafe = tower[row]?.[col];
-
-                    let bgColor = 'bg-gray-700/50';
-                    if (isPast && isRevealed) {
-                      bgColor = isSafe ? 'bg-green-600' : 'bg-red-600';
-                    } else if (isPast && !isRevealed && tower[row]) {
-                      bgColor = tower[row][col] ? 'bg-green-600/30' : 'bg-red-600/30';
-                    } else if (isActive) {
-                      bgColor = 'bg-cyan-600 hover:bg-cyan-500 cursor-pointer';
-                    }
-
-                    return (
-                      <button
-                        key={col}
-                        onClick={() => isActive && selectTile(col)}
-                        disabled={!isActive}
-                        className={`w-16 h-9 rounded-lg ${bgColor} transition-all font-bold text-white text-xs flex items-center justify-center`}
-                      >
-                        {isPast && isRevealed && (isSafe ? '✓' : '💀')}
-                        {isPast && !isRevealed && tower[row] && (tower[row][col] ? '💎' : '💣')}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="w-14" />
-              </div>
-            );
-          })}
-        </div>
-
-        {result && (
-          <div className="text-center mb-4">
-            <div className={`text-3xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? (result.cashedOut ? `CASHED OUT ${result.multiplier.toFixed(2)}x` : `WON ${result.multiplier.toFixed(2)}x!`) : 'GAME OVER'}
-            </div>
-            <div className="text-gray-400 mt-1">Reached floor {result.row}</div>
-          </div>
-        )}
-
-        {phase === 'playing' && currentRow > 0 && (
-          <button onClick={cashOut}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black text-xl">
-            CASHOUT ${(bet * multiplier).toFixed(2)}
-          </button>
-        )}
-
-        {phase === 'finished' && (
-          <div className="flex justify-center">
-            <button onClick={newGame} className="btn-primary px-8 py-3 font-bold text-lg">
-              NEW GAME
+        {/* Difficulty Selection */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {Object.entries(DIFFICULTY).map(([key, val]) => (
+            <button key={key} onClick={() => !playing && setDifficulty(key)}
+              disabled={playing}
+              className={`py-2 px-2 rounded-lg text-xs font-bold transition ${
+                difficulty === key
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              } disabled:opacity-50`}>
+              <div className="uppercase">{key}</div>
+              <div className="text-[10px] opacity-70">{val.cols}x{ROWS} • {val.bombs}B</div>
             </button>
+          ))}
+        </div>
+
+        {/* Tower Grid */}
+        <div className="flex flex-col-reverse gap-1 mb-4">
+          {Array(ROWS).fill(null).map((_, row) => (
+            <div key={row} className="flex justify-center gap-1">
+              {Array(config.cols).fill(null).map((_, col) => {
+                const isRevealed = revealed[row]?.[col];
+                const tile = grid[row]?.[col];
+                const isCurrentRow = row === currentRow && playing;
+                const canClick = isCurrentRow && !isRevealed;
+
+                return (
+                  <button key={col}
+                    onClick={() => canClick && selectTile(row, col)}
+                    disabled={!canClick}
+                    className={`w-14 h-10 rounded-lg font-bold text-lg transition-all ${
+                      isRevealed
+                        ? tile === 'bomb'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-green-600 text-white'
+                        : isCurrentRow
+                          ? 'bg-cyan-700 hover:bg-cyan-600 text-white cursor-pointer animate-pulse'
+                          : row < currentRow
+                            ? 'bg-gray-600 text-gray-400'
+                            : 'bg-gray-700 text-gray-500'
+                    }`}>
+                    {isRevealed ? (tile === 'bomb' ? '💣' : '⭐') : row < currentRow ? '✓' : '?'}
+                  </button>
+                );
+              })}
+              <div className="w-16 flex items-center justify-end text-xs text-gray-500">
+                {(Math.pow(config.mult, row + 1)).toFixed(2)}x
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Multiplier */}
+        {playing && (
+          <div className="text-center mb-4">
+            <div className="text-sm text-gray-400">Current Multiplier</div>
+            <div className="text-3xl font-black text-cyan-400">{multiplier.toFixed(2)}x</div>
+            <div className="text-sm text-gray-500">Row {currentRow + 1} / {ROWS}</div>
           </div>
+        )}
+
+        {/* Result */}
+        {result && (
+          <div className={`text-center py-4 mb-4 rounded-lg ${result.won ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
+            <div className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won
+                ? result.reachedTop ? 'REACHED THE TOP!' : `CASHED OUT ${result.mult.toFixed(2)}x`
+                : 'BOOM!'}
+            </div>
+            <div className="text-lg">
+              {result.profit >= 0 ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
+            </div>
+          </div>
+        )}
+
+        {/* Controls */}
+        {!playing ? (
+          <button onClick={start} disabled={bet <= 0 || bet > state.balance}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-black text-xl disabled:opacity-50">
+            START CLIMB
+          </button>
+        ) : (
+          currentRow > 0 && (
+            <button onClick={cashout}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-black text-xl">
+              CASHOUT ${(bet * multiplier).toFixed(2)}
+            </button>
+          )
         )}
       </div>
 
       <div className="space-y-4">
-        {phase === 'betting' ? (
-          <>
-            <BetControls bet={bet} setBet={setBet} onPlay={start} buttonText="START" />
+        <BetControls bet={bet} setBet={setBet} onPlay={start} buttonText="START" hideButton disabled={playing} />
 
-            <div className="game-card p-4">
-              <div className="text-xs text-gray-500 uppercase mb-3">Difficulty</div>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.entries(DIFFICULTY_MULT).map(([key, data]) => (
-                  <button
-                    key={key}
-                    onClick={() => setDifficulty(key)}
-                    className={`py-3 rounded-lg font-bold text-sm transition-all ${
-                      difficulty === key
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    <div className="capitalize">{key}</div>
-                    <div className="text-xs opacity-70">{data.mult}x/row</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="game-card p-4 text-center">
-            <div className="text-gray-400 text-sm">Current Bet</div>
-            <div className="text-3xl font-black text-cyan-400">${bet.toFixed(2)}</div>
-            <div className="text-sm text-gray-500 mt-1">Potential: ${(bet * multiplier).toFixed(2)}</div>
+        <div className="game-card p-4">
+          <div className="text-xs text-gray-500 uppercase mb-2">Difficulty Info</div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span>Columns</span><span>{config.cols}</span></div>
+            <div className="flex justify-between"><span>Bombs/Row</span><span className="text-red-400">{config.bombs}</span></div>
+            <div className="flex justify-between"><span>Multiplier/Row</span><span className="text-green-400">{config.mult}x</span></div>
+            <div className="flex justify-between"><span>Max Win</span><span className="text-yellow-400">{(Math.pow(config.mult, ROWS)).toFixed(2)}x</span></div>
           </div>
-        )}
-
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="space-y-2">
-              {history.map((h, i) => (
-                <div key={i} className={`flex justify-between text-sm ${h.won ? 'text-green-400' : 'text-red-400'}`}>
-                  <span>{h.won ? 'WIN' : 'LOST'}</span>
-                  <span>Floor {h.row}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

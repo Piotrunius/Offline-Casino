@@ -3,11 +3,14 @@ import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
+const HOUSE_EDGE = 0.03;
+
 export default function CrashGame() {
   const { state, placeBet, addWin } = useCasino();
   const [bet, setBet] = useState(10);
   const [autoCashout, setAutoCashout] = useState(2);
-  const [gameState, setGameState] = useState('waiting'); // waiting, running, crashed, cashed
+  const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(true);
+  const [gameState, setGameState] = useState('waiting');
   const [multiplier, setMultiplier] = useState(1);
   const [crashPoint, setCrashPoint] = useState(0);
   const [result, setResult] = useState(null);
@@ -16,21 +19,18 @@ export default function CrashGame() {
   const animationRef = useRef(null);
   const startTimeRef = useRef(0);
 
-  // Generate crash point with house edge
   const generateCrashPoint = () => {
     const e = Math.random();
-    return Math.max(1, Math.floor((1 / (1 - e)) * 100) / 100);
+    return Math.max(1, Math.floor((0.99 / (1 - e)) * 100) / 100);
   };
 
   const drawGraph = useCallback((currentMult, crashed = false) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
 
-    // Clear
     ctx.fillStyle = '#0a0a0f';
     ctx.fillRect(0, 0, w, h);
 
@@ -42,72 +42,68 @@ export default function CrashGame() {
       ctx.moveTo(0, h - (i * h / 10));
       ctx.lineTo(w, h - (i * h / 10));
       ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(i * w / 10, 0);
-      ctx.lineTo(i * w / 10, h);
-      ctx.stroke();
     }
 
-    // Y-axis labels
+    const maxDisplay = Math.max(currentMult * 1.3, 2);
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = '12px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'right';
-    const maxDisplay = Math.max(currentMult * 1.2, 2);
     for (let i = 1; i <= 5; i++) {
       const val = 1 + (maxDisplay - 1) * (i / 5);
-      ctx.fillText(`${val.toFixed(1)}x`, w - 10, h - (i * h / 5) - 10);
+      ctx.fillText(`${val.toFixed(1)}x`, w - 10, h - (i * h / 5) - 5);
     }
 
-    // Draw curve
     const color = crashed ? '#ff3366' : '#00f5ff';
-
     ctx.beginPath();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
 
-    const points = 100;
+    const points = 150;
     for (let i = 0; i <= points; i++) {
       const progress = i / points;
-      const mult = 1 + (currentMult - 1) * Math.pow(progress, 0.7);
-      const x = progress * w * 0.9 + 20;
-      const y = h - ((mult - 1) / (maxDisplay - 1)) * h * 0.8 - 40;
-
+      const mult = 1 + (currentMult - 1) * progress;
+      const x = progress * w * 0.88 + 15;
+      const y = h - ((mult - 1) / (maxDisplay - 1)) * h * 0.85 - 30;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // Glow effect
-    ctx.strokeStyle = `${color}40`;
-    ctx.lineWidth = 12;
+    ctx.strokeStyle = `${color}30`;
+    ctx.lineWidth = 10;
     ctx.stroke();
 
-    // End point
-    const endX = 0.9 * w + 20;
-    const endY = h - ((currentMult - 1) / (maxDisplay - 1)) * h * 0.8 - 40;
-
-    // Glow circle
+    const endX = 0.88 * w + 15;
+    const endY = h - ((currentMult - 1) / (maxDisplay - 1)) * h * 0.85 - 30;
     ctx.beginPath();
-    ctx.arc(endX, endY, 20, 0, Math.PI * 2);
-    ctx.fillStyle = `${color}30`;
+    ctx.arc(endX, endY, 15, 0, Math.PI * 2);
+    ctx.fillStyle = `${color}40`;
     ctx.fill();
-
-    // Inner circle
     ctx.beginPath();
-    ctx.arc(endX, endY, 8, 0, Math.PI * 2);
+    ctx.arc(endX, endY, 6, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
 
-    // Crashed X
     if (crashed) {
-      ctx.font = 'bold 60px sans-serif';
+      ctx.font = 'bold 48px sans-serif';
       ctx.fillStyle = '#ff3366';
       ctx.textAlign = 'center';
-      ctx.fillText('💥', w / 2, h / 2);
+      ctx.fillText('CRASHED', w / 2, h / 2);
     }
   }, []);
+
+  const cashOut = useCallback((mult) => {
+    if (gameState !== 'running') return;
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+
+    setGameState('cashed');
+    const win = bet * mult;
+    addWin(win, bet, 'crash', mult);
+    audio.playWin();
+    setResult({ won: true, mult, profit: win - bet });
+    setHistory(h => [{ mult, crashed: false }, ...h.slice(0, 19)]);
+  }, [gameState, bet, addWin]);
 
   const startGame = useCallback(() => {
     if (gameState === 'running' || bet <= 0 || bet > state.balance) return;
@@ -123,127 +119,110 @@ export default function CrashGame() {
 
     const animate = () => {
       const elapsed = Date.now() - startTimeRef.current;
-      // Slow growth: takes about 10 seconds to reach 2x
-      const growthRate = state.settings.fastMode ? 5000 : 10000;
-      const currentMult = 1 + (elapsed / growthRate) * Math.pow(1 + elapsed / (growthRate * 3), 0.5);
+      // Exponential growth - accelerates as multiplier increases
+      const baseGrowth = state.settings.fastMode ? 0.00015 : 0.00006;
+      const currentMult = Math.pow(Math.E, elapsed * baseGrowth);
 
       setMultiplier(currentMult);
       drawGraph(currentMult, false);
 
-      // Play tick sounds at milestones
-      if (Math.floor(currentMult * 10) > Math.floor((currentMult - 0.1) * 10)) {
-        audio.playTick();
-      }
-
       // Auto cashout
-      if (currentMult >= autoCashout && autoCashout > 1) {
+      if (autoCashoutEnabled && currentMult >= autoCashout && autoCashout > 1) {
         cashOut(currentMult);
         return;
       }
 
       if (currentMult >= crash) {
-        // Crashed
         setGameState('crashed');
         setMultiplier(crash);
         drawGraph(crash, true);
         addWin(0, bet, 'crash', 0);
         audio.playLose();
-        setResult({ won: false, crashPoint: crash, profit: -bet });
-        setHistory(h => [{ crash, won: false }, ...h.slice(0, 19)]);
+        setResult({ won: false, mult: crash, profit: -bet });
+        setHistory(h => [{ mult: crash, crashed: true }, ...h.slice(0, 19)]);
         return;
       }
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    animationRef.current = requestAnimationFrame(animate);
-  }, [bet, gameState, state.balance, state.settings.fastMode, autoCashout, placeBet, addWin, drawGraph]);
-
-  const cashOut = useCallback((currentMult) => {
-    if (gameState !== 'running') return;
-
-    cancelAnimationFrame(animationRef.current);
-    const mult = currentMult || multiplier;
-    const winAmount = bet * mult;
-
-    setGameState('cashed');
-    addWin(winAmount, bet, 'crash', mult);
-    audio.playCashout();
-    setResult({ won: true, multiplier: mult, profit: winAmount - bet });
-    setHistory(h => [{ crash: crashPoint, won: true, cashout: mult }, ...h.slice(0, 19)]);
-  }, [gameState, multiplier, bet, crashPoint, addWin]);
+    animate();
+  }, [bet, state.balance, state.settings.fastMode, autoCashout, autoCashoutEnabled, placeBet, addWin, drawGraph, cashOut]);
 
   useEffect(() => {
-    drawGraph(1, false);
-    return () => cancelAnimationFrame(animationRef.current);
+    drawGraph(1);
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
   }, [drawGraph]);
 
   return (
     <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 game-card p-6">
-        {/* Multiplier Display */}
-        <div className="text-center mb-4">
-          <div className={`text-7xl font-black transition-all ${
-            gameState === 'crashed' ? 'text-red-500' :
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-xs text-gray-500">House Edge: {(HOUSE_EDGE * 100).toFixed(0)}%</div>
+          <div className={`text-5xl font-black tabular-nums ${
+            gameState === 'crashed' ? 'text-red-400' :
             gameState === 'cashed' ? 'text-green-400' : 'text-cyan-400'
-          }`} style={{
-            textShadow: gameState === 'crashed' ? '0 0 40px #ff3366' : '0 0 40px #00f5ff'
-          }}>
+          }`}>
             {multiplier.toFixed(2)}x
           </div>
-          {gameState === 'crashed' && (
-            <div className="text-red-400 text-xl mt-2">CRASHED @ {crashPoint.toFixed(2)}x</div>
-          )}
         </div>
 
-        {/* Canvas */}
-        <canvas ref={canvasRef} width={600} height={300} className="w-full rounded-xl" />
+        <canvas ref={canvasRef} width={600} height={300} className="w-full rounded-xl mb-4" />
 
-        {/* Result */}
         {result && (
-          <div className={`text-center mt-4 text-2xl font-bold ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-            {result.won ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
+          <div className={`text-center text-2xl font-bold mb-4 ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+            {result.won ? `+$${result.profit.toFixed(2)}` : `Crashed at ${result.mult.toFixed(2)}x`}
           </div>
         )}
 
-        {/* History */}
-        {history.length > 0 && (
-          <div className="flex gap-2 flex-wrap mt-4">
-            {history.slice(0, 10).map((h, i) => (
-              <div key={i} className={`px-3 py-1 rounded-lg text-sm font-bold ${
-                h.won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-              }`}>
-                {h.crash.toFixed(2)}x
-              </div>
-            ))}
-          </div>
+        {gameState === 'running' ? (
+          <button onClick={() => cashOut(multiplier)}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black text-xl">
+            CASHOUT ${(bet * multiplier).toFixed(2)}
+          </button>
+        ) : (
+          <button onClick={startGame} disabled={bet <= 0 || bet > state.balance}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-black text-xl disabled:opacity-50">
+            {gameState === 'waiting' ? 'START' : 'PLAY AGAIN'}
+          </button>
         )}
       </div>
 
       <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} onPlay={startGame} disabled={gameState === 'running'}
-          buttonText={gameState === 'running' ? 'RUNNING...' : 'START'} />
+        <BetControls bet={bet} setBet={setBet} onPlay={startGame} buttonText="START" hideButton />
 
-        {/* Cashout Button */}
-        {gameState === 'running' && (
-          <button onClick={() => cashOut()}
-            className="w-full py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-black text-xl rounded-xl transition-all">
-            CASHOUT ${(bet * multiplier).toFixed(2)}
-          </button>
-        )}
-
-        {/* Auto Cashout */}
         <div className="game-card p-4">
-          <div className="text-xs text-gray-500 uppercase mb-2">Auto Cashout</div>
-          <input
-            type="number"
-            min="1.1"
-            step="0.1"
-            value={autoCashout}
-            onChange={(e) => setAutoCashout(Math.max(1.1, parseFloat(e.target.value) || 2))}
-            className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-white"
-          />
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-gray-500 uppercase">Auto Cashout</span>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={autoCashoutEnabled}
+                onChange={e => setAutoCashoutEnabled(e.target.checked)}
+                className="w-4 h-4 accent-cyan-500" />
+              <span className="text-sm text-gray-400">Enabled</span>
+            </label>
+          </div>
+          <input type="number" value={autoCashout} min="1.1" max="100" step="0.1"
+            onChange={e => setAutoCashout(parseFloat(e.target.value) || 2)}
+            disabled={!autoCashoutEnabled}
+            className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white disabled:opacity-50" />
         </div>
+
+        {history.length > 0 && (
+          <div className="game-card p-4">
+            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
+            <div className="flex flex-wrap gap-2">
+              {history.map((h, i) => (
+                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${
+                  h.crashed ? 'bg-red-900/50 text-red-400' : 'bg-green-900/50 text-green-400'
+                }`}>
+                  {h.mult.toFixed(2)}x
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

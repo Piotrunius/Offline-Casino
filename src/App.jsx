@@ -188,6 +188,7 @@ const Icons = {
 
 // Game imports
 import Dashboard from './components/Dashboard';
+import BaccaratGame from './games/BaccaratGame';
 import BlackjackGame from './games/BlackjackGame';
 import CoinFlipGame from './games/CoinFlipGame';
 import CrashGame from './games/CrashGame';
@@ -198,6 +199,7 @@ import LimboGame from './games/LimboGame';
 import MinesGame from './games/MinesGame';
 import PlinkoGame from './games/PlinkoGame';
 import RouletteGame from './games/RouletteGame';
+import ScratchCardGame from './games/ScratchCardGame';
 import SlotsGame from './games/SlotsGame';
 import TowerGame from './games/TowerGame';
 import WheelGame from './games/WheelGame';
@@ -216,7 +218,9 @@ const GAMES = [
   { id: 'roulette', name: 'Roulette', icon: Icons.Roulette, component: RouletteGame, color: '#00ff00' },
   { id: 'blackjack', name: 'Blackjack', icon: Icons.Cards, component: BlackjackGame, color: '#ff4444' },
   { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
-  { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' }
+  { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' },
+  { id: 'baccarat', name: 'Baccarat', icon: Icons.Cards, component: BaccaratGame, color: '#8844ff' },
+  { id: 'scratchcard', name: 'Scratch Card', icon: Icons.Grid, component: ScratchCardGame, color: '#ffcc00' }
 ];
 
 export default function App() {
@@ -411,7 +415,7 @@ export default function App() {
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80" onClick={() => setShowSettings(false)} />
-          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md animate-bounce-in">
+          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md animate-bounce-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Settings</h3>
               <button onClick={() => setShowSettings(false)} className="w-8 h-8 text-gray-400 hover:text-white">
@@ -419,50 +423,130 @@ export default function App() {
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Sound Effects</span>
-                <button
-                  onClick={() => updateSettings({ soundEnabled: !state.settings.soundEnabled })}
-                  className={`w-12 h-6 rounded-full transition-colors ${state.settings.soundEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.soundEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                </button>
-              </div>
+            <div className="space-y-6">
+              {/* Sound Section */}
+              <div>
+                <div className="text-xs uppercase text-gray-500 mb-3">Audio</div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Sound Effects</span>
+                    <button
+                      onClick={() => updateSettings({ soundEnabled: !state.settings.soundEnabled })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.soundEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.soundEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Volume</span>
-                  <span className="text-gray-500 text-sm">{Math.round(state.settings.soundVolume * 100)}%</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Volume</span>
+                      <span className="text-gray-500 text-sm">{Math.round(state.settings.soundVolume * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={state.settings.soundVolume}
+                      onChange={(e) => updateSettings({ soundVolume: parseFloat(e.target.value) })}
+                      className="w-full accent-cyan-500"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={state.settings.soundVolume}
-                  onChange={(e) => updateSettings({ soundVolume: parseFloat(e.target.value) })}
-                  className="w-full accent-cyan-500"
-                />
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Animations</span>
-                <button
-                  onClick={() => updateSettings({ animationsEnabled: !state.settings.animationsEnabled })}
-                  className={`w-12 h-6 rounded-full transition-colors ${state.settings.animationsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.animationsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                </button>
+              {/* Animation Section */}
+              <div>
+                <div className="text-xs uppercase text-gray-500 mb-3">Gameplay</div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-gray-300">Animations</span>
+                      <p className="text-xs text-gray-500">Visual effects and transitions</p>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ animationsEnabled: !state.settings.animationsEnabled })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.animationsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.animationsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-gray-300">Fast Mode</span>
+                      <p className="text-xs text-gray-500">Speed up game animations</p>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ fastMode: !state.settings.fastMode })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.fastMode ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.fastMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-gray-300">Confirm Large Bets</span>
+                      <p className="text-xs text-gray-500">Warn before betting over 50% balance</p>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ confirmLargeBets: !state.settings.confirmLargeBets })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.confirmLargeBets ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.confirmLargeBets ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-gray-300">Show Win Notifications</span>
+                      <p className="text-xs text-gray-500">Display popup on big wins</p>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ showWinNotifications: state.settings.showWinNotifications !== false ? false : true })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.showWinNotifications !== false ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.showWinNotifications !== false ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Fast Mode</span>
+              {/* Default Bet Section */}
+              <div>
+                <div className="text-xs uppercase text-gray-500 mb-3">Betting</div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Default Bet Amount</span>
+                    <span className="text-gray-500 text-sm">${state.settings.defaultBet || 10}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value={state.settings.defaultBet || 10}
+                    onChange={(e) => updateSettings({ defaultBet: parseInt(e.target.value) })}
+                    className="w-full accent-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="pt-4 border-t border-gray-800">
+                <div className="text-xs uppercase text-red-500 mb-3">Danger Zone</div>
                 <button
-                  onClick={() => updateSettings({ fastMode: !state.settings.fastMode })}
-                  className={`w-12 h-6 rounded-full transition-colors ${state.settings.fastMode ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                  onClick={() => {
+                    if (confirm('Are you sure you want to reset all statistics? This cannot be undone.')) {
+                      localStorage.removeItem('casino_state');
+                      window.location.reload();
+                    }
+                  }}
+                  className="w-full py-2 bg-red-900/30 border border-red-800 text-red-400 rounded-lg hover:bg-red-900/50 transition"
                 >
-                  <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.fastMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  Reset All Progress
                 </button>
               </div>
             </div>
@@ -474,7 +558,7 @@ export default function App() {
       {showStats && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80" onClick={() => setShowStats(false)} />
-          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md animate-bounce-in">
+          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-lg animate-bounce-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Statistics</h3>
               <button onClick={() => setShowStats(false)} className="w-8 h-8 text-gray-400 hover:text-white">
@@ -482,34 +566,101 @@ export default function App() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Main Stats */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-sm">Games Played</div>
+                <div className="text-gray-500 text-xs uppercase">Games Played</div>
                 <div className="text-2xl font-bold text-white">{state.gamesPlayed}</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-sm">Total Wagered</div>
+                <div className="text-gray-500 text-xs uppercase">Total Wagered</div>
                 <div className="text-2xl font-bold text-white">${state.totalBets.toFixed(0)}</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-sm">Total Profit</div>
+                <div className="text-gray-500 text-xs uppercase">Net Profit</div>
                 <div className={`text-2xl font-bold ${state.totalWins - state.totalLosses >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   ${(state.totalWins - state.totalLosses).toFixed(0)}
                 </div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-sm">Biggest Win</div>
+                <div className="text-gray-500 text-xs uppercase">Win Rate</div>
+                <div className="text-2xl font-bold text-cyan-400">
+                  {state.gamesPlayed > 0 ? ((state.history?.filter(h => h.profit > 0).length || 0) / state.gamesPlayed * 100).toFixed(1) : 0}%
+                </div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-xs uppercase">Biggest Win</div>
                 <div className="text-2xl font-bold text-yellow-400">${state.biggestWin.toFixed(0)}</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-sm">Current Streak</div>
+                <div className="text-gray-500 text-xs uppercase">Total Won</div>
+                <div className="text-2xl font-bold text-green-400">${state.totalWins.toFixed(0)}</div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-xs uppercase">Total Lost</div>
+                <div className="text-2xl font-bold text-red-400">${state.totalLosses.toFixed(0)}</div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-xs uppercase">ROI</div>
+                <div className={`text-2xl font-bold ${state.totalBets > 0 && (state.totalWins - state.totalLosses) / state.totalBets >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {state.totalBets > 0 ? (((state.totalWins - state.totalLosses) / state.totalBets) * 100).toFixed(1) : 0}%
+                </div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-xs uppercase">Avg Bet</div>
+                <div className="text-2xl font-bold text-purple-400">
+                  ${state.gamesPlayed > 0 ? (state.totalBets / state.gamesPlayed).toFixed(0) : 0}
+                </div>
+              </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-xs uppercase">Current Streak</div>
                 <div className="text-2xl font-bold text-cyan-400">{state.currentStreak}</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-sm">Best Streak</div>
+                <div className="text-gray-500 text-xs uppercase">Best Streak</div>
                 <div className="text-2xl font-bold text-purple-400">{state.bestStreak}</div>
               </div>
+              <div className="bg-black/30 rounded-xl p-4">
+                <div className="text-gray-500 text-xs uppercase">Free Credits Used</div>
+                <div className="text-2xl font-bold text-gray-400">{state.freeCreditsUsed || 0}/3</div>
+              </div>
             </div>
+
+            {/* Per-Game Stats */}
+            {state.history && state.history.length > 0 && (
+              <div>
+                <div className="text-xs uppercase text-gray-500 mb-3">Performance by Game</div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {(() => {
+                    const gameData = {};
+                    state.history.forEach(h => {
+                      if (!gameData[h.game]) gameData[h.game] = { profit: 0, count: 0, wins: 0 };
+                      gameData[h.game].profit += h.profit;
+                      gameData[h.game].count++;
+                      if (h.profit > 0) gameData[h.game].wins++;
+                    });
+                    return Object.entries(gameData)
+                      .sort((a, b) => b[1].count - a[1].count)
+                      .map(([game, data]) => (
+                        <div key={game} className="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            <span className="capitalize text-white font-medium">{game}</span>
+                            <span className="text-xs text-gray-500">{data.count} games</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-xs text-gray-400">
+                              {((data.wins / data.count) * 100).toFixed(0)}% WR
+                            </span>
+                            <span className={`font-bold ${data.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {data.profit >= 0 ? '+' : ''}${data.profit.toFixed(0)}
+                            </span>
+                          </div>
+                        </div>
+                      ));
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

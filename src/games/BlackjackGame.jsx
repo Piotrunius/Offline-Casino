@@ -3,299 +3,342 @@ import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
+const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-
-const getCardScore = v => v === 'A' ? 11 : ['K', 'Q', 'J'].includes(v) ? 10 : parseInt(v);
-const getNumericValue = v => v === 'A' ? 14 : v === 'K' ? 13 : v === 'Q' ? 12 : v === 'J' ? 11 : parseInt(v);
-
-const SuitIcon = ({ suit, size = 24 }) => {
-  const red = suit === 'hearts' || suit === 'diamonds';
-  const color = red ? '#ef4444' : '#1f2937';
-
-  const paths = {
-    hearts: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
-    diamonds: 'M12 2L2 12l10 10 10-10L12 2z',
-    clubs: 'M12 2c-2 0-3.5 1.5-3.5 3.5 0 1 .4 1.9 1 2.5-1.5.5-2.5 2-2.5 3.5 0 2 1.5 3.5 3.5 3.5.5 0 1-.1 1.5-.3V17H9v2h6v-2h-3v-2.3c.5.2 1 .3 1.5.3 2 0 3.5-1.5 3.5-3.5 0-1.5-1-3-2.5-3.5.6-.6 1-1.5 1-2.5C15.5 3.5 14 2 12 2z',
-    spades: 'M12 2L4 12c0 3 2 5 4 5 1 0 2-.5 3-1.5V18H9v2h6v-2h-2v-2.5c1 1 2 1.5 3 1.5 2 0 4-2 4-5L12 2z'
-  };
-
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-      <path d={paths[suit]} />
-    </svg>
-  );
-};
-
-const Card = ({ card, hidden = false }) => {
-  if (hidden) {
-    return (
-      <div className="w-20 h-28 rounded-xl bg-gradient-to-br from-blue-800 to-blue-950 border-2 border-blue-600 flex items-center justify-center shadow-xl">
-        <span className="text-3xl">🎴</span>
-      </div>
-    );
-  }
-
-  const red = card.suit === 'hearts' || card.suit === 'diamonds';
-
-  return (
-    <div className="w-20 h-28 rounded-xl bg-white border-2 border-gray-200 flex flex-col justify-between p-2 shadow-xl">
-      <div className={`flex items-center gap-0.5 ${red ? 'text-red-500' : 'text-gray-800'}`}>
-        <span className="font-bold text-lg">{card.value}</span>
-        <SuitIcon suit={card.suit} size={14} />
-      </div>
-      <div className="flex justify-center">
-        <SuitIcon suit={card.suit} size={32} />
-      </div>
-      <div className={`flex items-center gap-0.5 rotate-180 ${red ? 'text-red-500' : 'text-gray-800'}`}>
-        <span className="font-bold text-lg">{card.value}</span>
-        <SuitIcon suit={card.suit} size={14} />
-      </div>
-    </div>
-  );
-};
+const HOUSE_EDGE = 0.005;
 
 const createDeck = () => {
   const deck = [];
   for (const suit of SUITS) {
     for (const value of VALUES) {
-      deck.push({ suit, value, score: getCardScore(value) });
+      deck.push({ suit, value, color: suit === '♥' || suit === '♦' ? 'red' : 'black' });
     }
   }
   return deck.sort(() => Math.random() - 0.5);
 };
 
-const calculateScore = hand => {
-  let score = 0, aces = 0;
-  for (const card of hand) {
-    if (!card) continue;
-    score += card.score;
-    if (card.value === 'A') aces++;
+const calcValue = (cards) => {
+  let total = 0;
+  let aces = 0;
+  for (const card of cards) {
+    if (card.value === 'A') { aces++; total += 11; }
+    else if (['K', 'Q', 'J'].includes(card.value)) total += 10;
+    else total += parseInt(card.value);
   }
-  while (score > 21 && aces > 0) { score -= 10; aces--; }
-  return score;
+  while (total > 21 && aces > 0) { total -= 10; aces--; }
+  return total;
 };
+
+const Card = ({ card, hidden }) => (
+  <div className={`w-16 h-22 rounded-lg border-2 ${hidden ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} flex items-center justify-center shadow-lg`}>
+    {hidden ? (
+      <div className="w-12 h-16 bg-gradient-to-br from-gray-600 to-gray-800 rounded" />
+    ) : (
+      <div className={`text-center ${card.color === 'red' ? 'text-red-600' : 'text-gray-900'}`}>
+        <div className="text-xl font-bold">{card.value}</div>
+        <div className="text-2xl">{card.suit}</div>
+      </div>
+    )}
+  </div>
+);
 
 export default function BlackjackGame() {
   const { state, placeBet, addWin } = useCasino();
   const [bet, setBet] = useState(10);
   const [deck, setDeck] = useState([]);
-  const [playerHand, setPlayerHand] = useState([]);
-  const [dealerHand, setDealerHand] = useState([]);
-  const [phase, setPhase] = useState('betting');
-  const [revealed, setRevealed] = useState(false);
+  const [player, setPlayer] = useState([]);
+  const [dealer, setDealer] = useState([]);
+  const [playing, setPlaying] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
   const [result, setResult] = useState(null);
-  const [history, setHistory] = useState([]);
+  const [insuranceBet, setInsuranceBet] = useState(0);
+  const [showInsurance, setShowInsurance] = useState(false);
+  const [dealerHidden, setDealerHidden] = useState(true);
+
+  const isBlackjack = (cards) => cards.length === 2 && calcValue(cards) === 21;
 
   const deal = useCallback(() => {
-    if (phase !== 'betting' || bet <= 0 || bet > state.balance) return;
+    if (bet <= 0 || bet > state.balance) return;
     if (!placeBet(bet, 'blackjack')) return;
 
     const newDeck = createDeck();
-    const pHand = [newDeck.pop(), newDeck.pop()];
-    const dHand = [newDeck.pop(), newDeck.pop()];
+    const pCards = [newDeck.pop(), newDeck.pop()];
+    const dCards = [newDeck.pop(), newDeck.pop()];
 
     setDeck(newDeck);
-    setPlayerHand(pHand);
-    setDealerHand(dHand);
-    setRevealed(false);
+    setPlayer(pCards);
+    setDealer(dCards);
+    setPlaying(true);
+    setGameOver(false);
     setResult(null);
-    setPhase('playing');
-    audio.playBet();
+    setInsuranceBet(0);
+    setDealerHidden(true);
+    audio.playCardDeal();
 
-    // Check for blackjack
-    if (calculateScore(pHand) === 21) {
-      setTimeout(() => finishGame(pHand, dHand, newDeck), 500);
+    // Check for insurance offer (dealer shows Ace)
+    if (dCards[0].value === 'A' && state.balance >= bet / 2) {
+      setShowInsurance(true);
+      return;
     }
-  }, [bet, phase, state.balance, placeBet]);
 
-  const hit = () => {
-    if (phase !== 'playing' || deck.length === 0) return;
+    // Immediate blackjack check (only if no insurance offered)
+    setTimeout(() => checkBlackjacks(pCards, dCards, newDeck, 0), 300);
+  }, [bet, state.balance, placeBet]);
 
-    const newCard = deck.pop();
-    const newHand = [...playerHand, newCard];
-    setPlayerHand(newHand);
+  const checkBlackjacks = useCallback((pCards, dCards, currentDeck, insurance) => {
+    const playerBJ = isBlackjack(pCards);
+    const dealerBJ = isBlackjack(dCards);
+
+    if (playerBJ || dealerBJ) {
+      setDealerHidden(false);
+      setPlaying(false);
+      setGameOver(true);
+
+      if (playerBJ && dealerBJ) {
+        // Push - return bet
+        addWin(bet, bet, 'blackjack', 1);
+        setResult({ type: 'PUSH', msg: 'Both Blackjack - Push', profit: 0 });
+        audio.playLose();
+      } else if (playerBJ) {
+        // Player blackjack pays 3:2
+        const win = bet * 2.5;
+        addWin(win, bet, 'blackjack', 2.5);
+        setResult({ type: 'BLACKJACK', msg: 'Blackjack!', profit: win - bet });
+        audio.playWin();
+      } else if (dealerBJ) {
+        // Dealer blackjack
+        const insuranceWin = insurance > 0 ? insurance * 3 : 0;
+        if (insuranceWin > 0) {
+          addWin(insuranceWin, bet + insurance, 'blackjack', insuranceWin / (bet + insurance));
+          setResult({ type: 'DEALER_BJ', msg: 'Dealer Blackjack - Insurance Pays', profit: insuranceWin - bet - insurance });
+        } else {
+          addWin(0, bet, 'blackjack', 0);
+          setResult({ type: 'DEALER_BJ', msg: 'Dealer Blackjack', profit: -bet });
+        }
+        audio.playLose();
+      }
+      return true;
+    }
+    return false;
+  }, [bet, addWin]);
+
+  const takeInsurance = useCallback(() => {
+    const insAmount = bet / 2;
+    if (!placeBet(insAmount, 'blackjack')) return;
+    setInsuranceBet(insAmount);
+    setShowInsurance(false);
+    checkBlackjacks(player, dealer, deck, insAmount);
+  }, [bet, player, dealer, deck, placeBet, checkBlackjacks]);
+
+  const declineInsurance = useCallback(() => {
+    setShowInsurance(false);
+    checkBlackjacks(player, dealer, deck, 0);
+  }, [player, dealer, deck, checkBlackjacks]);
+
+  const hit = useCallback(() => {
+    if (!playing || gameOver) return;
+    const card = deck.pop();
+    const newPlayer = [...player, card];
+    setPlayer(newPlayer);
     setDeck([...deck]);
-    audio.playTick();
+    audio.playCardDeal();
 
-    const score = calculateScore(newHand);
-    if (score > 21) {
-      finishGame(newHand, dealerHand, deck);
-    } else if (score === 21) {
-      stand(newHand);
+    const value = calcValue(newPlayer);
+    if (value > 21) {
+      setPlaying(false);
+      setGameOver(true);
+      setDealerHidden(false);
+      addWin(0, bet, 'blackjack', 0);
+      setResult({ type: 'BUST', msg: 'Bust!', profit: -bet - insuranceBet });
+      audio.playLose();
     }
-  };
+  }, [playing, gameOver, deck, player, bet, insuranceBet, addWin]);
 
-  const stand = (pHand = playerHand) => {
-    if (phase !== 'playing') return;
-    setPhase('dealer');
-    setRevealed(true);
+  const stand = useCallback(() => {
+    if (!playing || gameOver) return;
+    setPlaying(false);
+    setDealerHidden(false);
 
-    // Dealer draws
-    let dHand = [...dealerHand];
-    let dDeck = [...deck];
+    let currentDealer = [...dealer];
+    let currentDeck = [...deck];
 
-    const dealerDraw = () => {
-      if (calculateScore(dHand) < 17 && dDeck.length > 0) {
+    const dealerPlay = () => {
+      const dealerVal = calcValue(currentDealer);
+      const playerVal = calcValue(player);
+
+      if (dealerVal < 17) {
         setTimeout(() => {
-          dHand = [...dHand, dDeck.pop()];
-          setDealerHand(dHand);
-          setDeck([...dDeck]);
-          audio.playTick();
-          dealerDraw();
-        }, 500);
+          currentDealer.push(currentDeck.pop());
+          setDealer([...currentDealer]);
+          setDeck([...currentDeck]);
+          audio.playCardDeal();
+          dealerPlay();
+        }, state.settings.fastMode ? 200 : 500);
       } else {
-        setTimeout(() => finishGame(pHand, dHand, dDeck), 300);
+        // Game resolution
+        setGameOver(true);
+        const finalDealerVal = calcValue(currentDealer);
+        const finalPlayerVal = calcValue(player);
+
+        if (finalDealerVal > 21) {
+          // Dealer bust
+          const win = bet * 2;
+          addWin(win, bet, 'blackjack', 2);
+          setResult({ type: 'WIN', msg: 'Dealer Busts!', profit: win - bet - insuranceBet });
+          audio.playWin();
+        } else if (finalPlayerVal > finalDealerVal) {
+          // Player wins
+          const win = bet * 2;
+          addWin(win, bet, 'blackjack', 2);
+          setResult({ type: 'WIN', msg: 'You Win!', profit: win - bet - insuranceBet });
+          audio.playWin();
+        } else if (finalPlayerVal < finalDealerVal) {
+          // Dealer wins
+          addWin(0, bet, 'blackjack', 0);
+          setResult({ type: 'LOSE', msg: 'Dealer Wins', profit: -bet - insuranceBet });
+          audio.playLose();
+        } else {
+          // Push
+          addWin(bet, bet, 'blackjack', 1);
+          setResult({ type: 'PUSH', msg: 'Push', profit: -insuranceBet });
+          audio.playLose();
+        }
       }
     };
 
-    dealerDraw();
-  };
+    dealerPlay();
+  }, [playing, gameOver, dealer, deck, player, bet, insuranceBet, state.settings.fastMode, addWin]);
 
-  const finishGame = (pHand, dHand, finalDeck) => {
-    setRevealed(true);
-    setPhase('finished');
+  const double = useCallback(() => {
+    if (!playing || gameOver || player.length !== 2 || bet > state.balance) return;
+    if (!placeBet(bet, 'blackjack')) return;
 
-    const pScore = calculateScore(pHand);
-    const dScore = calculateScore(dHand);
+    const card = deck.pop();
+    const newPlayer = [...player, card];
+    setPlayer(newPlayer);
+    setDeck([...deck]);
+    audio.playCardDeal();
 
-    let type = '', mult = 0, win = 0;
-
-    if (pScore > 21) {
-      type = 'BUST';
-    } else if (dScore > 21) {
-      type = 'DEALER BUST'; mult = 2; win = bet * 2;
-    } else if (pScore === 21 && pHand.length === 2 && !(dScore === 21 && dHand.length === 2)) {
-      type = 'BLACKJACK!'; mult = 2.5; win = bet * 2.5;
-    } else if (dScore === 21 && dHand.length === 2) {
-      type = 'DEALER BJ';
-    } else if (pScore > dScore) {
-      type = 'WIN'; mult = 2; win = bet * 2;
-    } else if (pScore < dScore) {
-      type = 'LOSE';
-    } else {
-      type = 'PUSH'; mult = 1; win = bet;
-    }
-
-    if (win > 0) {
-      addWin(win, bet, 'blackjack', mult);
-      type === 'PUSH' ? audio.playTick() : audio.playWin();
-    } else {
-      addWin(0, bet, 'blackjack', 0);
+    const value = calcValue(newPlayer);
+    if (value > 21) {
+      setPlaying(false);
+      setGameOver(true);
+      setDealerHidden(false);
+      addWin(0, bet * 2, 'blackjack', 0);
+      setResult({ type: 'BUST', msg: 'Bust!', profit: -bet * 2 - insuranceBet });
       audio.playLose();
+    } else {
+      // Auto-stand after double
+      setBet(bet * 2);
+      setTimeout(() => {
+        stand();
+      }, 500);
     }
+  }, [playing, gameOver, player, bet, state.balance, deck, insuranceBet, placeBet, addWin, stand]);
 
-    setResult({ type, pScore, dScore, profit: win - bet });
-    setHistory(h => [{ type, pScore, dScore }, ...h.slice(0, 9)]);
-  };
-
-  const newGame = () => {
-    setPhase('betting');
-    setPlayerHand([]);
-    setDealerHand([]);
-    setResult(null);
-    setRevealed(false);
-  };
-
-  const pScore = calculateScore(playerHand);
-  const dScore = revealed ? calculateScore(dealerHand) : (dealerHand[0] ? dealerHand[0].score : 0);
+  const playerValue = calcValue(player);
+  const dealerValue = dealerHidden ? calcValue([dealer[0]]) : calcValue(dealer);
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 game-card p-6">
+        <div className="text-xs text-gray-500 mb-4">House Edge: {(HOUSE_EDGE * 100).toFixed(1)}%</div>
+
         {/* Dealer */}
         <div className="mb-8">
-          <div className="flex justify-between mb-2">
-            <span className="text-gray-400 text-sm">DEALER</span>
-            <span className="text-xl font-bold">{revealed ? dScore : (dealerHand[0] ? `${dealerHand[0].score} + ?` : '-')}</span>
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm text-gray-400 uppercase">Dealer</span>
+            <span className="text-lg font-bold text-yellow-400">
+              {dealer.length > 0 && (dealerHidden ? `${calcValue([dealer[0]])}` : dealerValue)}
+              {!dealerHidden && dealerValue > 21 && <span className="text-red-500 ml-2">BUST</span>}
+            </span>
           </div>
-          <div className="flex gap-3 justify-center min-h-32">
-            {dealerHand.map((card, i) => (
-              <Card key={i} card={card} hidden={i === 1 && !revealed} />
+          <div className="flex gap-2 justify-center min-h-[88px]">
+            {dealer.map((card, i) => (
+              <Card key={i} card={card} hidden={dealerHidden && i === 1} />
             ))}
           </div>
         </div>
 
         {/* Result */}
         {result && (
-          <div className="text-center mb-6">
-            <div className={`text-4xl font-black ${result.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {result.type}
+          <div className={`text-center py-4 mb-4 rounded-lg ${
+            result.type === 'WIN' || result.type === 'BLACKJACK' ? 'bg-green-900/50 text-green-400' :
+            result.type === 'PUSH' ? 'bg-yellow-900/50 text-yellow-400' :
+            'bg-red-900/50 text-red-400'
+          }`}>
+            <div className="text-2xl font-black">{result.msg}</div>
+            <div className="text-lg">
+              {result.profit >= 0 ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
             </div>
-            <div className={`text-xl ${result.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {result.profit >= 0 ? '+' : ''}${result.profit.toFixed(2)}
+          </div>
+        )}
+
+        {/* Insurance Modal */}
+        {showInsurance && (
+          <div className="text-center py-4 mb-4 rounded-lg bg-blue-900/50 border border-blue-500">
+            <div className="text-lg font-bold text-blue-300 mb-3">Insurance?</div>
+            <div className="text-sm text-gray-300 mb-4">Dealer shows Ace. Insurance costs ${(bet/2).toFixed(2)}</div>
+            <div className="flex gap-4 justify-center">
+              <button onClick={takeInsurance} className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-bold">
+                Yes (${(bet/2).toFixed(2)})
+              </button>
+              <button onClick={declineInsurance} className="px-6 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 font-bold">
+                No
+              </button>
             </div>
           </div>
         )}
 
         {/* Player */}
         <div className="mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="text-gray-400 text-sm">YOUR HAND</span>
-            <span className={`text-xl font-bold ${pScore > 21 ? 'text-red-400' : pScore === 21 ? 'text-green-400' : ''}`}>
-              {pScore || '-'}
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm text-gray-400 uppercase">Player</span>
+            <span className="text-lg font-bold text-cyan-400">
+              {player.length > 0 && playerValue}
+              {isBlackjack(player) && <span className="text-yellow-400 ml-2">BLACKJACK!</span>}
+              {playerValue > 21 && <span className="text-red-500 ml-2">BUST</span>}
             </span>
           </div>
-          <div className="flex gap-3 justify-center min-h-32">
-            {playerHand.map((card, i) => (
-              <Card key={i} card={card} />
+          <div className="flex gap-2 justify-center min-h-[88px]">
+            {player.map((card, i) => (
+              <Card key={i} card={card} hidden={false} />
             ))}
           </div>
         </div>
 
-        {/* Actions */}
-        {phase === 'playing' && (
-          <div className="flex gap-4 justify-center">
-            <button onClick={hit} className="btn-primary bg-cyan-600 hover:bg-cyan-700 px-8 py-3 font-bold text-lg">
-              HIT
-            </button>
-            <button onClick={() => stand()} className="btn-primary bg-yellow-600 hover:bg-yellow-700 px-8 py-3 font-bold text-lg">
-              STAND
-            </button>
-          </div>
-        )}
-
-        {phase === 'finished' && (
-          <div className="flex justify-center">
-            <button onClick={newGame} className="btn-primary px-8 py-3 font-bold text-lg">NEW GAME</button>
-          </div>
-        )}
+        {/* Action Buttons */}
+        <div className="grid grid-cols-4 gap-3">
+          <button onClick={deal} disabled={playing || showInsurance}
+            className="py-3 rounded-lg bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-bold disabled:opacity-50">
+            DEAL
+          </button>
+          <button onClick={hit} disabled={!playing || gameOver || showInsurance}
+            className="py-3 rounded-lg bg-gradient-to-r from-cyan-700 to-cyan-600 hover:from-cyan-600 hover:to-cyan-500 text-white font-bold disabled:opacity-50">
+            HIT
+          </button>
+          <button onClick={stand} disabled={!playing || gameOver || showInsurance}
+            className="py-3 rounded-lg bg-gradient-to-r from-yellow-700 to-yellow-600 hover:from-yellow-600 hover:to-yellow-500 text-white font-bold disabled:opacity-50">
+            STAND
+          </button>
+          <button onClick={double} disabled={!playing || gameOver || player.length !== 2 || bet > state.balance || showInsurance}
+            className="py-3 rounded-lg bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-white font-bold disabled:opacity-50">
+            DOUBLE
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
-        {phase === 'betting' ? (
-          <BetControls bet={bet} setBet={setBet} onPlay={deal} buttonText="DEAL" />
-        ) : (
-          <div className="game-card p-4 text-center">
-            <div className="text-gray-400 text-sm">Current Bet</div>
-            <div className="text-3xl font-black text-cyan-400">${bet.toFixed(2)}</div>
-          </div>
-        )}
-
-        {history.length > 0 && (
-          <div className="game-card p-4">
-            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
-            <div className="space-y-2">
-              {history.map((h, i) => (
-                <div key={i} className={`flex justify-between text-sm ${
-                  h.type.includes('WIN') || h.type.includes('BLACKJACK') || h.type.includes('DEALER BUST')
-                    ? 'text-green-400' : h.type === 'PUSH' ? 'text-gray-400' : 'text-red-400'
-                }`}>
-                  <span>{h.type}</span>
-                  <span>{h.pScore} vs {h.dScore}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <BetControls bet={bet} setBet={setBet} onPlay={deal} buttonText="DEAL" hideButton />
 
         <div className="game-card p-4">
           <div className="text-xs text-gray-500 uppercase mb-2">Payouts</div>
-          <ul className="text-sm text-gray-400 space-y-1">
-            <li>• Blackjack: 2.5x</li>
-            <li>• Win: 2x</li>
-            <li>• Push: 1x</li>
-          </ul>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between"><span>Win</span><span className="text-green-400">2x</span></div>
+            <div className="flex justify-between"><span>Blackjack</span><span className="text-yellow-400">2.5x</span></div>
+            <div className="flex justify-between"><span>Insurance</span><span className="text-blue-400">3x</span></div>
+            <div className="flex justify-between"><span>Push</span><span className="text-gray-400">1x</span></div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,35 +1,138 @@
 import { useCasino } from '../context/CasinoContext';
 
+// SVG Icons as components
+const Icons = {
+  blackjack: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M12 8v8M8 12h8" />
+    </svg>
+  ),
+  roulette: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+    </svg>
+  ),
+  slots: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M7 4v16M12 4v16M17 4v16" />
+    </svg>
+  ),
+  crash: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <path d="M3 17l6-6 4 4 8-10" />
+      <path d="M17 7h4v4" />
+    </svg>
+  ),
+  plinko: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <circle cx="12" cy="4" r="2" />
+      <circle cx="8" cy="10" r="1" /><circle cx="16" cy="10" r="1" />
+      <circle cx="6" cy="16" r="1" /><circle cx="12" cy="16" r="1" /><circle cx="18" cy="16" r="1" />
+      <path d="M12 6l-2 4l2 6" />
+    </svg>
+  ),
+  mines: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <circle cx="12" cy="12" r="6" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+    </svg>
+  ),
+  dice: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <circle cx="8" cy="8" r="1" fill="currentColor" />
+      <circle cx="16" cy="8" r="1" fill="currentColor" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+      <circle cx="8" cy="16" r="1" fill="currentColor" />
+      <circle cx="16" cy="16" r="1" fill="currentColor" />
+    </svg>
+  ),
+  hilo: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <path d="M12 4l-6 8h12l-6-8z" />
+      <path d="M12 20l6-8H6l6 8z" />
+    </svg>
+  ),
+  tower: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <path d="M4 20h16M7 20v-8h10v8M9 12V8h6v4M11 8V4h2v4" />
+    </svg>
+  ),
+  wheel: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2v10l7 7" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+    </svg>
+  ),
+  limbo: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <path d="M3 20l7-14 4 6 7-10" />
+    </svg>
+  ),
+  coinflip: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v12M8 12h8" />
+    </svg>
+  ),
+  keno: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+    </svg>
+  ),
+  baccarat: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="2" y="4" width="14" height="18" rx="2" />
+      <rect x="8" y="2" width="14" height="18" rx="2" />
+      <path d="M12 8v8M9 12h6" />
+    </svg>
+  ),
+  scratchcard: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M8 8h2M14 8h2M8 14h2M14 14h2M11 11h2v2h-2z" />
+    </svg>
+  ),
+};
+
 const GAMES_INFO = [
-  { id: 'blackjack', name: 'Blackjack', icon: '🃏', description: 'Beat the dealer by getting closer to 21', edge: '0.5%' },
-  { id: 'roulette', name: 'Roulette', icon: '🎡', description: 'European roulette with 0-36', edge: '2.7%' },
-  { id: 'slots', name: 'Slots', icon: '🎰', description: '5 unique machines with different paylines', edge: '3-5%' },
-  { id: 'crash', name: 'Crash', icon: '📈', description: 'Cash out before the multiplier crashes', edge: '3%' },
-  { id: 'plinko', name: 'Plinko', icon: '⚡', description: 'Drop balls through pegs for multipliers', edge: '1-4%' },
-  { id: 'mines', name: 'Mines', icon: '💣', description: 'Find gems while avoiding mines', edge: '3%' },
-  { id: 'dice', name: 'Dice', icon: '🎲', description: 'Roll over or under your target', edge: '2%' },
-  { id: 'hilo', name: 'Hi-Lo', icon: '🔮', description: 'Predict the next card with many bet types', edge: '3%' },
-  { id: 'tower', name: 'Tower', icon: '🗼', description: 'Climb the tower without hitting traps', edge: '3%' },
-  { id: 'wheel', name: 'Wheel', icon: '🎯', description: 'Spin the wheel for multipliers', edge: '5%' },
-  { id: 'limbo', name: 'Limbo', icon: '🎢', description: 'Hit your target multiplier', edge: '2%' },
-  { id: 'coinflip', name: 'Coin Flip', icon: '🪙', description: 'Simple 50/50 heads or tails', edge: '0%' },
-  { id: 'keno', name: 'Keno', icon: '🎱', description: 'Pick numbers and match the draw', edge: '3-10%' },
+  { id: 'blackjack', name: 'Blackjack', description: 'Beat the dealer by getting closer to 21', edge: '0.5%' },
+  { id: 'roulette', name: 'Roulette', description: 'European roulette with 0-36', edge: '2.7%' },
+  { id: 'slots', name: 'Slots', description: '5 unique machines with different paylines', edge: '3-5%' },
+  { id: 'crash', name: 'Crash', description: 'Cash out before the multiplier crashes', edge: '3%' },
+  { id: 'plinko', name: 'Plinko', description: 'Drop balls through pegs for multipliers', edge: '1-4%' },
+  { id: 'mines', name: 'Mines', description: 'Find gems while avoiding mines', edge: '3%' },
+  { id: 'dice', name: 'Dice', description: 'Roll over or under your target', edge: '2%' },
+  { id: 'hilo', name: 'Hi-Lo', description: 'Predict the next card with many bet types', edge: '3%' },
+  { id: 'tower', name: 'Tower', description: 'Climb the tower without hitting traps', edge: '3%' },
+  { id: 'wheel', name: 'Wheel', description: 'Spin the wheel for multipliers', edge: '5%' },
+  { id: 'limbo', name: 'Limbo', description: 'Hit your target multiplier', edge: '2%' },
+  { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%' },
+  { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%' },
+  { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%' },
+  { id: 'scratchcard', name: 'Scratch Card', description: 'Reveal symbols to win multipliers', edge: '5%' },
 ];
 
 export default function Dashboard({ onSelectGame }) {
   const { state } = useCasino();
 
-  // Use history with fallback to empty array
   const gameHistory = state.history || [];
 
-  // Calculate stats
   const stats = {
     totalWins: gameHistory.filter(h => h.profit > 0).length,
     totalLosses: gameHistory.filter(h => h.profit <= 0).length,
     totalProfit: gameHistory.reduce((sum, h) => sum + h.profit, 0),
     biggestWin: gameHistory.length > 0 ? Math.max(...gameHistory.map(h => h.profit)) : 0,
+    biggestLoss: gameHistory.length > 0 ? Math.min(...gameHistory.map(h => h.profit)) : 0,
     totalWagered: gameHistory.reduce((sum, h) => sum + h.bet, 0),
     gamesPlayed: gameHistory.length,
+    avgBet: gameHistory.length > 0 ? gameHistory.reduce((sum, h) => sum + h.bet, 0) / gameHistory.length : 0,
   };
 
   const recentGames = gameHistory.slice(0, 10);
@@ -37,6 +140,19 @@ export default function Dashboard({ onSelectGame }) {
   const winRate = stats.gamesPlayed > 0
     ? ((stats.totalWins / stats.gamesPlayed) * 100).toFixed(1)
     : 0;
+
+  // Game-specific stats
+  const gameStats = {};
+  GAMES_INFO.forEach(g => {
+    const games = gameHistory.filter(h => h.game === g.id);
+    if (games.length > 0) {
+      gameStats[g.id] = {
+        played: games.length,
+        profit: games.reduce((s, h) => s + h.profit, 0),
+        wins: games.filter(h => h.profit > 0).length
+      };
+    }
+  });
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -48,7 +164,7 @@ export default function Dashboard({ onSelectGame }) {
         <p className="text-gray-300 text-lg">
           Play 13 casino games with virtual currency. No real money, just fun!
         </p>
-        <div className="flex gap-4 mt-4">
+        <div className="flex flex-wrap gap-4 mt-4">
           <div className="bg-black/30 rounded-xl px-6 py-3">
             <div className="text-gray-400 text-xs uppercase">Balance</div>
             <div className="text-3xl font-black text-green-400">${state.balance.toLocaleString()}</div>
@@ -84,6 +200,24 @@ export default function Dashboard({ onSelectGame }) {
           <div className="text-gray-400 text-xs uppercase">Biggest Win</div>
           <div className="text-2xl font-bold text-yellow-400">${stats.biggestWin.toFixed(2)}</div>
         </div>
+        <div className="game-card p-4 text-center">
+          <div className="text-gray-400 text-xs uppercase">Biggest Loss</div>
+          <div className="text-2xl font-bold text-red-400">${Math.abs(stats.biggestLoss).toFixed(2)}</div>
+        </div>
+        <div className="game-card p-4 text-center">
+          <div className="text-gray-400 text-xs uppercase">Total Wagered</div>
+          <div className="text-2xl font-bold text-cyan-400">${stats.totalWagered.toFixed(2)}</div>
+        </div>
+        <div className="game-card p-4 text-center">
+          <div className="text-gray-400 text-xs uppercase">Average Bet</div>
+          <div className="text-2xl font-bold text-purple-400">${stats.avgBet.toFixed(2)}</div>
+        </div>
+        <div className="game-card p-4 text-center">
+          <div className="text-gray-400 text-xs uppercase">ROI</div>
+          <div className={`text-2xl font-bold ${stats.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {stats.totalWagered > 0 ? ((stats.totalProfit / stats.totalWagered) * 100).toFixed(1) : 0}%
+          </div>
+        </div>
       </div>
 
       {/* Games Grid */}
@@ -96,12 +230,20 @@ export default function Dashboard({ onSelectGame }) {
               onClick={() => onSelectGame && onSelectGame(game.id)}
               className="game-card p-4 text-left hover:border-cyan-500/50 transition-all group"
             >
-              <div className="text-4xl mb-2">{game.icon}</div>
+              <div className="text-cyan-400 mb-2">{Icons[game.id]}</div>
               <div className="font-bold text-white group-hover:text-cyan-400 transition-colors">
                 {game.name}
               </div>
               <div className="text-sm text-gray-400 mt-1">{game.description}</div>
               <div className="text-xs text-gray-500 mt-2">House Edge: {game.edge}</div>
+              {gameStats[game.id] && (
+                <div className="mt-2 pt-2 border-t border-gray-700 text-xs">
+                  <span className="text-gray-500">{gameStats[game.id].played} plays</span>
+                  <span className={`ml-2 ${gameStats[game.id].profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {gameStats[game.id].profit >= 0 ? '+' : ''}${gameStats[game.id].profit.toFixed(0)}
+                  </span>
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -147,18 +289,18 @@ export default function Dashboard({ onSelectGame }) {
         <h2 className="text-xl font-bold text-white mb-4">About Offline Casino</h2>
         <div className="grid md:grid-cols-2 gap-6 text-gray-300">
           <div>
-            <h3 className="font-bold text-cyan-400 mb-2">🎮 Features</h3>
+            <h3 className="font-bold text-cyan-400 mb-2">Features</h3>
             <ul className="space-y-1 text-sm">
-              <li>• 13 unique casino games</li>
-              <li>• Play with virtual currency</li>
-              <li>• No registration required</li>
-              <li>• Works offline</li>
-              <li>• Progress saves locally</li>
-              <li>• Provably fair games</li>
+              <li>- 13 unique casino games</li>
+              <li>- Play with virtual currency</li>
+              <li>- No registration required</li>
+              <li>- Works offline</li>
+              <li>- Progress saves locally</li>
+              <li>- Provably fair games</li>
             </ul>
           </div>
           <div>
-            <h3 className="font-bold text-cyan-400 mb-2">⚠️ Disclaimer</h3>
+            <h3 className="font-bold text-cyan-400 mb-2">Disclaimer</h3>
             <p className="text-sm">
               This is a free entertainment app. No real money is involved.
               This app is for educational and entertainment purposes only.
