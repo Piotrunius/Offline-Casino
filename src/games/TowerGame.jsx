@@ -295,7 +295,7 @@ export default function TowerGame() {
               </button>
             ) : (
               <div className="text-center text-cyan-400 py-4 font-bold">
-                ⬆️ Pick a tile above
+                Pick a tile above
               </div>
             )}
           </div>
