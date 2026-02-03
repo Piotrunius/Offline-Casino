@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCasino } from './context/CasinoContext';
 import audio from './utils/audioEngine';
 
@@ -203,6 +203,7 @@ const Icons = {
 };
 
 // Game imports
+import AdminPanel from './components/AdminPanel';
 import Dashboard from './components/Dashboard';
 import GameInfoModal from './components/GameInfoModal';
 import WinEffects from './components/WinEffects';
@@ -245,7 +246,8 @@ export default function App() {
   const {
     state, addFreeCredits, updateSettings, exportProgress, importProgress,
     showLargeBetConfirm, confirmLargeBet, cancelLargeBet,
-    winEffect, clearWinEffect, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance
+    winEffect, clearWinEffect, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance,
+    setBalance, updateAdminSettings, resetStats
   } = useCasino();
   const [activeGame, setActiveGame] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -253,9 +255,31 @@ export default function App() {
   const [showStats, setShowStats] = useState(false);
   const [showExportImport, setShowExportImport] = useState(false);
   const [showGameInfo, setShowGameInfo] = useState(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [exportCode, setExportCode] = useState('');
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
+
+  // Konami Code detection
+  const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+  const konamiIndex = useRef(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === konamiCode[konamiIndex.current]) {
+        konamiIndex.current++;
+        if (konamiIndex.current === konamiCode.length) {
+          setShowAdminPanel(prev => !prev);
+          konamiIndex.current = 0;
+          audio.playWin();
+        }
+      } else {
+        konamiIndex.current = 0;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const ActiveGameComponent = GAMES.find(g => g.id === activeGame)?.component || DiceGame;
   const activeGameData = GAMES.find(g => g.id === activeGame);
@@ -810,6 +834,17 @@ export default function App() {
         <GameInfoModal
           gameId={showGameInfo}
           onClose={() => setShowGameInfo(null)}
+        />
+      )}
+
+      {/* Admin Panel (Konami Code) */}
+      {showAdminPanel && (
+        <AdminPanel
+          state={state}
+          onClose={() => setShowAdminPanel(false)}
+          onUpdateBalance={setBalance}
+          onUpdateSettings={updateAdminSettings}
+          onResetStats={resetStats}
         />
       )}
     </div>

@@ -50,6 +50,15 @@ const initialState = {
     hotkeys: true,
     confirmLargeBets: true,
     winEffectsEnabled: true
+  },
+  adminSettings: {
+    globalWinBoost: 0,
+    guaranteedWins: 0,
+    jackpotChance: 0,
+    jackpotMultiplier: 100,
+    godMode: false,
+    infiniteMoney: false,
+    gameSettings: {}
   }
 };
 
@@ -145,6 +154,18 @@ function reducer(state, action) {
         history: []
       };
     }
+    case 'SET_BALANCE': {
+      return {
+        ...state,
+        balance: action.amount
+      };
+    }
+    case 'UPDATE_ADMIN_SETTINGS': {
+      return {
+        ...state,
+        adminSettings: { ...state.adminSettings, ...action.settings }
+      };
+    }
     case 'LOAD_STATE': {
       return { ...state, ...action.state };
     }
@@ -190,7 +211,8 @@ export function CasinoProvider({ children }) {
       globalBet: state.globalBet,
       lastKnownBalance: state.lastKnownBalance,
       history: state.history.slice(0, 50),
-      settings: state.settings
+      settings: state.settings,
+      adminSettings: state.adminSettings
     }));
   }, [state]);
 
@@ -282,6 +304,14 @@ export function CasinoProvider({ children }) {
     dispatch({ type: 'RESET_STATS' });
   };
 
+  const setBalance = (amount) => {
+    dispatch({ type: 'SET_BALANCE', amount });
+  };
+
+  const updateAdminSettings = (settings) => {
+    dispatch({ type: 'UPDATE_ADMIN_SETTINGS', settings });
+  };
+
   const exportProgress = () => {
     const exportData = {
       balance: state.balance,
@@ -320,6 +350,8 @@ export function CasinoProvider({ children }) {
       updateSettings,
       setGlobalBet,
       resetStats,
+      setBalance,
+      updateAdminSettings,
       exportProgress,
       importProgress,
       showLargeBetConfirm,

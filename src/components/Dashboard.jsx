@@ -344,12 +344,12 @@ export default function Dashboard({ onSelectGame }) {
         <div className="mt-6 pt-4 border-t border-gray-700">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm text-gray-500">
             <div>
-              © 2024-2026 <a href="https://piotrunius.github.io/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300">Piotrunius</a>. All rights reserved.
+              © 2025-{new Date().getFullYear()} <a href="https://piotrunius.github.io/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300">Piotrunius</a>. All rights reserved.
             </div>
             <div className="flex items-center gap-2">
               <span>Licensed under</span>
               <a
-                href="https://opensource.org/licenses/MIT"
+                href="https://github.com/Piotrunius/OfflineCasino/blob/main/LICENSE"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs font-bold hover:bg-cyan-500/30"

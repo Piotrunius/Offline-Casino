@@ -96,6 +96,21 @@ export default function DiceGame() {
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
       <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d0a18] rounded-2xl p-6 flex flex-col items-center justify-center relative">
+        {/* Win/Lose indicator - TOP */}
+        {result && (
+          <div className={`absolute top-4 left-1/2 -translate-x-1/2 text-center py-3 px-8 rounded-2xl z-10 ${
+            result.won
+              ? 'bg-gradient-to-r from-green-900/80 to-emerald-900/80 border border-green-500/50'
+              : 'bg-gradient-to-r from-red-900/80 to-rose-900/80 border border-red-500/50'
+          }`}>
+            <span className={`text-xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.won
+                ? `WIN ${result.mult.toFixed(2)}x → +$${result.winAmount.toFixed(2)}`
+                : `MISS @ ${result.roll}`}
+            </span>
+          </div>
+        )}
+
         {/* Big Dice Display */}
         <div className="relative">
           <div className={`w-48 h-48 rounded-3xl bg-gradient-to-br from-gray-900 to-black border-4 flex items-center justify-center shadow-2xl ${
@@ -107,21 +122,6 @@ export default function DiceGame() {
               {displayRoll ?? '??'}
             </span>
           </div>
-
-          {/* Win/Lose indicator */}
-          {result && (
-            <div className={`absolute -bottom-16 left-1/2 -translate-x-1/2 w-full max-w-xs text-center py-3 px-6 rounded-2xl ${
-              result.won
-                ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border border-green-500/50'
-                : 'bg-gradient-to-r from-red-900/60 to-rose-900/60 border border-red-500/50'
-            }`}>
-              <span className={`text-lg font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-                {result.won
-                  ? `WIN ${result.mult.toFixed(2)}x → +$${result.winAmount.toFixed(2)}`
-                  : `MISS @ ${result.roll}`}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Slider Visualization */}
