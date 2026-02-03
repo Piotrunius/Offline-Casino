@@ -33,21 +33,34 @@ export default function DiceGame() {
     return false;
   };
 
-  const rollDice = useCallback(() => {
+  const rollDice = useCallback(async () => {
     if (rolling || bet <= 0 || bet > state.balance) return;
-    if (!placeBet(bet, 'dice')) return;
+
+    const confirmed = await placeBet(bet, 'dice');
+    if (!confirmed) return;
 
     setRolling(true);
     setResult(null);
     audio.playBet();
 
-    let tick = 0;
-    const interval = setInterval(() => {
-      setDisplayRoll(Math.floor(Math.random() * 100) + 1);
-      tick++;
-      if (tick > 15) {
-        clearInterval(interval);
-        const finalRoll = Math.floor(Math.random() * 100) + 1;
+    const duration = state.settings.fastMode ? 600 : 1000;
+    const startTime = Date.now();
+    const finalRoll = Math.floor(Math.random() * 100) + 1;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      if (progress < 0.85) {
+        setDisplayRoll(Math.floor(Math.random() * 100) + 1);
+        requestAnimationFrame(animate);
+      } else if (progress < 1) {
+        // Slow down approach to final value
+        const ease = (progress - 0.85) / 0.15;
+        const variance = Math.floor((1 - ease) * 20);
+        setDisplayRoll(finalRoll + Math.floor((Math.random() - 0.5) * variance));
+        requestAnimationFrame(animate);
+      } else {
         setDisplayRoll(finalRoll);
 
         const won = checkWin(finalRoll);
@@ -61,8 +74,10 @@ export default function DiceGame() {
         addWin(winAmount, bet, 'dice', payout);
         won ? audio.playWin() : audio.playLose();
       }
-    }, 50);
-  }, [rolling, bet, state.balance, target, mode, rangeMin, rangeMax, multiplier, placeBet, addWin]);
+    };
+
+    requestAnimationFrame(animate);
+  }, [rolling, bet, state.balance, state.settings.fastMode, target, mode, rangeMin, rangeMax, multiplier, placeBet, addWin]);
 
   const handleBetChange = (val) => {
     const v = Math.min(Math.max(1, val), state.balance);

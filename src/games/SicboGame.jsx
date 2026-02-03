@@ -2,6 +2,85 @@ import { useCallback, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
+// Organized bet categories
+const BET_CATEGORIES = {
+  basic: {
+    label: '🎯 Basic Bets',
+    bets: {
+      small: { label: 'SMALL', desc: '4-10', mult: 2 },
+      big: { label: 'BIG', desc: '11-17', mult: 2 },
+      odd: { label: 'ODD', desc: 'Odd Total', mult: 2 },
+      even: { label: 'EVEN', desc: 'Even Total', mult: 2 },
+    }
+  },
+  special: {
+    label: '⭐ Special Bets',
+    bets: {
+      triple: { label: 'ANY TRIPLE', desc: '111-666', mult: 30 },
+      double: { label: 'ANY DOUBLE', desc: 'Pair', mult: 10 },
+    }
+  },
+  totals: {
+    label: '🔢 Total Bets',
+    bets: {
+      specific4: { label: '4', desc: 'Total = 4', mult: 60 },
+      specific17: { label: '17', desc: 'Total = 17', mult: 60 },
+      specific5: { label: '5', desc: 'Total = 5', mult: 30 },
+      specific16: { label: '16', desc: 'Total = 16', mult: 30 },
+      specific6: { label: '6', desc: 'Total = 6', mult: 18 },
+      specific15: { label: '15', desc: 'Total = 15', mult: 18 },
+      specific7: { label: '7', desc: 'Total = 7', mult: 12 },
+      specific14: { label: '14', desc: 'Total = 14', mult: 12 },
+      specific8: { label: '8', desc: 'Total = 8', mult: 8 },
+      specific13: { label: '13', desc: 'Total = 13', mult: 8 },
+      specific9: { label: '9', desc: 'Total = 9', mult: 7 },
+      specific12: { label: '12', desc: 'Total = 12', mult: 7 },
+      specific10: { label: '10', desc: 'Total = 10', mult: 6 },
+      specific11: { label: '11', desc: 'Total = 11', mult: 6 },
+    }
+  }
+};
+
+// Flatten for easy access
+const BET_TYPES = {};
+Object.values(BET_CATEGORIES).forEach(cat => {
+  Object.entries(cat.bets).forEach(([key, val]) => {
+    BET_TYPES[key] = val;
+  });
+});
+
+// Check functions
+const isTriple = (d) => d[0] === d[1] && d[1] === d[2];
+const hasDouble = (d) => d[0] === d[1] || d[1] === d[2] || d[0] === d[2];
+const getTotal = (d) => d.reduce((a, b) => a + b, 0);
+
+const checkBet = (betType, dice) => {
+  const total = getTotal(dice);
+  switch (betType) {
+    case 'small': return total >= 4 && total <= 10 && !isTriple(dice);
+    case 'big': return total >= 11 && total <= 17 && !isTriple(dice);
+    case 'odd': return total % 2 === 1;
+    case 'even': return total % 2 === 0;
+    case 'triple': return isTriple(dice);
+    case 'double': return hasDouble(dice);
+    case 'specific4': return total === 4;
+    case 'specific5': return total === 5;
+    case 'specific6': return total === 6;
+    case 'specific7': return total === 7;
+    case 'specific8': return total === 8;
+    case 'specific9': return total === 9;
+    case 'specific10': return total === 10;
+    case 'specific11': return total === 11;
+    case 'specific12': return total === 12;
+    case 'specific13': return total === 13;
+    case 'specific14': return total === 14;
+    case 'specific15': return total === 15;
+    case 'specific16': return total === 16;
+    case 'specific17': return total === 17;
+    default: return false;
+  }
+};
+
 export default function SicboGame() {
   const { state, placeBet, addWin, setGlobalBet } = useCasino();
   const [bet, setBet] = useState(state.globalBet || 10);
@@ -10,26 +89,13 @@ export default function SicboGame() {
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('basic');
 
-  const BET_TYPES = {
-    small: { label: 'SMALL (4-10)', check: (d) => { const t = d.reduce((a, b) => a + b, 0); return t >= 4 && t <= 10 && !isTriple(d); }, mult: 2 },
-    big: { label: 'BIG (11-17)', check: (d) => { const t = d.reduce((a, b) => a + b, 0); return t >= 11 && t <= 17 && !isTriple(d); }, mult: 2 },
-    odd: { label: 'ODD', check: (d) => d.reduce((a, b) => a + b, 0) % 2 === 1, mult: 2 },
-    even: { label: 'EVEN', check: (d) => d.reduce((a, b) => a + b, 0) % 2 === 0, mult: 2 },
-    triple: { label: 'ANY TRIPLE', check: (d) => isTriple(d), mult: 30 },
-    specific4: { label: 'TOTAL = 4', check: (d) => d.reduce((a, b) => a + b, 0) === 4, mult: 60 },
-    specific17: { label: 'TOTAL = 17', check: (d) => d.reduce((a, b) => a + b, 0) === 17, mult: 60 },
-    specific10: { label: 'TOTAL = 10', check: (d) => d.reduce((a, b) => a + b, 0) === 10, mult: 6 },
-    specific11: { label: 'TOTAL = 11', check: (d) => d.reduce((a, b) => a + b, 0) === 11, mult: 6 },
-    double: { label: 'ANY DOUBLE', check: (d) => hasDouble(d), mult: 10 }
-  };
-
-  const isTriple = (d) => d[0] === d[1] && d[1] === d[2];
-  const hasDouble = (d) => d[0] === d[1] || d[1] === d[2] || d[0] === d[2];
-
-  const roll = useCallback(() => {
+  const roll = useCallback(async () => {
     if (rolling || bet <= 0 || bet > state.balance) return;
-    if (!placeBet(bet, 'sicbo')) return;
+
+    const confirmed = await placeBet(bet, 'sicbo');
+    if (!confirmed) return;
 
     setRolling(true);
     setResult(null);
@@ -58,8 +124,8 @@ export default function SicboGame() {
         setDice(finalDice);
         setRolling(false);
 
-        const total = finalDice.reduce((a, b) => a + b, 0);
-        const won = BET_TYPES[betType].check(finalDice);
+        const total = getTotal(finalDice);
+        const won = checkBet(betType, finalDice);
         const mult = won ? BET_TYPES[betType].mult : 0;
         const winAmount = bet * mult;
 
@@ -156,27 +222,58 @@ export default function SicboGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-72 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-3">
-          {/* Bet Type */}
-          <div>
-            <label className="text-xs text-gray-500 uppercase font-bold">Bet Type</label>
-            <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto pr-1">
-              {Object.entries(BET_TYPES).map(([key, type]) => (
+      <div className="w-80 flex flex-col gap-3">
+        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-3 overflow-hidden">
+          {/* Category Tabs */}
+          <div className="flex gap-1">
+            {Object.entries(BET_CATEGORIES).map(([key, cat]) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(key)}
+                className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all ${
+                  activeCategory === key
+                    ? 'bg-gradient-to-b from-cyan-500 to-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Bet Options */}
+          <div className="flex-1 overflow-y-auto">
+            <div className={`grid gap-2 ${activeCategory === 'totals' ? 'grid-cols-4' : 'grid-cols-2'}`}>
+              {Object.entries(BET_CATEGORIES[activeCategory].bets).map(([key, type]) => (
                 <button
                   key={key}
                   onClick={() => !rolling && setBetType(key)}
                   disabled={rolling}
-                  className={`py-2 px-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-3 px-2 rounded-xl font-bold transition-all ${
                     betType === key
-                      ? 'bg-gradient-to-b from-cyan-500 to-blue-600 text-white shadow-lg'
+                      ? 'bg-gradient-to-b from-cyan-500 to-blue-600 text-white shadow-lg ring-2 ring-cyan-400'
                       : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                   }`}
                 >
-                  <div>{type.label}</div>
-                  <div className="text-green-400 mt-0.5">{type.mult}x</div>
+                  <div className={activeCategory === 'totals' ? 'text-lg' : 'text-sm'}>{type.label}</div>
+                  {activeCategory !== 'totals' && <div className="text-[10px] text-gray-500">{type.desc}</div>}
+                  <div className="text-green-400 text-sm mt-0.5">{type.mult}x</div>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Selected Bet Info */}
+          <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-xl p-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-xs text-gray-500">Selected Bet</div>
+                <div className="text-lg font-black text-white">{BET_TYPES[betType].label}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-gray-500">Multiplier</div>
+                <div className="text-2xl font-black text-green-400">{BET_TYPES[betType].mult}x</div>
+              </div>
             </div>
           </div>
 
@@ -194,10 +291,10 @@ export default function SicboGame() {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
-              <button onClick={() => handleBetChange(1)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold">MAX</button>
+              <button onClick={() => handleBetChange(1)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">MAX</button>
             </div>
           </div>
 

@@ -16,12 +16,13 @@ const PAYTABLE = {
   '🍒': { 3: 3, 4: 12, 5: 50 },
 };
 
+// Better win rates - higher weights for common symbols
 const VOLATILITY = {
-  low: { name: 'Low', weights: [15, 15, 15, 12, 10, 5, 10, 10, 8] },
-  medium: { name: 'Medium', weights: [12, 12, 12, 12, 12, 8, 12, 12, 8] },
-  high: { name: 'High', weights: [8, 8, 8, 10, 12, 12, 15, 15, 12] },
-  extreme: { name: 'Extreme', weights: [5, 5, 5, 8, 15, 18, 18, 18, 8] },
-  jackpot: { name: 'Jackpot', weights: [3, 3, 3, 5, 18, 22, 20, 20, 6] },
+  low: { name: 'Low', weights: [20, 20, 18, 15, 10, 4, 5, 5, 3] },      // More common symbols
+  medium: { name: 'Medium', weights: [16, 16, 15, 14, 12, 6, 8, 8, 5] },
+  high: { name: 'High', weights: [10, 10, 10, 12, 14, 10, 12, 14, 8] },
+  extreme: { name: 'Extreme', weights: [6, 6, 6, 8, 16, 16, 16, 18, 8] },
+  jackpot: { name: 'Jackpot', weights: [4, 4, 4, 6, 18, 20, 18, 20, 6] },
 };
 
 export default function SlotsGame() {
@@ -72,46 +73,46 @@ export default function SlotsGame() {
     let totalMult = 0;
     const winLines = [];
 
-    // Check middle row for matching symbols
-    const middleRow = Math.floor(rowCount / 2);
-    const middleLine = grid.map(col => col[middleRow]);
-
-    // Count consecutive matches from left
-    let matchSymbol = middleLine[0];
-    let matchCount = 1;
-    for (let i = 1; i < middleLine.length; i++) {
-      if (middleLine[i] === matchSymbol) {
-        matchCount++;
-      } else break;
-    }
-
-    if (matchCount >= 3 && PAYTABLE[matchSymbol] && PAYTABLE[matchSymbol][matchCount]) {
-      totalMult += PAYTABLE[matchSymbol][matchCount];
-      winLines.push({ symbol: matchSymbol, count: matchCount, mult: PAYTABLE[matchSymbol][matchCount] });
-    }
-
-    // Check top and bottom rows too
-    for (const rowIdx of [0, rowCount - 1]) {
-      if (rowIdx === middleRow) continue;
+    // Check ALL rows for matching symbols
+    for (let rowIdx = 0; rowIdx < rowCount; rowIdx++) {
       const line = grid.map(col => col[rowIdx]);
-      let sym = line[0];
-      let cnt = 1;
+
+      // Count consecutive matches from left
+      let matchSymbol = line[0];
+      let matchCount = 1;
       for (let i = 1; i < line.length; i++) {
-        if (line[i] === sym) cnt++;
-        else break;
+        if (line[i] === matchSymbol) {
+          matchCount++;
+        } else break;
       }
-      if (cnt >= 3 && PAYTABLE[sym] && PAYTABLE[sym][cnt]) {
-        totalMult += PAYTABLE[sym][cnt] * 0.5; // Side lines pay half
-        winLines.push({ symbol: sym, count: cnt, mult: PAYTABLE[sym][cnt] * 0.5 });
+
+      // Middle row pays full, other rows pay 75%
+      const payMultiplier = rowIdx === Math.floor(rowCount / 2) ? 1 : 0.75;
+
+      if (matchCount >= 3 && PAYTABLE[matchSymbol] && PAYTABLE[matchSymbol][matchCount]) {
+        const mult = PAYTABLE[matchSymbol][matchCount] * payMultiplier;
+        totalMult += mult;
+        winLines.push({ symbol: matchSymbol, count: matchCount, mult, row: rowIdx });
       }
+    }
+
+    // Scatter bonus: count clover symbols anywhere
+    let scatterCount = 0;
+    grid.forEach(col => col.forEach(s => { if (s === '🍀') scatterCount++; }));
+    if (scatterCount >= 3) {
+      const scatterMult = scatterCount === 3 ? 5 : scatterCount === 4 ? 15 : 50;
+      totalMult += scatterMult;
+      winLines.push({ symbol: '🍀', count: scatterCount, mult: scatterMult, scatter: true });
     }
 
     return { totalMult, winLines };
   };
 
-  const spin = useCallback(() => {
+  const spin = useCallback(async () => {
     if (spinning || bet <= 0 || bet > state.balance) return;
-    if (!placeBet(bet, 'slots')) return;
+
+    const confirmed = await placeBet(bet, 'slots');
+    if (!confirmed) return;
 
     setSpinning(true);
     setResult(null);

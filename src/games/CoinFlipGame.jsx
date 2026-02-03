@@ -1,6 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
+
+const MULTIPLIER = 1.96; // 2% house edge
 
 export default function CoinFlipGame() {
   const { state, placeBet, addWin, setGlobalBet } = useCasino();
@@ -8,12 +10,16 @@ export default function CoinFlipGame() {
   const [choice, setChoice] = useState('heads');
   const [flipping, setFlipping] = useState(false);
   const [result, setResult] = useState(null);
-  const [rotation, setRotation] = useState(0);
+  const [coinState, setCoinState] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
   const [history, setHistory] = useState([]);
+  const [streak, setStreak] = useState({ type: null, count: 0 });
+  const animRef = useRef(null);
 
-  const flip = useCallback(() => {
+  const flip = useCallback(async () => {
     if (flipping || bet <= 0 || bet > state.balance) return;
-    if (!placeBet(bet, 'coinflip')) return;
+
+    const confirmed = await placeBet(bet, 'coinflip');
+    if (!confirmed) return;
 
     setFlipping(true);
     setResult(null);
@@ -21,27 +27,58 @@ export default function CoinFlipGame() {
 
     const isHeads = Math.random() > 0.5;
     const won = (isHeads && choice === 'heads') || (!isHeads && choice === 'tails');
-    const duration = state.settings.fastMode ? 800 : 1500;
-    const totalRot = 1440 + (isHeads ? 0 : 180);
-    const start = Date.now();
-    const startRot = rotation;
+    const duration = state.settings.fastMode ? 1000 : 2000;
+    const startTime = Date.now();
+
+    // Target rotation: multiple full spins + landing position
+    const baseSpins = 4;
+    const targetRotateX = baseSpins * 360 + (isHeads ? 0 : 180);
 
     const animate = () => {
-      const elapsed = Date.now() - start;
+      const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / duration);
-      const ease = 1 - Math.pow(1 - progress, 3);
-      setRotation(startRot + totalRot * ease);
+
+      // Easing function for smooth deceleration
+      const ease = 1 - Math.pow(1 - progress, 4);
+
+      // Calculate current rotation
+      const currentRotateX = targetRotateX * ease;
+
+      // Add wobble effect during spinning
+      const wobble = progress < 0.8 ? Math.sin(elapsed / 50) * 20 * (1 - progress) : 0;
+
+      // Scale bounce effect
+      const scale = progress < 0.3
+        ? 1 + Math.sin(progress * Math.PI * 3) * 0.1
+        : progress > 0.9
+          ? 1 + Math.sin((progress - 0.9) * 10 * Math.PI) * 0.05 * (1 - progress) * 10
+          : 1;
+
+      setCoinState({
+        rotateX: currentRotateX,
+        rotateY: wobble,
+        scale
+      });
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animRef.current = requestAnimationFrame(animate);
       } else {
+        // Final state
+        setCoinState({ rotateX: targetRotateX, rotateY: 0, scale: 1 });
         setFlipping(false);
+
         const outcome = isHeads ? 'heads' : 'tails';
-        setHistory(h => [outcome, ...h.slice(0, 4)]);
+        setHistory(h => [outcome, ...h.slice(0, 9)]);
+
+        // Update streak
+        setStreak(s => {
+          if (s.type === outcome) return { type: outcome, count: s.count + 1 };
+          return { type: outcome, count: 1 };
+        });
 
         if (won) {
-          const win = bet * 1.96;
-          addWin(win, bet, 'coinflip', 1.96);
+          const win = bet * MULTIPLIER;
+          addWin(win, bet, 'coinflip', MULTIPLIER);
           setResult({ won: true, outcome, profit: win - bet });
           audio.playWin();
         } else {
@@ -51,8 +88,9 @@ export default function CoinFlipGame() {
         }
       }
     };
-    animate();
-  }, [flipping, bet, state.balance, choice, rotation, state.settings.fastMode, placeBet, addWin]);
+
+    animRef.current = requestAnimationFrame(animate);
+  }, [flipping, bet, state.balance, choice, state.settings.fastMode, placeBet, addWin]);
 
   const handleBetChange = (val) => {
     const v = Math.min(Math.max(1, val), state.balance);
@@ -60,90 +98,145 @@ export default function CoinFlipGame() {
     setGlobalBet(v);
   };
 
-  const coinFace = Math.round(rotation / 180) % 2 === 0;
+  // Determine which face is showing
+  const normalizedRotation = ((coinState.rotateX % 360) + 360) % 360;
+  const showingHeads = normalizedRotation < 90 || normalizedRotation >= 270;
 
   return (
-    <div className="h-full flex gap-3">
+    <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-[#0a0a12] rounded-xl p-4 flex flex-col items-center justify-center">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500 rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gray-500 rounded-full blur-[100px]" />
+        </div>
+
         {/* Coin */}
-        <div className="relative" style={{ perspective: '600px' }}>
+        <div className="relative z-10" style={{ perspective: '1000px' }}>
+          {/* Glow effect */}
+          <div className={`absolute inset-0 w-52 h-52 rounded-full blur-2xl transition-colors duration-300 ${
+            flipping ? 'bg-purple-500 opacity-50' :
+            result ? (result.won ? 'bg-green-500 opacity-60' : 'bg-red-500 opacity-60') :
+            showingHeads ? 'bg-yellow-500 opacity-30' : 'bg-gray-500 opacity-30'
+          }`} />
+
           <div
-            className="w-40 h-40 relative"
+            className="w-52 h-52 relative"
             style={{
               transformStyle: 'preserve-3d',
-              transform: `rotateY(${rotation}deg)`,
-              transition: flipping ? 'none' : 'transform 0.1s'
+              transform: `rotateX(${coinState.rotateX}deg) rotateY(${coinState.rotateY}deg) scale(${coinState.scale})`,
             }}
           >
             {/* Heads */}
             <div
-              className="absolute inset-0 rounded-full flex items-center justify-center text-5xl font-black bg-gradient-to-br from-yellow-400 to-yellow-600 border-4 border-yellow-300 shadow-2xl"
-              style={{ backfaceVisibility: 'hidden' }}
+              className="absolute inset-0 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 shadow-2xl"
+              style={{
+                backfaceVisibility: 'hidden',
+                boxShadow: 'inset 0 -8px 20px rgba(0,0,0,0.3), inset 0 8px 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,200,0,0.3)'
+              }}
             >
-              H
+              <div className="text-center">
+                <div className="text-6xl mb-1">🪙</div>
+                <div className="text-2xl font-black text-yellow-900/80">HEADS</div>
+              </div>
+              {/* Rim effect */}
+              <div className="absolute inset-2 rounded-full border-4 border-yellow-300/30" />
             </div>
+
             {/* Tails */}
             <div
-              className="absolute inset-0 rounded-full flex items-center justify-center text-5xl font-black bg-gradient-to-br from-gray-400 to-gray-600 border-4 border-gray-300 shadow-2xl"
-              style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+              className="absolute inset-0 rounded-full flex items-center justify-center bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 shadow-2xl"
+              style={{
+                backfaceVisibility: 'hidden',
+                transform: 'rotateX(180deg)',
+                boxShadow: 'inset 0 -8px 20px rgba(0,0,0,0.3), inset 0 8px 20px rgba(255,255,255,0.3), 0 0 40px rgba(150,150,150,0.3)'
+              }}
             >
-              T
+              <div className="text-center">
+                <div className="text-6xl mb-1">🌟</div>
+                <div className="text-2xl font-black text-gray-900/80">TAILS</div>
+              </div>
+              {/* Rim effect */}
+              <div className="absolute inset-2 rounded-full border-4 border-gray-300/30" />
             </div>
           </div>
         </div>
 
         {/* Result */}
         {result && (
-          <div className={`mt-6 text-center py-3 px-8 rounded-xl ${result.won ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
-            <div className={`text-2xl font-black capitalize ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.outcome}
+          <div className={`mt-8 text-center py-4 px-10 rounded-2xl z-10 ${
+            result.won
+              ? 'bg-gradient-to-r from-green-900/70 to-emerald-900/70 border border-green-500/50'
+              : 'bg-gradient-to-r from-red-900/70 to-rose-900/70 border border-red-500/50'
+          }`}>
+            <div className={`text-3xl font-black capitalize ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.outcome === 'heads' ? '🪙' : '🌟'} {result.outcome.toUpperCase()}!
             </div>
-            <div className={`text-lg ${result.won ? 'text-green-300' : 'text-red-300'}`}>
-              {result.won ? '+' : ''}{result.profit.toFixed(2)}
+            <div className={`text-xl font-bold mt-1 ${result.won ? 'text-green-300' : 'text-red-300'}`}>
+              {result.won ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
             </div>
           </div>
         )}
 
         {/* History */}
         {history.length > 0 && (
-          <div className="mt-4 flex gap-2">
+          <div className="absolute bottom-4 left-4 flex gap-2">
             {history.map((h, i) => (
-              <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${h === 'heads' ? 'bg-yellow-600' : 'bg-gray-600'}`}>
-                {h[0].toUpperCase()}
+              <div
+                key={i}
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shadow-lg transition-all ${
+                  h === 'heads'
+                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-yellow-900'
+                    : 'bg-gradient-to-br from-gray-400 to-gray-600 text-gray-900'
+                }`}
+                style={{ opacity: 1 - i * 0.08 }}
+              >
+                {h === 'heads' ? 'H' : 'T'}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Streak indicator */}
+        {streak.count >= 3 && (
+          <div className="absolute top-4 right-4 px-4 py-2 bg-purple-900/50 border border-purple-500/50 rounded-xl">
+            <span className="text-purple-400 font-bold">
+              🔥 {streak.count}x {streak.type?.toUpperCase()} Streak!
+            </span>
           </div>
         )}
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-64 flex flex-col gap-2">
-        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-3">
+      <div className="w-72 flex flex-col gap-3">
+        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-4">
           {/* Choice */}
           <div>
-            <label className="text-xs text-gray-500 uppercase">Pick Side</label>
-            <div className="grid grid-cols-2 gap-2 mt-1">
+            <label className="text-xs text-gray-500 uppercase font-bold">Pick Your Side</label>
+            <div className="grid grid-cols-2 gap-3 mt-2">
               <button
                 onClick={() => !flipping && setChoice('heads')}
                 disabled={flipping}
-                className={`py-4 rounded-xl font-black text-lg transition-all ${
+                className={`py-5 rounded-xl font-black text-lg transition-all relative overflow-hidden ${
                   choice === 'heads'
-                    ? 'bg-gradient-to-br from-yellow-500 to-yellow-600 text-black ring-2 ring-yellow-400'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-yellow-900 ring-2 ring-yellow-300 shadow-lg shadow-yellow-500/30'
+                    : 'bg-gray-800/80 text-gray-400 hover:bg-gray-700/80 border border-gray-700'
                 }`}
               >
+                <span className="text-2xl block mb-1">🪙</span>
                 HEADS
               </button>
               <button
                 onClick={() => !flipping && setChoice('tails')}
                 disabled={flipping}
-                className={`py-4 rounded-xl font-black text-lg transition-all ${
+                className={`py-5 rounded-xl font-black text-lg transition-all relative overflow-hidden ${
                   choice === 'tails'
-                    ? 'bg-gradient-to-br from-gray-500 to-gray-600 text-white ring-2 ring-gray-400'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    ? 'bg-gradient-to-br from-gray-400 to-gray-600 text-white ring-2 ring-gray-300 shadow-lg shadow-gray-500/30'
+                    : 'bg-gray-800/80 text-gray-400 hover:bg-gray-700/80 border border-gray-700'
                 }`}
               >
+                <span className="text-2xl block mb-1">🌟</span>
                 TAILS
               </button>
             </div>
@@ -151,34 +244,42 @@ export default function CoinFlipGame() {
 
           {/* Bet */}
           <div>
-            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
-            <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+            <label className="text-xs text-gray-500 uppercase font-bold">Bet Amount</label>
+            <div className="relative mt-2">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
               <input
                 type="number"
                 value={bet}
                 onChange={(e) => handleBetChange(Number(e.target.value))}
                 disabled={flipping}
-                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-lg font-bold"
               />
             </div>
-            <div className="grid grid-cols-4 gap-1 mt-1">
-              <button onClick={() => handleBetChange(1)} disabled={flipping} className="btn-secondary py-1 text-xs">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={flipping} className="btn-secondary py-1 text-xs">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={flipping} className="btn-secondary py-1 text-xs">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={flipping} className="btn-secondary py-1 text-xs">MAX</button>
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              <button onClick={() => handleBetChange(1)} disabled={flipping} className="btn-secondary py-2 text-xs font-bold rounded-lg">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={flipping} className="btn-secondary py-2 text-xs font-bold rounded-lg">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={flipping} className="btn-secondary py-2 text-xs font-bold rounded-lg">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={flipping} className="btn-secondary py-2 text-xs font-bold rounded-lg">MAX</button>
             </div>
           </div>
 
-          {/* Win Info */}
-          <div className="bg-black/30 rounded-lg p-3">
+          {/* Info */}
+          <div className="bg-black/40 rounded-xl p-3 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Win Chance</span>
+              <span className="text-cyan-400 font-bold">50%</span>
+            </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Multiplier</span>
-              <span className="text-cyan-400 font-bold">1.96x</span>
+              <span className="text-purple-400 font-bold">{MULTIPLIER}x</span>
             </div>
-            <div className="flex justify-between text-sm mt-1">
-              <span className="text-gray-500">Win Amount</span>
-              <span className="text-green-400 font-bold">${(bet * 1.96).toFixed(2)}</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Profit on Win</span>
+              <span className="text-green-400 font-bold">+${(bet * MULTIPLIER - bet).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Total Win</span>
+              <span className="text-yellow-400 font-bold">${(bet * MULTIPLIER).toFixed(2)}</span>
             </div>
           </div>
 
@@ -186,9 +287,13 @@ export default function CoinFlipGame() {
           <button
             onClick={flip}
             disabled={flipping || bet <= 0 || bet > state.balance}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+            className={`w-full py-4 rounded-xl font-black text-xl disabled:opacity-50 mt-auto shadow-lg transition-all ${
+              choice === 'heads'
+                ? 'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-yellow-900 shadow-yellow-500/30'
+                : 'bg-gradient-to-r from-gray-400 to-gray-600 hover:from-gray-300 hover:to-gray-500 text-gray-900 shadow-gray-500/30'
+            }`}
           >
-            {flipping ? 'FLIPPING...' : 'FLIP COIN'}
+            {flipping ? '🔄 FLIPPING...' : '🪙 FLIP COIN'}
           </button>
         </div>
       </div>
