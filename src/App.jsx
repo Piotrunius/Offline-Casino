@@ -176,34 +176,34 @@ import BlackjackGame from './games/BlackjackGame';
 import CoinFlipGame from './games/CoinFlipGame';
 import CrashGame from './games/CrashGame';
 import DiceGame from './games/DiceGame';
+import DragonTigerGame from './games/DragonTigerGame';
 import HiLoGame from './games/HiLoGame';
 import KenoGame from './games/KenoGame';
 import LimboGame from './games/LimboGame';
 import MinesGame from './games/MinesGame';
-import PlinkoGame from './games/PlinkoGame';
-import RouletteGame from './games/RouletteGame';
-import ScratchCardGame from './games/ScratchCardGame';
+import SicboGame from './games/SicboGame';
 import SlotsGame from './games/SlotsGame';
+import ThreeCardPokerGame from './games/ThreeCardPokerGame';
 import TowerGame from './games/TowerGame';
-import WheelGame from './games/WheelGame';
+import VideoPokerGame from './games/VideoPokerGame';
 
 const GAMES = [
   { id: 'dashboard', name: 'Dashboard', icon: Icons.Home, component: Dashboard, color: '#00f5ff' },
   { id: 'dice', name: 'Dice', icon: Icons.Dice, component: DiceGame, color: '#00f5ff' },
   { id: 'mines', name: 'Mines', icon: Icons.Mine, component: MinesGame, color: '#ff3366' },
   { id: 'crash', name: 'Crash', icon: Icons.Rocket, component: CrashGame, color: '#ff8800' },
-  { id: 'plinko', name: 'Plinko', icon: Icons.Triangle, component: PlinkoGame, color: '#00ff88' },
   { id: 'limbo', name: 'Limbo', icon: Icons.Target, component: LimboGame, color: '#aa00ff' },
   { id: 'coinflip', name: 'Coin Flip', icon: Icons.Coin, component: CoinFlipGame, color: '#ffee00' },
-  { id: 'wheel', name: 'Wheel', icon: Icons.Wheel, component: WheelGame, color: '#ff00ff' },
   { id: 'tower', name: 'Tower', icon: Icons.Tower, component: TowerGame, color: '#00ccff' },
   { id: 'keno', name: 'Keno', icon: Icons.Grid, component: KenoGame, color: '#ff6600' },
-  { id: 'roulette', name: 'Roulette', icon: Icons.Roulette, component: RouletteGame, color: '#00ff00' },
   { id: 'blackjack', name: 'Blackjack', icon: Icons.Cards, component: BlackjackGame, color: '#ff4444' },
   { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
   { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' },
   { id: 'baccarat', name: 'Baccarat', icon: Icons.Cards, component: BaccaratGame, color: '#8844ff' },
-  { id: 'scratchcard', name: 'Scratch Card', icon: Icons.Grid, component: ScratchCardGame, color: '#ffcc00' }
+  { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.Cards, component: DragonTigerGame, color: '#ff6633' },
+  { id: 'videopoker', name: 'Video Poker', icon: Icons.Cards, component: VideoPokerGame, color: '#00ccaa' },
+  { id: 'sicbo', name: 'Sicbo', icon: Icons.Dice, component: SicboGame, color: '#ff9933' },
+  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.Cards, component: ThreeCardPokerGame, color: '#cc33ff' }
 ];
 
 export default function App() {

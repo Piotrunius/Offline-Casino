@@ -27,16 +27,18 @@ const calcValue = (cards) => {
 const Card = ({ card, hidden = false }) => {
   if (hidden) {
     return (
-      <div className="w-14 h-20 rounded-lg bg-gradient-to-br from-blue-900 to-blue-950 flex items-center justify-center shadow-lg">
-        <span className="text-blue-400 text-2xl">?</span>
+      <div className="w-24 h-36 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-950 flex items-center justify-center shadow-2xl border-2 border-blue-600">
+        <span className="text-blue-400 text-5xl">?</span>
       </div>
     );
   }
   const isRed = card?.suit === '♥' || card?.suit === '♦';
   return (
-    <div className={`w-14 h-20 rounded-lg flex flex-col items-center justify-center shadow-lg ${isRed ? 'bg-white text-red-600' : 'bg-white text-gray-900'}`}>
-      <span className="font-black text-lg">{card?.value}</span>
-      <span className="text-sm">{card?.suit}</span>
+    <div className={`w-24 h-36 rounded-2xl flex flex-col items-center justify-center shadow-2xl transition-all hover:scale-105 ${
+      isRed ? 'bg-gradient-to-br from-white to-gray-100 text-red-600' : 'bg-gradient-to-br from-white to-gray-100 text-gray-900'
+    }`}>
+      <span className="font-black text-4xl">{card?.value}</span>
+      <span className="text-2xl">{card?.suit}</span>
     </div>
   );
 };
@@ -46,9 +48,19 @@ export default function BlackjackGame() {
   const [bet, setBet] = useState(state.globalBet || 10);
   const [playerCards, setPlayerCards] = useState([]);
   const [dealerCards, setDealerCards] = useState([]);
-  const [gamePhase, setGamePhase] = useState('betting'); // betting, playing, dealer, ended
+  const [splitHand, setSplitHand] = useState([]);
+  const [activeHand, setActiveHand] = useState(0);
+  const [gamePhase, setGamePhase] = useState('betting');
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
+
+  const canSplit = playerCards.length === 2 &&
+    playerCards[0]?.value === playerCards[1]?.value &&
+    splitHand.length === 0 &&
+    bet <= state.balance;
+
+  const canDouble = (gamePhase === 'playing' && playerCards.length === 2) ||
+    (gamePhase === 'playing_split' && activeHand === 1 && splitHand.length === 2);
 
   const deal = useCallback(() => {
     if (bet <= 0 || bet > state.balance) return;
@@ -56,6 +68,8 @@ export default function BlackjackGame() {
 
     audio.playBet();
     setResult(null);
+    setSplitHand([]);
+    setActiveHand(0);
 
     const pCards = [getCard(), getCard()];
     const dCards = [getCard(), getCard()];
@@ -63,7 +77,6 @@ export default function BlackjackGame() {
     setPlayerCards(pCards);
     setDealerCards(dCards);
 
-    // Check blackjack
     const pVal = calcValue(pCards);
     if (pVal === 21) {
       const dVal = calcValue(dCards);
@@ -78,63 +91,112 @@ export default function BlackjackGame() {
   }, [bet, state.balance, placeBet]);
 
   const hit = useCallback(() => {
-    if (gamePhase !== 'playing') return;
+    if (gamePhase !== 'playing' && gamePhase !== 'playing_split') return;
 
     const newCard = getCard();
-    const newCards = [...playerCards, newCard];
-    setPlayerCards(newCards);
-    audio.playBet();
 
-    if (calcValue(newCards) > 21) {
-      endGame('bust', newCards, dealerCards, 0);
-    }
-  }, [gamePhase, playerCards, dealerCards]);
+    if (gamePhase === 'playing_split' && activeHand === 1) {
+      const newSplit = [...splitHand, newCard];
+      setSplitHand(newSplit);
+      if (calcValue(newSplit) > 21) {
+        setActiveHand(0);
+        setGamePhase('playing');
+      }
+    } else {
+      const newCards = [...playerCards, newCard];
+      setPlayerCards(newCards);
+      audio.playClick();
 
-  const stand = useCallback(() => {
-    if (gamePhase !== 'playing') return;
-    setGamePhase('dealer');
-
-    let dCards = [...dealerCards];
-    const playDealer = () => {
-      if (calcValue(dCards) < 17) {
-        dCards = [...dCards, getCard()];
-        setDealerCards([...dCards]);
-        setTimeout(playDealer, state.settings.fastMode ? 200 : 400);
-      } else {
-        const pVal = calcValue(playerCards);
-        const dVal = calcValue(dCards);
-
-        if (dVal > 21) {
-          endGame('win', playerCards, dCards, 2);
-        } else if (dVal > pVal) {
-          endGame('lose', playerCards, dCards, 0);
-        } else if (pVal > dVal) {
-          endGame('win', playerCards, dCards, 2);
+      if (calcValue(newCards) > 21) {
+        if (splitHand.length > 0 && activeHand === 0) {
+          playDealer();
         } else {
-          endGame('push', playerCards, dCards, 1);
+          endGame('bust', newCards, dealerCards, 0);
         }
       }
-    };
-    setTimeout(playDealer, state.settings.fastMode ? 200 : 400);
-  }, [gamePhase, dealerCards, playerCards, state.settings.fastMode]);
+    }
+  }, [gamePhase, playerCards, dealerCards, splitHand, activeHand]);
+
+  const stand = useCallback(() => {
+    if (gamePhase !== 'playing' && gamePhase !== 'playing_split') return;
+
+    if (gamePhase === 'playing_split' && activeHand === 1) {
+      setActiveHand(0);
+      setGamePhase('playing');
+    } else {
+      playDealer();
+    }
+  }, [gamePhase, activeHand]);
 
   const double = useCallback(() => {
-    if (gamePhase !== 'playing' || playerCards.length !== 2) return;
-    if (bet > state.balance) return;
+    if (!canDouble || bet > state.balance) return;
     if (!placeBet(bet, 'blackjack')) return;
 
-    setBet(bet * 2);
     const newCard = getCard();
     const newCards = [...playerCards, newCard];
     setPlayerCards(newCards);
+    setBet(bet * 2);
     audio.playBet();
 
     if (calcValue(newCards) > 21) {
       endGame('bust', newCards, dealerCards, 0);
     } else {
-      setTimeout(() => stand(), state.settings.fastMode ? 200 : 400);
+      playDealer();
     }
-  }, [gamePhase, playerCards, bet, state.balance, dealerCards, placeBet, stand, state.settings.fastMode]);
+  }, [canDouble, gamePhase, playerCards, dealerCards, bet, state.balance, placeBet]);
+
+  const split = useCallback(() => {
+    if (!canSplit) return;
+    if (!placeBet(bet, 'blackjack')) return;
+
+    const card1 = playerCards[0];
+    const card2 = playerCards[1];
+
+    setPlayerCards([card1, getCard()]);
+    setSplitHand([card2, getCard()]);
+    setActiveHand(1);
+    setGamePhase('playing_split');
+    audio.playBet();
+  }, [canSplit, playerCards, bet, placeBet]);
+
+  const playDealer = () => {
+    setGamePhase('dealer');
+    let dCards = [...dealerCards];
+
+    const play = () => {
+      if (calcValue(dCards) < 17) {
+        dCards = [...dCards, getCard()];
+        setDealerCards([...dCards]);
+        setTimeout(play, state.settings.fastMode ? 200 : 400);
+      } else {
+        evaluateResults(dCards);
+      }
+    };
+    setTimeout(play, state.settings.fastMode ? 200 : 400);
+  };
+
+  const evaluateResults = (dCards) => {
+    const dVal = calcValue(dCards);
+    const pVal = calcValue(playerCards);
+
+    let outcome, mult;
+
+    if (dVal > 21) {
+      outcome = 'win';
+      mult = 2;
+    } else if (dVal > pVal || pVal > 21) {
+      outcome = 'lose';
+      mult = 0;
+    } else if (pVal > dVal) {
+      outcome = 'win';
+      mult = 2;
+    } else {
+      outcome = 'push';
+      mult = 1;
+    }
+
+    endGame(outcome, playerCards, dCards, mult);
+  };
 
   const endGame = (outcome, pCards, dCards, mult) => {
     setGamePhase('ended');
@@ -142,7 +204,7 @@ export default function BlackjackGame() {
     const profit = winAmount - bet;
 
     setResult({ outcome, mult, profit, pVal: calcValue(pCards), dVal: calcValue(dCards) });
-    setHistory(h => [{ outcome, mult, bet }, ...h.slice(0, 4)]);
+    setHistory(h => [{ outcome, mult: mult.toFixed(1) }, ...h.slice(0, 4)]);
 
     if (mult > 0) {
       addWin(winAmount, bet, 'blackjack', mult);
@@ -156,6 +218,8 @@ export default function BlackjackGame() {
   const newGame = () => {
     setPlayerCards([]);
     setDealerCards([]);
+    setSplitHand([]);
+    setActiveHand(0);
     setGamePhase('betting');
     setResult(null);
     setBet(state.globalBet || bet);
@@ -168,39 +232,45 @@ export default function BlackjackGame() {
   };
 
   const pVal = calcValue(playerCards);
-  const dVal = gamePhase === 'ended' || gamePhase === 'dealer' ? calcValue(dealerCards) : calcValue([dealerCards[0]]);
+  const sVal = calcValue(splitHand);
 
   return (
-    <div className="h-full flex gap-3">
+    <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-[#0a0a12] rounded-xl p-4 flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d1a0d] rounded-2xl p-6 flex flex-col">
         {/* Dealer */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <span className="text-xs text-gray-500 uppercase mb-2">Dealer {(gamePhase === 'ended' || gamePhase === 'dealer') && `(${calcValue(dealerCards)})`}</span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-lg text-gray-400 uppercase font-bold">Dealer</span>
+            {(gamePhase === 'ended' || gamePhase === 'dealer') && (
+              <span className="bg-black/60 px-4 py-2 rounded-full text-2xl font-black text-white">{calcValue(dealerCards)}</span>
+            )}
+          </div>
+          <div className="flex gap-4">
             {dealerCards.length > 0 ? (
               dealerCards.map((c, i) => (
                 <Card key={i} card={c} hidden={i === 1 && gamePhase === 'playing'} />
               ))
             ) : (
-              <div className="w-14 h-20 border-2 border-dashed border-gray-700 rounded-lg" />
+              <div className="w-24 h-36 border-3 border-dashed border-gray-700 rounded-2xl" />
             )}
           </div>
         </div>
 
         {/* Result */}
         {result && (
-          <div className={`text-center py-2 rounded-xl ${
-            result.outcome === 'blackjack' ? 'bg-yellow-900/50' :
-            result.outcome === 'win' ? 'bg-green-900/50' :
-            result.outcome === 'push' ? 'bg-gray-700/50' : 'bg-red-900/50'
+          <div className={`text-center py-4 rounded-2xl my-4 ${
+            result.outcome === 'blackjack' ? 'bg-gradient-to-r from-yellow-900/60 to-amber-900/60 border-2 border-yellow-500/50' :
+            result.outcome === 'win' ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border-2 border-green-500/50' :
+            result.outcome === 'push' ? 'bg-gray-700/60 border-2 border-gray-500/50' :
+            'bg-gradient-to-r from-red-900/60 to-rose-900/60 border-2 border-red-500/50'
           }`}>
-            <span className={`text-lg font-black ${
+            <span className={`text-3xl font-black ${
               result.outcome === 'blackjack' ? 'text-yellow-400' :
               result.outcome === 'win' ? 'text-green-400' :
               result.outcome === 'push' ? 'text-gray-300' : 'text-red-400'
             }`}>
-              {result.outcome === 'blackjack' ? `BLACKJACK! +$${result.profit.toFixed(2)}` :
+              {result.outcome === 'blackjack' ? `🎰 BLACKJACK! +$${result.profit.toFixed(2)}` :
                result.outcome === 'win' ? `WIN! +$${result.profit.toFixed(2)}` :
                result.outcome === 'push' ? 'PUSH' :
                result.outcome === 'bust' ? `BUST! -$${bet.toFixed(2)}` :
@@ -211,68 +281,85 @@ export default function BlackjackGame() {
 
         {/* Player */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="flex gap-2">
-            {playerCards.length > 0 ? (
-              playerCards.map((c, i) => <Card key={i} card={c} />)
-            ) : (
-              <div className="w-14 h-20 border-2 border-dashed border-gray-700 rounded-lg" />
+          <div className="flex gap-8">
+            {/* Main Hand */}
+            <div className={`flex flex-col items-center ${activeHand === 0 && gamePhase.includes('playing') ? 'ring-4 ring-cyan-500/50 rounded-2xl p-3' : ''}`}>
+              <div className="flex gap-3">
+                {playerCards.length > 0 ? (
+                  playerCards.map((c, i) => <Card key={i} card={c} />)
+                ) : (
+                  <div className="w-24 h-36 border-3 border-dashed border-gray-700 rounded-2xl" />
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-lg text-gray-400 uppercase font-bold">{splitHand.length > 0 ? 'Hand 1' : 'You'}</span>
+                {pVal > 0 && <span className={`bg-black/60 px-4 py-2 rounded-full text-2xl font-black ${pVal > 21 ? 'text-red-400' : 'text-white'}`}>{pVal}</span>}
+              </div>
+            </div>
+
+            {/* Split Hand */}
+            {splitHand.length > 0 && (
+              <div className={`flex flex-col items-center ${activeHand === 1 ? 'ring-4 ring-cyan-500/50 rounded-2xl p-3' : ''}`}>
+                <div className="flex gap-3">
+                  {splitHand.map((c, i) => <Card key={i} card={c} />)}
+                </div>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="text-lg text-gray-400 uppercase font-bold">Hand 2</span>
+                  <span className={`bg-black/60 px-4 py-2 rounded-full text-2xl font-black ${sVal > 21 ? 'text-red-400' : 'text-white'}`}>{sVal}</span>
+                </div>
+              </div>
             )}
           </div>
-          <span className="text-xs text-gray-500 uppercase mt-2">You {pVal > 0 && `(${pVal})`}</span>
         </div>
-
-        {/* History */}
-        {history.length > 0 && (
-          <div className="flex justify-center gap-2 mt-2">
-            {history.map((h, i) => (
-              <div key={i} className={`text-xs px-2 py-1 rounded ${
-                h.outcome === 'blackjack' || h.outcome === 'win' ? 'bg-green-900/50 text-green-400' :
-                h.outcome === 'push' ? 'bg-gray-700/50 text-gray-400' : 'bg-red-900/50 text-red-400'
-              }`}>
-                {h.mult}x
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-64 flex flex-col gap-2">
-        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-3">
+      <div className="w-80 flex flex-col gap-3">
+        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
           {/* Bet Amount */}
           <div>
-            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
-            <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+            <label className="text-sm text-gray-400 uppercase font-bold">Bet Amount</label>
+            <div className="relative mt-2">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xl">$</span>
               <input
                 type="number"
                 value={bet}
                 onChange={(e) => handleBetChange(Number(e.target.value))}
                 disabled={gamePhase !== 'betting'}
-                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+                className="w-full bg-black/50 border-2 border-white/10 rounded-xl py-4 pl-12 pr-4 text-white text-xl font-bold"
               />
             </div>
-            <div className="grid grid-cols-4 gap-1 mt-1">
-              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">MAX</button>
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MAX</button>
             </div>
           </div>
 
-          {/* Info */}
-          <div className="bg-black/30 rounded-lg p-2 text-xs space-y-1">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Blackjack pays</span>
+          {/* Quick Bets */}
+          <div className="grid grid-cols-3 gap-2">
+            {[10, 25, 50, 100, 250, 500].map(v => (
+              <button
+                key={v}
+                onClick={() => handleBetChange(v)}
+                disabled={gamePhase !== 'betting'}
+                className={`py-3 rounded-xl text-sm font-bold transition-all ${bet === v ? 'bg-green-600 text-white scale-105' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+              >
+                ${v}
+              </button>
+            ))}
+          </div>
+
+          {/* Payouts */}
+          <div className="bg-black/40 rounded-xl p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">🎰 Blackjack</span>
               <span className="text-yellow-400 font-bold">3:2</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Win pays</span>
-              <span className="text-green-400 font-bold">2:1</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Push</span>
-              <span className="text-gray-400 font-bold">Bet back</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Win</span>
+              <span className="text-green-400 font-bold">1:1</span>
             </div>
           </div>
 
@@ -281,46 +368,56 @@ export default function BlackjackGame() {
             <button
               onClick={deal}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black text-lg disabled:opacity-50"
+              className="w-full py-5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-2xl disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
             >
               DEAL
             </button>
-          ) : gamePhase === 'playing' ? (
-            <div className="flex flex-col gap-2">
-              <button onClick={hit} className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black">
-                HIT
-              </button>
-              <button onClick={stand} className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black">
-                STAND
-              </button>
-              {playerCards.length === 2 && bet <= state.balance && (
-                <button onClick={double} className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black">
-                  DOUBLE DOWN
+          ) : gamePhase === 'playing' || gamePhase === 'playing_split' ? (
+            <div className="flex flex-col gap-3 mt-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={hit} className="py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xl">
+                  HIT
                 </button>
-              )}
+                <button onClick={stand} className="py-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xl">
+                  STAND
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {canDouble && (
+                  <button onClick={double} className="py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black">
+                    DOUBLE
+                  </button>
+                )}
+                {canSplit && (
+                  <button onClick={split} className="py-3 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-black">
+                    SPLIT
+                  </button>
+                )}
+              </div>
             </div>
           ) : gamePhase === 'dealer' ? (
-            <button disabled className="w-full py-3 rounded-xl bg-gray-700 text-gray-400 font-black">
-              DEALER PLAYING...
+            <button disabled className="w-full py-5 rounded-xl bg-gray-700 text-gray-400 font-black text-xl mt-auto">
+              DEALER DRAWING...
             </button>
           ) : (
-            <button onClick={newGame} className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 text-white font-black text-lg">
+            <button onClick={newGame} className="w-full py-5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white font-black text-2xl mt-auto shadow-lg shadow-pink-500/30">
               NEW GAME
             </button>
           )}
 
-          {/* Status */}
-          <div className="mt-auto bg-black/30 rounded-lg p-2 text-center">
-            <span className={`text-sm font-bold ${
-              gamePhase === 'betting' ? 'text-gray-400' :
-              gamePhase === 'playing' ? 'text-cyan-400' :
-              gamePhase === 'dealer' ? 'text-orange-400' : 'text-green-400'
-            }`}>
-              {gamePhase === 'betting' ? 'Place your bet' :
-               gamePhase === 'playing' ? `Your turn (${pVal})` :
-               gamePhase === 'dealer' ? 'Dealer drawing...' : 'Game over'}
-            </span>
-          </div>
+          {/* History */}
+          {history.length > 0 && (
+            <div className="flex justify-center gap-2">
+              {history.map((h, i) => (
+                <div key={i} className={`px-3 py-2 rounded-lg text-sm font-bold ${
+                  h.outcome === 'blackjack' || h.outcome === 'win' ? 'bg-green-900/50 text-green-400' :
+                  h.outcome === 'push' ? 'bg-gray-700/50 text-gray-400' : 'bg-red-900/50 text-red-400'
+                }`}>
+                  {h.mult}x
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

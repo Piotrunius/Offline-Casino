@@ -27,9 +27,11 @@ const Card = ({ card }) => {
   if (!card) return null;
   const isRed = card.suit === '♥' || card.suit === '♦';
   return (
-    <div className={`w-12 h-16 rounded-lg flex flex-col items-center justify-center shadow-lg ${isRed ? 'bg-white text-red-600' : 'bg-white text-gray-900'}`}>
-      <span className="font-black text-sm">{card.value}</span>
-      <span className="text-xs">{card.suit}</span>
+    <div className={`w-20 h-28 rounded-xl flex flex-col items-center justify-center shadow-2xl transition-all hover:scale-105 ${
+      isRed ? 'bg-gradient-to-br from-white to-gray-100 text-red-600' : 'bg-gradient-to-br from-white to-gray-100 text-gray-900'
+    }`}>
+      <span className="font-black text-3xl">{card.value}</span>
+      <span className="text-xl">{card.suit}</span>
     </div>
   );
 };
@@ -37,14 +39,14 @@ const Card = ({ card }) => {
 export default function BaccaratGame() {
   const { state, placeBet, addWin, setGlobalBet } = useCasino();
   const [bet, setBet] = useState(state.globalBet || 10);
-  const [betType, setBetType] = useState('player'); // player, banker, tie
+  const [betType, setBetType] = useState('player');
   const [playerCards, setPlayerCards] = useState([]);
   const [bankerCards, setBankerCards] = useState([]);
   const [gamePhase, setGamePhase] = useState('betting');
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
-  const MULTIPLIERS = { player: 2, banker: 1.95, tie: 9 };
+  const MULTIPLIERS = { player: 2, banker: 1.95, tie: 9, playerPair: 12, bankerPair: 12 };
 
   const play = useCallback(() => {
     if (bet <= 0 || bet > state.balance || gamePhase !== 'betting') return;
@@ -54,15 +56,13 @@ export default function BaccaratGame() {
     setGamePhase('dealing');
     audio.playBet();
 
-    // Initial deal
     const pCards = [getCard(), getCard()];
     const bCards = [getCard(), getCard()];
     setPlayerCards(pCards);
     setBankerCards(bCards);
 
-    const delay = state.settings.fastMode ? 200 : 500;
+    const delay = state.settings.fastMode ? 300 : 600;
 
-    // Check for third cards
     setTimeout(() => {
       let finalP = [...pCards];
       let finalB = [...bCards];
@@ -86,14 +86,12 @@ export default function BaccaratGame() {
       setTimeout(() => {
         // Banker third card rules
         if (playerThird === null) {
-          // Player stands, banker draws on 0-5
           if (bVal <= 5) {
             const bankerThird = getCard();
             finalB = [...finalB, bankerThird];
             setBankerCards(finalB);
           }
         } else {
-          // Player drew, complex banker rules
           const pThirdVal = cardValue(playerThird);
           let bankerDraws = false;
 
@@ -131,15 +129,20 @@ export default function BaccaratGame() {
       mult = betType === 'tie' ? MULTIPLIERS.tie : 0;
     }
 
-    const won = (outcome === 'player' && betType === 'player') ||
-                (outcome === 'banker' && betType === 'banker') ||
-                (outcome === 'tie' && betType === 'tie');
+    // Check pairs
+    if (betType === 'playerPair' && pCards[0]?.value === pCards[1]?.value) {
+      mult = MULTIPLIERS.playerPair;
+    }
+    if (betType === 'bankerPair' && bCards[0]?.value === bCards[1]?.value) {
+      mult = MULTIPLIERS.bankerPair;
+    }
 
+    const won = mult > 0;
     const winAmount = won ? bet * mult : 0;
     const profit = winAmount - bet;
 
     setResult({ outcome, won, mult: won ? mult : 0, profit, pVal, bVal });
-    setHistory(h => [{ outcome, won, betType }, ...h.slice(0, 4)]);
+    setHistory(h => [{ outcome, won, betType }, ...h.slice(0, 7)]);
     setGamePhase('ended');
 
     if (won) {
@@ -165,59 +168,73 @@ export default function BaccaratGame() {
   };
 
   return (
-    <div className="h-full flex gap-3">
+    <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-[#0a0a12] rounded-xl p-4 flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#120a15] rounded-2xl p-6 flex flex-col">
+        {/* Title */}
+        <div className="text-center mb-2">
+          <h2 className="text-2xl font-black bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-transparent">
+            BACCARAT
+          </h2>
+        </div>
+
         {/* Banker */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <span className="text-xs text-gray-500 uppercase mb-2">
-            Banker {bankerCards.length > 0 && `(${handValue(bankerCards)})`}
-          </span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-lg text-red-400 uppercase font-bold">Banker</span>
+            {bankerCards.length > 0 && (
+              <span className="bg-red-900/50 px-4 py-2 rounded-full text-2xl font-black text-red-400">{handValue(bankerCards)}</span>
+            )}
+          </div>
+          <div className="flex gap-3">
             {bankerCards.length > 0 ? (
               bankerCards.map((c, i) => <Card key={i} card={c} />)
             ) : (
-              <div className="w-12 h-16 border-2 border-dashed border-red-900/50 rounded-lg" />
+              <div className="w-20 h-28 border-2 border-dashed border-red-900/50 rounded-xl" />
             )}
           </div>
         </div>
 
         {/* Result */}
         {result && (
-          <div className={`text-center py-2 rounded-xl ${
-            result.won ? 'bg-green-900/50' : 'bg-red-900/50'
+          <div className={`text-center py-4 rounded-2xl my-3 ${
+            result.won ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border-2 border-green-500/50' :
+            'bg-gradient-to-r from-red-900/60 to-rose-900/60 border-2 border-red-500/50'
           }`}>
-            <span className={`text-lg font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.outcome.toUpperCase()} WINS ({result.pVal} vs {result.bVal})
-              {result.won ? ` → +$${result.profit.toFixed(2)}` : ` → -$${bet.toFixed(2)}`}
+            <span className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+              {result.outcome.toUpperCase()} WINS! ({result.pVal} vs {result.bVal})
+              {result.won ? ` +$${result.profit.toFixed(2)}` : ` -$${bet.toFixed(2)}`}
             </span>
           </div>
         )}
 
         {/* Player */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {playerCards.length > 0 ? (
               playerCards.map((c, i) => <Card key={i} card={c} />)
             ) : (
-              <div className="w-12 h-16 border-2 border-dashed border-blue-900/50 rounded-lg" />
+              <div className="w-20 h-28 border-2 border-dashed border-blue-900/50 rounded-xl" />
             )}
           </div>
-          <span className="text-xs text-gray-500 uppercase mt-2">
-            Player {playerCards.length > 0 && `(${handValue(playerCards)})`}
-          </span>
+          <div className="flex items-center gap-3 mt-3">
+            <span className="text-lg text-blue-400 uppercase font-bold">Player</span>
+            {playerCards.length > 0 && (
+              <span className="bg-blue-900/50 px-4 py-2 rounded-full text-2xl font-black text-blue-400">{handValue(playerCards)}</span>
+            )}
+          </div>
         </div>
 
         {/* History */}
         {history.length > 0 && (
-          <div className="flex justify-center gap-2 mt-2">
+          <div className="flex justify-center gap-2 mt-3">
             {history.map((h, i) => (
-              <div key={i} className={`text-xs px-2 py-1 rounded font-bold ${
-                h.outcome === 'player' ? 'bg-blue-900/50 text-blue-400' :
-                h.outcome === 'banker' ? 'bg-red-900/50 text-red-400' :
-                'bg-green-900/50 text-green-400'
+              <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black ${
+                h.outcome === 'player' ? 'bg-blue-600 text-white' :
+                h.outcome === 'banker' ? 'bg-red-600 text-white' :
+                'bg-green-600 text-white'
               }`}>
-                {h.outcome === 'player' ? 'P' : h.outcome === 'banker' ? 'B' : 'T'}
+                {h.outcome[0].toUpperCase()}
               </div>
             ))}
           </div>
@@ -225,80 +242,108 @@ export default function BaccaratGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-64 flex flex-col gap-2">
-        <div className="bg-[#0a0a12] rounded-xl p-3 flex-1 flex flex-col gap-3">
-          {/* Bet Type */}
+      <div className="w-80 flex flex-col gap-3">
+        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
+          {/* Main Bets */}
           <div>
-            <label className="text-xs text-gray-500 uppercase">Bet On</label>
-            <div className="grid grid-cols-3 gap-1 mt-1">
+            <label className="text-sm text-gray-400 uppercase font-bold">Main Bet</label>
+            <div className="grid grid-cols-3 gap-3 mt-2">
               <button
                 onClick={() => gamePhase === 'betting' && setBetType('player')}
                 disabled={gamePhase !== 'betting'}
-                className={`py-2 rounded font-bold text-sm ${
-                  betType === 'player' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-blue-400'
+                className={`py-4 rounded-xl font-black transition-all ${
+                  betType === 'player'
+                    ? 'bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 scale-105'
+                    : 'bg-gray-800 text-blue-400 hover:bg-gray-700'
                 }`}
               >
                 PLAYER
-                <div className="text-xs opacity-70">2x</div>
+                <div className="text-xs opacity-70 mt-1">2x</div>
               </button>
               <button
                 onClick={() => gamePhase === 'betting' && setBetType('tie')}
                 disabled={gamePhase !== 'betting'}
-                className={`py-2 rounded font-bold text-sm ${
-                  betType === 'tie' ? 'bg-green-600 text-white' : 'bg-gray-800 text-green-400'
+                className={`py-4 rounded-xl font-black transition-all ${
+                  betType === 'tie'
+                    ? 'bg-gradient-to-b from-green-500 to-green-700 text-white shadow-lg shadow-green-500/30 scale-105'
+                    : 'bg-gray-800 text-green-400 hover:bg-gray-700'
                 }`}
               >
                 TIE
-                <div className="text-xs opacity-70">9x</div>
+                <div className="text-xs opacity-70 mt-1">9x</div>
               </button>
               <button
                 onClick={() => gamePhase === 'betting' && setBetType('banker')}
                 disabled={gamePhase !== 'betting'}
-                className={`py-2 rounded font-bold text-sm ${
-                  betType === 'banker' ? 'bg-red-600 text-white' : 'bg-gray-800 text-red-400'
+                className={`py-4 rounded-xl font-black transition-all ${
+                  betType === 'banker'
+                    ? 'bg-gradient-to-b from-red-500 to-red-700 text-white shadow-lg shadow-red-500/30 scale-105'
+                    : 'bg-gray-800 text-red-400 hover:bg-gray-700'
                 }`}
               >
                 BANKER
-                <div className="text-xs opacity-70">1.95x</div>
+                <div className="text-xs opacity-70 mt-1">1.95x</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Side Bets */}
+          <div>
+            <label className="text-sm text-gray-400 uppercase font-bold">Side Bets</label>
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              <button
+                onClick={() => gamePhase === 'betting' && setBetType('playerPair')}
+                disabled={gamePhase !== 'betting'}
+                className={`py-3 rounded-xl font-bold text-sm transition-all ${
+                  betType === 'playerPair'
+                    ? 'bg-gradient-to-b from-blue-500 to-purple-600 text-white shadow-lg'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                Player Pair
+                <div className="text-xs text-green-400 mt-1">12x</div>
+              </button>
+              <button
+                onClick={() => gamePhase === 'betting' && setBetType('bankerPair')}
+                disabled={gamePhase !== 'betting'}
+                className={`py-3 rounded-xl font-bold text-sm transition-all ${
+                  betType === 'bankerPair'
+                    ? 'bg-gradient-to-b from-red-500 to-purple-600 text-white shadow-lg'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                Banker Pair
+                <div className="text-xs text-green-400 mt-1">12x</div>
               </button>
             </div>
           </div>
 
           {/* Bet Amount */}
           <div>
-            <label className="text-xs text-gray-500 uppercase">Bet Amount</label>
-            <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+            <label className="text-sm text-gray-400 uppercase font-bold">Bet Amount</label>
+            <div className="relative mt-2">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xl">$</span>
               <input
                 type="number"
                 value={bet}
                 onChange={(e) => handleBetChange(Number(e.target.value))}
                 disabled={gamePhase !== 'betting'}
-                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white"
+                className="w-full bg-black/50 border-2 border-white/10 rounded-xl py-4 pl-12 pr-4 text-white text-xl font-bold"
               />
             </div>
-            <div className="grid grid-cols-4 gap-1 mt-1">
-              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-1 text-xs">MAX</button>
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MAX</button>
             </div>
           </div>
 
-          {/* Info */}
-          <div className="bg-black/30 rounded-lg p-2 text-xs space-y-1">
+          {/* Potential Win */}
+          <div className="bg-black/40 rounded-xl p-4">
             <div className="flex justify-between">
-              <span className="text-gray-500">Your bet</span>
-              <span className={`font-bold ${
-                betType === 'player' ? 'text-blue-400' :
-                betType === 'banker' ? 'text-red-400' : 'text-green-400'
-              }`}>
-                {betType.toUpperCase()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Potential win</span>
-              <span className="text-cyan-400 font-bold">${(bet * MULTIPLIERS[betType]).toFixed(2)}</span>
+              <span className="text-gray-500">Potential Win</span>
+              <span className="text-green-400 font-black text-2xl">${(bet * MULTIPLIERS[betType]).toFixed(2)}</span>
             </div>
           </div>
 
@@ -307,27 +352,22 @@ export default function BaccaratGame() {
             <button
               onClick={play}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 text-white font-black text-lg disabled:opacity-50 mt-auto"
+              className="w-full py-5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-2xl disabled:opacity-50 mt-auto shadow-lg shadow-purple-500/30"
             >
               DEAL CARDS
             </button>
           ) : gamePhase === 'dealing' ? (
-            <button disabled className="w-full py-3 rounded-xl bg-gray-700 text-gray-400 font-black mt-auto">
+            <button disabled className="w-full py-5 rounded-xl bg-gray-700 text-gray-400 font-black text-xl mt-auto">
               DEALING...
             </button>
           ) : (
             <button
               onClick={newGame}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-black text-lg mt-auto"
+              className="w-full py-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-2xl mt-auto shadow-lg shadow-cyan-500/30"
             >
               NEW GAME
             </button>
           )}
-
-          {/* Rules */}
-          <div className="text-xs text-gray-600 text-center">
-            Closest to 9 wins • Face cards = 0
-          </div>
         </div>
       </div>
     </div>
