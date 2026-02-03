@@ -3,12 +3,22 @@ import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
 const RISK_LEVELS = {
-  low: { multipliers: [1.4, 1.2, 1.1, 1, 0.5, 1, 1.1, 1.2, 1.4], color: 'green' },
-  medium: { multipliers: [3, 1.5, 1, 0.5, 0.3, 0.5, 1, 1.5, 3], color: 'yellow' },
-  high: { multipliers: [10, 3, 1.5, 0.5, 0, 0.5, 1.5, 3, 10], color: 'red' }
+  low: {
+    multipliers: [5.6, 2.1, 1.1, 1, 0.5, 1, 1.1, 2.1, 5.6],
+    colors: ['#22c55e', '#22c55e', '#4ade80', '#86efac', '#94a3b8', '#86efac', '#4ade80', '#22c55e', '#22c55e']
+  },
+  medium: {
+    multipliers: [13, 3, 1.3, 0.7, 0.4, 0.7, 1.3, 3, 13],
+    colors: ['#eab308', '#eab308', '#facc15', '#fde047', '#94a3b8', '#fde047', '#facc15', '#eab308', '#eab308']
+  },
+  high: {
+    multipliers: [29, 4, 1.5, 0.3, 0, 0.3, 1.5, 4, 29],
+    colors: ['#ef4444', '#ef4444', '#f87171', '#fca5a5', '#94a3b8', '#fca5a5', '#f87171', '#ef4444', '#ef4444']
+  }
 };
 
 const PEG_ROWS = 8;
+const PEGS_PER_ROW = (row) => row + 3;
 
 export default function PlinkoGame() {
   const { state, placeBet, addWin, setGlobalBet } = useCasino();
@@ -17,9 +27,35 @@ export default function PlinkoGame() {
   const [balls, setBalls] = useState([]);
   const [results, setResults] = useState([]);
   const [totalProfit, setTotalProfit] = useState(0);
+  const [lastHitSlot, setLastHitSlot] = useState(null);
   const ballIdRef = useRef(0);
 
-  const godMode = state.adminSettings?.godMode;
+  const godMode = state.adminSettings?.godMode || state.adminSettings?.gameSettings?.plinko?.forceHighMultiplier;
+
+  // Calculate peg positions
+  const getPegPositions = useCallback(() => {
+    const pegs = [];
+    const boardWidth = 100;
+    const startY = 12;
+    const endY = 75;
+    const rowHeight = (endY - startY) / PEG_ROWS;
+
+    for (let row = 0; row < PEG_ROWS; row++) {
+      const numPegs = PEGS_PER_ROW(row);
+      const spacing = boardWidth / (numPegs + 1);
+
+      for (let col = 0; col < numPegs; col++) {
+        pegs.push({
+          x: spacing * (col + 1),
+          y: startY + row * rowHeight,
+          row
+        });
+      }
+    }
+    return pegs;
+  }, []);
+
+  const pegs = getPegPositions();
 
   const dropBall = useCallback(async () => {
     if (bet <= 0 || bet > state.balance) return;
@@ -30,71 +66,150 @@ export default function PlinkoGame() {
     audio.playBet();
 
     const ballId = ballIdRef.current++;
-    const duration = state.settings.fastMode ? 1500 : 2500;
+    const duration = state.settings?.fastMode ? 2000 : 3500;
     const startTime = Date.now();
 
     const multipliers = RISK_LEVELS[risk].multipliers;
-    const path = [{ x: 50, y: 0 }];
-    let currentX = 50;
 
+    // Determine target slot
     let targetSlot;
     if (godMode) {
       const maxMult = Math.max(...multipliers);
       const highIndices = multipliers.map((m, i) => m === maxMult ? i : -1).filter(i => i !== -1);
       targetSlot = highIndices[Math.floor(Math.random() * highIndices.length)];
     } else {
-      targetSlot = Math.floor(Math.random() * multipliers.length);
-    }
-
-    const targetX = (targetSlot / (multipliers.length - 1)) * 100;
-    const xStep = (targetX - 50) / PEG_ROWS;
-
-    for (let row = 1; row <= PEG_ROWS; row++) {
-      const direction = Math.random() > 0.5 ? 1 : -1;
-      const randomOffset = direction * (3 + Math.random() * 4);
-
-      if (godMode) {
-        currentX += xStep + (Math.random() - 0.5) * 2;
-      } else {
-        currentX += randomOffset;
+      // Weighted random - center more likely
+      const weights = [1, 2, 4, 8, 10, 8, 4, 2, 1];
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      let random = Math.random() * totalWeight;
+      targetSlot = 0;
+      for (let i = 0; i < weights.length; i++) {
+        random -= weights[i];
+        if (random <= 0) {
+          targetSlot = i;
+          break;
+        }
       }
-      currentX = Math.max(5, Math.min(95, currentX));
-      path.push({ x: currentX, y: (row / PEG_ROWS) * 100 });
     }
 
-    const finalSlot = godMode ? targetSlot : Math.round((currentX / 100) * (multipliers.length - 1));
-    const clampedSlot = Math.max(0, Math.min(multipliers.length - 1, finalSlot));
-    const mult = multipliers[clampedSlot];
+    // Generate path with physics simulation
+    const path = [];
+    let x = 50 + (Math.random() - 0.5) * 10;
+    let y = 2;
+    let vx = 0;
+    let vy = 0;
+
+    const gravity = 0.15;
+    const friction = 0.98;
+    const bounceEnergy = 0.7;
+
+    // Calculate target x based on slot
+    const targetX = ((targetSlot + 0.5) / multipliers.length) * 100;
+    const xBias = godMode ? (targetX - 50) * 0.008 : 0;
+
+    path.push({ x, y });
+
+    // Simulate physics
+    const steps = 200;
+    for (let step = 0; step < steps; step++) {
+      vy += gravity;
+      vx *= friction;
+      vy *= friction;
+
+      // Add slight bias towards target in god mode
+      vx += xBias;
+
+      x += vx;
+      y += vy;
+
+      // Bounce off walls
+      if (x < 5) { x = 5; vx = Math.abs(vx) * bounceEnergy; }
+      if (x > 95) { x = 95; vx = -Math.abs(vx) * bounceEnergy; }
+
+      // Check peg collisions
+      for (const peg of pegs) {
+        const dx = x - peg.x;
+        const dy = y - peg.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 4) {
+          // Collision! Bounce off peg
+          const angle = Math.atan2(dy, dx);
+          const speed = Math.sqrt(vx * vx + vy * vy);
+
+          // Random bounce direction with some physics
+          const bounceAngle = angle + (Math.random() - 0.5) * 0.8;
+          vx = Math.cos(bounceAngle) * speed * bounceEnergy + (Math.random() - 0.5) * 1.5;
+          vy = Math.abs(Math.sin(bounceAngle) * speed * bounceEnergy) + 0.5;
+
+          // Push ball away from peg
+          x = peg.x + Math.cos(angle) * 5;
+          y = peg.y + Math.sin(angle) * 5;
+        }
+      }
+
+      // Record position every few steps
+      if (step % 2 === 0) {
+        path.push({ x: Math.max(3, Math.min(97, x)), y: Math.min(88, y) });
+      }
+
+      // Stop if reached bottom
+      if (y >= 88) break;
+    }
+
+    // Final position - ensure it lands in a slot
+    const finalX = Math.max(3, Math.min(97, x));
+    path.push({ x: finalX, y: 92 });
+
+    // Determine which slot the ball lands in
+    const slotWidth = 100 / multipliers.length;
+    let finalSlot = Math.floor(finalX / slotWidth);
+    finalSlot = Math.max(0, Math.min(multipliers.length - 1, finalSlot));
+
+    // In god mode, force the correct slot
+    if (godMode) {
+      finalSlot = targetSlot;
+      path[path.length - 1].x = (targetSlot + 0.5) * slotWidth;
+    }
+
+    const mult = multipliers[finalSlot];
 
     const newBall = {
       id: ballId,
       path,
-      currentPos: path[0],
-      pathIndex: 0,
+      currentIndex: 0,
       startTime,
       duration,
       mult,
-      slot: clampedSlot,
+      slot: finalSlot,
       bet: bet,
       risk
     };
 
     setBalls(prev => [...prev, newBall]);
 
+    // Animation loop
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / duration);
-      const currentPathIndex = Math.min(Math.floor(progress * path.length), path.length - 1);
+
+      // Easing for more natural movement
+      const easedProgress = 1 - Math.pow(1 - progress, 2);
+      const currentIndex = Math.min(Math.floor(easedProgress * path.length), path.length - 1);
 
       setBalls(prev => prev.map(b => {
         if (b.id !== ballId) return b;
-        return { ...b, currentPos: path[currentPathIndex], pathIndex: currentPathIndex };
+        return { ...b, currentIndex, currentPos: path[currentIndex] };
       }));
 
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
+        // Ball finished
         setBalls(prev => prev.filter(b => b.id !== ballId));
+        setLastHitSlot(finalSlot);
+
+        setTimeout(() => setLastHitSlot(null), 500);
 
         const profit = mult > 0 ? (bet * mult) - bet : -bet;
         setTotalProfit(prev => prev + profit);
@@ -102,11 +217,11 @@ export default function PlinkoGame() {
         setResults(prev => [{
           id: ballId,
           mult,
-          slot: clampedSlot,
+          slot: finalSlot,
           risk,
           profit,
           won: mult >= 1
-        }, ...prev.slice(0, 7)]);
+        }, ...prev.slice(0, 9)]);
 
         if (mult > 0) {
           const winAmount = bet * mult;
@@ -121,7 +236,7 @@ export default function PlinkoGame() {
     };
 
     requestAnimationFrame(animate);
-  }, [bet, state.balance, risk, godMode, state.settings.fastMode, placeBet, addWin]);
+  }, [bet, state.balance, risk, godMode, state.settings?.fastMode, placeBet, addWin, pegs]);
 
   const handleBetChange = (val) => {
     const v = Math.min(Math.max(1, val), state.balance);
@@ -130,110 +245,135 @@ export default function PlinkoGame() {
   };
 
   const currentMultipliers = RISK_LEVELS[risk].multipliers;
-  const riskColor = RISK_LEVELS[risk].color;
+  const currentColors = RISK_LEVELS[risk].colors;
 
   return (
-    <div className="h-full flex gap-3 p-2">
-      {/* Game Area */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-3 flex flex-col items-center justify-center">
+    <div className="h-full flex gap-4 p-3">
+      {/* Game Area - Made larger */}
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a15] to-[#0f0f1a] rounded-2xl p-4 flex flex-col items-center justify-center">
         {/* Plinko Board */}
-        <div className="relative w-full max-w-sm aspect-square bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden">
-          {/* Pegs */}
-          {[...Array(PEG_ROWS)].map((_, row) => (
-            <div
-              key={row}
-              className="absolute w-full flex justify-center gap-4"
-              style={{ top: `${((row + 1) / (PEG_ROWS + 1)) * 80}%` }}
-            >
-              {[...Array(row + 3)].map((_, col) => (
-                <div
-                  key={col}
-                  className="w-2 h-2 rounded-full bg-gradient-to-br from-gray-400 to-gray-600"
-                />
-              ))}
-            </div>
-          ))}
+        <div className="relative w-full max-w-xl aspect-[4/5] bg-gradient-to-b from-[#1a1a2e] to-[#16162a] rounded-2xl overflow-hidden border border-cyan-900/30 shadow-2xl">
+          {/* Glow effect at top */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 bg-cyan-500/20 blur-2xl rounded-full" />
 
-          {/* All Active Balls */}
-          {balls.map(ball => (
+          {/* Drop zone indicator */}
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full border-2 border-cyan-500/50 border-dashed animate-pulse" />
+
+          {/* Pegs */}
+          {pegs.map((peg, i) => (
             <div
-              key={ball.id}
-              className="absolute w-4 h-4 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 z-10"
+              key={i}
+              className="absolute w-3 h-3 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 shadow-lg"
               style={{
-                left: `calc(${ball.currentPos.x}% - 8px)`,
-                top: `calc(${ball.currentPos.y * 0.8}% - 8px)`,
-                boxShadow: '0 0 15px rgba(0, 245, 255, 0.6)',
-                transition: 'left 0.05s linear, top 0.05s linear'
+                left: `calc(${peg.x}% - 6px)`,
+                top: `calc(${peg.y}% - 6px)`,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.3)'
               }}
             />
           ))}
 
+          {/* Active Balls */}
+          {balls.map(ball => {
+            const pos = ball.currentPos || ball.path[0];
+            return (
+              <div
+                key={ball.id}
+                className="absolute w-5 h-5 rounded-full z-20"
+                style={{
+                  left: `calc(${pos.x}% - 10px)`,
+                  top: `calc(${pos.y}% - 10px)`,
+                  background: 'radial-gradient(circle at 30% 30%, #67e8f9, #06b6d4, #0891b2)',
+                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.8), 0 0 40px rgba(6, 182, 212, 0.4), inset 0 -2px 4px rgba(0,0,0,0.3)',
+                  transition: 'left 0.03s linear, top 0.03s linear'
+                }}
+              />
+            );
+          })}
+
           {/* Multiplier Slots */}
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1 pb-1">
+          <div className="absolute bottom-0 left-0 right-0 flex px-1 pb-2">
             {currentMultipliers.map((mult, i) => (
               <div
                 key={i}
-                className={`flex-1 mx-0.5 py-1.5 rounded text-center text-[10px] font-bold transition-all ${
-                  results[0]?.slot === i ? 'ring-2 ring-white scale-105' : ''
+                className={`flex-1 mx-0.5 py-2.5 rounded-lg text-center font-bold transition-all duration-300 ${
+                  lastHitSlot === i ? 'scale-110 ring-2 ring-white' : ''
                 }`}
                 style={{
-                  backgroundColor: mult >= 3 ? (riskColor === 'red' ? '#dc2626' : riskColor === 'yellow' ? '#ca8a04' : '#16a34a') :
-                                   mult >= 1 ? (riskColor === 'red' ? '#dc262660' : riskColor === 'yellow' ? '#ca8a0460' : '#16a34a60') :
-                                   '#37415160'
+                  backgroundColor: currentColors[i],
+                  boxShadow: lastHitSlot === i
+                    ? `0 0 20px ${currentColors[i]}, 0 0 40px ${currentColors[i]}`
+                    : `0 4px 12px rgba(0,0,0,0.3)`,
+                  transform: lastHitSlot === i ? 'scale(1.1) translateY(-4px)' : 'scale(1)'
                 }}
               >
-                <span className={mult >= 1 ? 'text-white' : 'text-gray-400'}>{mult}x</span>
+                <span className={`text-sm drop-shadow-lg ${mult >= 1 ? 'text-white' : 'text-gray-200'}`}>
+                  {mult}×
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Total Profit Display */}
+        {/* Session Stats */}
         {results.length > 0 && (
-          <div className={`mt-2 px-4 py-2 rounded-lg text-sm font-bold ${
-            totalProfit >= 0 ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
+          <div className={`mt-4 px-6 py-3 rounded-xl font-bold text-lg ${
+            totalProfit >= 0
+              ? 'bg-gradient-to-r from-green-900/60 to-green-800/40 text-green-400 border border-green-600/30'
+              : 'bg-gradient-to-r from-red-900/60 to-red-800/40 text-red-400 border border-red-600/30'
           }`}>
             Session: {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
           </div>
         )}
       </div>
 
-      {/* Controls */}
-      <div className="w-72 bg-[#0a0a12] rounded-2xl p-3 flex flex-col gap-3">
+      {/* Controls Panel */}
+      <div className="w-80 bg-[#0a0a15] rounded-2xl p-4 flex flex-col gap-4 border border-gray-800/50">
         {/* Bet Amount */}
         <div>
-          <label className="text-xs text-gray-500 uppercase font-bold">Bet Amount</label>
-          <div className="relative mt-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+          <label className="text-xs text-gray-400 uppercase font-bold tracking-wider">Bet Amount</label>
+          <div className="relative mt-2">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 font-bold">$</span>
             <input
               type="number"
               value={bet}
               onChange={(e) => handleBetChange(Number(e.target.value))}
-              className="w-full bg-black/50 border border-white/10 rounded-lg py-2 pl-8 pr-3 text-white font-bold"
+              className="w-full bg-black/60 border border-cyan-900/50 rounded-xl py-3 pl-10 pr-4 text-white font-bold text-lg focus:border-cyan-500 focus:outline-none transition-colors"
             />
           </div>
-          <div className="grid grid-cols-4 gap-1 mt-1">
-            <button onClick={() => handleBetChange(1)} className="btn-secondary py-1.5 text-xs font-bold">MIN</button>
-            <button onClick={() => handleBetChange(bet / 2)} className="btn-secondary py-1.5 text-xs font-bold">½</button>
-            <button onClick={() => handleBetChange(bet * 2)} className="btn-secondary py-1.5 text-xs font-bold">2x</button>
-            <button onClick={() => handleBetChange(state.balance)} className="btn-secondary py-1.5 text-xs font-bold">MAX</button>
+          <div className="grid grid-cols-4 gap-2 mt-2">
+            {[
+              { label: 'MIN', action: () => handleBetChange(1) },
+              { label: '½', action: () => handleBetChange(Math.floor(bet / 2)) },
+              { label: '2×', action: () => handleBetChange(bet * 2) },
+              { label: 'MAX', action: () => handleBetChange(state.balance) }
+            ].map(btn => (
+              <button
+                key={btn.label}
+                onClick={btn.action}
+                className="py-2 rounded-lg text-sm font-bold bg-gray-800/80 hover:bg-gray-700 text-gray-300 hover:text-white transition-all border border-gray-700/50"
+              >
+                {btn.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Risk Level */}
         <div>
-          <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Risk Level</label>
-          <div className="grid grid-cols-3 gap-1">
-            {Object.keys(RISK_LEVELS).map(r => (
+          <label className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2 block">Risk Level</label>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(RISK_LEVELS).map(([r]) => (
               <button
                 key={r}
                 onClick={() => setRisk(r)}
-                className={`py-2 rounded-lg font-bold text-xs transition-all ${
+                className={`py-3 rounded-xl font-bold text-sm transition-all border-2 ${
                   risk === r
-                    ? r === 'low' ? 'bg-green-600 text-white' :
-                      r === 'medium' ? 'bg-yellow-600 text-white' :
-                      'bg-red-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    ? r === 'low'
+                      ? 'bg-green-600 text-white border-green-400 shadow-lg shadow-green-600/30'
+                      : r === 'medium'
+                        ? 'bg-yellow-600 text-white border-yellow-400 shadow-lg shadow-yellow-600/30'
+                        : 'bg-red-600 text-white border-red-400 shadow-lg shadow-red-600/30'
+                    : 'bg-gray-800/60 text-gray-400 border-gray-700 hover:bg-gray-700/60 hover:text-white'
                 }`}
               >
                 {r.toUpperCase()}
@@ -243,19 +383,19 @@ export default function PlinkoGame() {
         </div>
 
         {/* Multipliers Preview */}
-        <div className="bg-black/30 rounded-lg p-2">
-          <div className="text-xs text-gray-500 mb-1">Multipliers</div>
-          <div className="flex gap-1 flex-wrap">
+        <div className="bg-black/40 rounded-xl p-3 border border-gray-800/50">
+          <div className="text-xs text-gray-500 uppercase font-bold mb-2">Possible Multipliers</div>
+          <div className="flex gap-1.5 flex-wrap justify-center">
             {[...new Set(currentMultipliers)].sort((a, b) => b - a).map((m, i) => (
               <span
                 key={i}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                  m >= 3 ? 'bg-green-600/30 text-green-400' :
-                  m >= 1 ? 'bg-gray-600/30 text-gray-300' :
-                  'bg-red-600/30 text-red-400'
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                  m >= 10 ? 'bg-gradient-to-r from-green-600 to-green-500 text-white' :
+                  m >= 1 ? 'bg-gray-700/80 text-gray-200' :
+                  'bg-red-900/50 text-red-400'
                 }`}
               >
-                {m}x
+                {m}×
               </span>
             ))}
           </div>
@@ -265,35 +405,43 @@ export default function PlinkoGame() {
         <button
           onClick={dropBall}
           disabled={bet <= 0 || bet > state.balance}
-          className={`py-3 rounded-xl font-bold transition-all ${
+          className={`py-4 rounded-xl font-bold text-lg transition-all ${
             bet <= 0 || bet > state.balance
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white'
+              ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white shadow-lg shadow-cyan-600/30 hover:shadow-cyan-500/40 active:scale-95'
           }`}
         >
-          DROP BALL {balls.length > 0 && `(${balls.length} active)`}
+          🎱 DROP BALL {balls.length > 0 && `(${balls.length} active)`}
         </button>
 
-        {/* Info */}
-        <div className="text-[10px] text-gray-500 text-center">
-          Click multiple times to drop multiple balls!
+        {/* Multi-drop info */}
+        <div className="text-center text-xs text-gray-500">
+          Click multiple times for multiple balls!
         </div>
 
         {/* Results History */}
         {results.length > 0 && (
           <div className="flex-1 overflow-hidden">
-            <div className="text-xs text-gray-500 uppercase font-bold mb-1">Recent Drops</div>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
+            <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2">Recent Drops</div>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700">
               {results.map((r) => (
                 <div
                   key={r.id}
-                  className={`flex justify-between px-2 py-1 rounded text-xs ${
-                    r.won ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+                  className={`flex justify-between items-center px-3 py-2 rounded-lg text-sm ${
+                    r.won
+                      ? 'bg-green-900/30 text-green-400 border border-green-800/30'
+                      : 'bg-red-900/30 text-red-400 border border-red-800/30'
                   }`}
                 >
-                  <span className="text-gray-500 text-[10px] uppercase">{r.risk}</span>
-                  <span className="font-bold">{r.mult}x</span>
-                  <span>{r.profit >= 0 ? '+' : ''}${r.profit.toFixed(2)}</span>
+                  <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${
+                    r.risk === 'low' ? 'bg-green-900/50 text-green-400' :
+                    r.risk === 'medium' ? 'bg-yellow-900/50 text-yellow-400' :
+                    'bg-red-900/50 text-red-400'
+                  }`}>
+                    {r.risk}
+                  </span>
+                  <span className="font-bold">{r.mult}×</span>
+                  <span className="font-mono">{r.profit >= 0 ? '+' : ''}${r.profit.toFixed(2)}</span>
                 </div>
               ))}
             </div>

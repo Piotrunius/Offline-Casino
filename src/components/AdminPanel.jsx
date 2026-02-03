@@ -28,7 +28,6 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
     sicbo: { forceTriple: false },
     plinko: { forceHighMultiplier: false },
     horses: { alwaysWin: false },
-    threecups: { showBall: false },
     tictactoe: { aiMakesStupidMoves: false },
   });
 
@@ -431,20 +430,6 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                     className="accent-red-500"
                   />
                   Your Horse Always Wins
-                </label>
-              </div>
-
-              {/* 3 Cups */}
-              <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🥤 3 Cups</div>
-                <label className="flex items-center gap-2 text-sm text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={gameSettings.threecups?.showBall}
-                    onChange={(e) => updateGameSetting('threecups', 'showBall', e.target.checked)}
-                    className="accent-red-500"
-                  />
-                  Always Find Ball
                 </label>
               </div>
 

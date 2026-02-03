@@ -226,14 +226,6 @@ const Icons = {
       <rect x="4" y="19" width="16" height="3" rx="1"/>
     </svg>
   ),
-  Cups: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 8h4l-1 10H5z"/>
-      <path d="M10 8h4l-1 10h-2z"/>
-      <path d="M16 8h4l-1 10h-2z"/>
-      <circle cx="12" cy="19" r="1" fill="currentColor"/>
-    </svg>
-  ),
   TicTacToe: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="9" y1="3" x2="9" y2="21"/>
@@ -275,7 +267,6 @@ import SicboGame from './games/SicboGame';
 import SlotsGame from './games/SlotsGame';
 import StockExchange from './games/StockExchange';
 import ThreeCardPokerGame from './games/ThreeCardPokerGame';
-import ThreeCupsGame from './games/ThreeCupsGame';
 import TicTacToeGame from './games/TicTacToeGame';
 import TowerGame from './games/TowerGame';
 import VideoPokerGame from './games/VideoPokerGame';
@@ -297,7 +288,6 @@ const GAMES = [
   { id: 'baccarat', name: 'Baccarat', icon: Icons.Baccarat, component: BaccaratGame, color: '#8844ff' },
   { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.DragonTiger, component: DragonTigerGame, color: '#ff6633' },
   { id: 'videopoker', name: 'Video Poker', icon: Icons.VideoPoker, component: VideoPokerGame, color: '#00ccaa' },
-  { id: 'threecups', name: '3 Cups', icon: Icons.Cups, component: ThreeCupsGame, color: '#dd8833' },
   { id: 'tictactoe', name: 'Tic Tac Toe', icon: Icons.TicTacToe, component: TicTacToeGame, color: '#4488ff' },
   { id: 'sicbo', name: 'Sicbo', icon: Icons.DiceThree, component: SicboGame, color: '#ff9933' },
   { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' }
