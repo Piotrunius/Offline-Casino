@@ -20,6 +20,14 @@ const Icons = {
       <circle cx="12" cy="12" r="1" fill="currentColor"/>
     </svg>
   ),
+  DiceThree: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="6" width="12" height="12" rx="2"/>
+      <rect x="10" y="2" width="12" height="12" rx="2"/>
+      <circle cx="16" cy="8" r="1" fill="currentColor"/>
+      <circle cx="8" cy="12" r="1" fill="currentColor"/>
+    </svg>
+  ),
   Mine: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="6"/>
@@ -35,11 +43,6 @@ const Icons = {
       <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
     </svg>
   ),
-  Triangle: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polygon points="12,2 22,22 2,22"/>
-    </svg>
-  ),
   Target: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10"/>
@@ -51,14 +54,6 @@ const Icons = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10"/>
       <path d="M12 6v12"/>
-    </svg>
-  ),
-  Wheel: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"/>
-      <circle cx="12" cy="12" r="4"/>
-      <line x1="12" y1="2" x2="12" y2="8"/>
-      <line x1="12" y1="16" x2="12" y2="22"/>
     </svg>
   ),
   Tower: () => (
@@ -77,18 +72,42 @@ const Icons = {
       <rect x="14" y="14" width="7" height="7"/>
     </svg>
   ),
-  Roulette: () => (
+  Blackjack: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"/>
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M12 2v3"/>
-      <path d="M12 19v3"/>
+      <rect x="3" y="4" width="10" height="14" rx="2"/>
+      <text x="8" y="13" fontSize="7" fill="currentColor" textAnchor="middle">21</text>
+      <rect x="11" y="6" width="10" height="14" rx="2"/>
     </svg>
   ),
-  Cards: () => (
+  Baccarat: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="4" width="14" height="18" rx="2"/>
-      <rect x="8" y="2" width="14" height="18" rx="2"/>
+      <rect x="2" y="5" width="8" height="12" rx="1"/>
+      <rect x="14" y="5" width="8" height="12" rx="1"/>
+      <text x="6" y="13" fontSize="5" fill="currentColor" textAnchor="middle">P</text>
+      <text x="18" y="13" fontSize="5" fill="currentColor" textAnchor="middle">B</text>
+    </svg>
+  ),
+  DragonTiger: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 8c2-4 6-4 8-2s6 0 8-2"/>
+      <path d="M4 16c2 4 6 4 8 2s6 0 8 2"/>
+      <circle cx="8" cy="12" r="2"/>
+      <circle cx="16" cy="12" r="2"/>
+    </svg>
+  ),
+  VideoPoker: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="6" width="6" height="10" rx="1"/>
+      <rect x="9" y="6" width="6" height="10" rx="1"/>
+      <rect x="16" y="6" width="6" height="10" rx="1"/>
+      <path d="M5 18v2M12 18v2M19 18v2"/>
+    </svg>
+  ),
+  ThreeCards: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="6" width="7" height="12" rx="1" transform="rotate(-5 5 12)"/>
+      <rect x="8" y="5" width="7" height="12" rx="1"/>
+      <rect x="14" y="6" width="7" height="12" rx="1" transform="rotate(5 18 12)"/>
     </svg>
   ),
   Slots: () => (
@@ -166,11 +185,27 @@ const Icons = {
       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
       <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
     </svg>
+  ),
+  Info: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  ),
+  Sparkles: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>
+      <path d="M19 15l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>
+      <path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5z"/>
+    </svg>
   )
 };
 
 // Game imports
 import Dashboard from './components/Dashboard';
+import GameInfoModal from './components/GameInfoModal';
+import WinEffects from './components/WinEffects';
 import BaccaratGame from './games/BaccaratGame';
 import BlackjackGame from './games/BlackjackGame';
 import CoinFlipGame from './games/CoinFlipGame';
@@ -196,27 +231,28 @@ const GAMES = [
   { id: 'coinflip', name: 'Coin Flip', icon: Icons.Coin, component: CoinFlipGame, color: '#ffee00' },
   { id: 'tower', name: 'Tower', icon: Icons.Tower, component: TowerGame, color: '#00ccff' },
   { id: 'keno', name: 'Keno', icon: Icons.Grid, component: KenoGame, color: '#ff6600' },
-  { id: 'blackjack', name: 'Blackjack', icon: Icons.Cards, component: BlackjackGame, color: '#ff4444' },
+  { id: 'blackjack', name: 'Blackjack', icon: Icons.Blackjack, component: BlackjackGame, color: '#ff4444' },
   { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
   { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' },
-  { id: 'baccarat', name: 'Baccarat', icon: Icons.Cards, component: BaccaratGame, color: '#8844ff' },
-  { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.Cards, component: DragonTigerGame, color: '#ff6633' },
-  { id: 'videopoker', name: 'Video Poker', icon: Icons.Cards, component: VideoPokerGame, color: '#00ccaa' },
-  { id: 'sicbo', name: 'Sicbo', icon: Icons.Dice, component: SicboGame, color: '#ff9933' },
-  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.Cards, component: ThreeCardPokerGame, color: '#cc33ff' }
+  { id: 'baccarat', name: 'Baccarat', icon: Icons.Baccarat, component: BaccaratGame, color: '#8844ff' },
+  { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.DragonTiger, component: DragonTigerGame, color: '#ff6633' },
+  { id: 'videopoker', name: 'Video Poker', icon: Icons.VideoPoker, component: VideoPokerGame, color: '#00ccaa' },
+  { id: 'sicbo', name: 'Sicbo', icon: Icons.DiceThree, component: SicboGame, color: '#ff9933' },
+  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' }
 ];
 
 export default function App() {
   const {
     state, addFreeCredits, updateSettings, exportProgress, importProgress,
     showLargeBetConfirm, confirmLargeBet, cancelLargeBet,
-    showWinNotification, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance
+    winEffect, clearWinEffect, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance
   } = useCasino();
   const [activeGame, setActiveGame] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showExportImport, setShowExportImport] = useState(false);
+  const [showGameInfo, setShowGameInfo] = useState(null);
   const [exportCode, setExportCode] = useState('');
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
@@ -333,7 +369,18 @@ export default function App() {
                 </button>
               )}
 
-              {/* MOVED TO HEADER: Statistics Button */}
+              {/* Game Info Button */}
+              {activeGame !== 'dashboard' && (
+                <button
+                  onClick={() => setShowGameInfo(activeGame)}
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                  title="Game Info"
+                >
+                  <div className="w-5 h-5"><Icons.Info /></div>
+                </button>
+              )}
+
+              {/* Statistics Button */}
               <button
                 onClick={() => setShowStats(true)}
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
@@ -342,7 +389,7 @@ export default function App() {
                 <div className="w-5 h-5"><Icons.Stats /></div>
               </button>
 
-              {/* MOVED TO HEADER: Save/Load Button */}
+              {/* Save/Load Button */}
               <button
                 onClick={() => {
                   setExportCode(exportProgress());
@@ -354,7 +401,7 @@ export default function App() {
                 <div className="w-5 h-5"><Icons.Save /></div>
               </button>
 
-              {/* MOVED TO HEADER: Settings Button */}
+              {/* Settings Button */}
               <button
                 onClick={() => setShowSettings(true)}
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-all"
@@ -399,23 +446,12 @@ export default function App() {
         />
       )}
 
-      {/* WIN NOTIFICATION POPUP */}
-      {showWinNotification && (
-        <div className="fixed top-20 right-4 z-50 animate-bounce-in">
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-4 shadow-2xl shadow-green-500/30 border border-green-400/50">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                <Icons.Trophy />
-              </div>
-              <div>
-                <div className="text-lg font-black text-white">BIG WIN!</div>
-                <div className="text-2xl font-black text-yellow-300">+${showWinNotification.profit.toFixed(2)}</div>
-                <div className="text-sm text-white/70">{showWinNotification.multiplier.toFixed(2)}x on {showWinNotification.game}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* WIN EFFECTS */}
+      <WinEffects
+        win={winEffect}
+        onComplete={clearWinEffect}
+        enabled={state.settings.winEffectsEnabled}
+      />
 
       {/* LARGE BET CONFIRMATION MODAL */}
       {showLargeBetConfirm && (
@@ -538,14 +574,14 @@ export default function App() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-gray-300">Animations</span>
-                      <p className="text-xs text-gray-500">Visual effects and transitions</p>
+                      <span className="text-gray-300">Win Effects</span>
+                      <p className="text-xs text-gray-500">Celebratory effects on big wins</p>
                     </div>
                     <button
-                      onClick={() => updateSettings({ animationsEnabled: !state.settings.animationsEnabled })}
-                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.animationsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                      onClick={() => updateSettings({ winEffectsEnabled: !state.settings.winEffectsEnabled })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.winEffectsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
-                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.animationsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.winEffectsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
 
@@ -572,19 +608,6 @@ export default function App() {
                       className={`w-12 h-6 rounded-full transition-colors ${state.settings.confirmLargeBets ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.confirmLargeBets ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-gray-300">Win Notifications</span>
-                      <p className="text-xs text-gray-500">Popup on big wins (80%+ of bet)</p>
-                    </div>
-                    <button
-                      onClick={() => updateSettings({ showWinNotifications: !state.settings.showWinNotifications })}
-                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.showWinNotifications ? 'bg-cyan-500' : 'bg-gray-700'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.showWinNotifications ? 'translate-x-6' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
                 </div>
@@ -780,6 +803,14 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Game Info Modal */}
+      {showGameInfo && (
+        <GameInfoModal
+          gameId={showGameInfo}
+          onClose={() => setShowGameInfo(null)}
+        />
       )}
     </div>
   );

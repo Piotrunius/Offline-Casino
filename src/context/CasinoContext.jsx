@@ -46,11 +46,10 @@ const initialState = {
   settings: {
     soundEnabled: true,
     soundVolume: 0.5,
-    animationsEnabled: true,
     fastMode: false,
     hotkeys: true,
     confirmLargeBets: true,
-    showWinNotifications: true
+    winEffectsEnabled: true
   }
 };
 
@@ -157,7 +156,7 @@ function reducer(state, action) {
 export function CasinoProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [showLargeBetConfirm, setShowLargeBetConfirm] = useState(null);
-  const [showWinNotification, setShowWinNotification] = useState(null);
+  const [winEffect, setWinEffect] = useState(null);
   const [showBetUpdateSuggestion, setShowBetUpdateSuggestion] = useState(false);
   const prevBalanceRef = useRef(state.balance);
 
@@ -205,13 +204,14 @@ export function CasinoProvider({ children }) {
     }
   }, [state.balance, state.lastKnownBalance]);
 
-  const placeBet = useCallback((amount, game, onConfirm) => {
+  const placeBet = useCallback((amount, game) => {
     if (amount > state.balance || amount <= 0) return false;
 
-    // Check for large bet confirmation
+    // Check for large bet confirmation (over 50% balance)
     if (state.settings.confirmLargeBets && amount > state.balance * 0.5) {
-      setShowLargeBetConfirm({ amount, game, onConfirm });
-      return false;
+      return new Promise((resolve) => {
+        setShowLargeBetConfirm({ amount, game, resolve });
+      });
     }
 
     dispatch({ type: 'PLACE_BET', amount, game });
@@ -221,7 +221,7 @@ export function CasinoProvider({ children }) {
   const confirmLargeBet = useCallback(() => {
     if (showLargeBetConfirm) {
       dispatch({ type: 'PLACE_BET', amount: showLargeBetConfirm.amount, game: showLargeBetConfirm.game });
-      showLargeBetConfirm.onConfirm?.();
+      showLargeBetConfirm.resolve?.(true);
       setShowLargeBetConfirm(null);
       return true;
     }
@@ -229,19 +229,25 @@ export function CasinoProvider({ children }) {
   }, [showLargeBetConfirm]);
 
   const cancelLargeBet = useCallback(() => {
+    if (showLargeBetConfirm) {
+      showLargeBetConfirm.resolve?.(false);
+    }
     setShowLargeBetConfirm(null);
-  }, []);
+  }, [showLargeBetConfirm]);
 
   const addWin = useCallback((amount, bet, game, multiplier) => {
     dispatch({ type: 'ADD_WIN', amount, bet, game, multiplier });
 
-    // Show win notification for big wins (profit > 80% of bet)
+    // Trigger win effects for significant wins
     const profit = amount - bet;
-    if (state.settings.showWinNotifications && profit > 0 && profit >= bet * 0.8) {
-      setShowWinNotification({ profit, multiplier, game });
-      setTimeout(() => setShowWinNotification(null), 3000);
+    if (state.settings.winEffectsEnabled && profit > 0) {
+      setWinEffect({ profit, multiplier, game });
     }
-  }, [state.settings.showWinNotifications]);
+  }, [state.settings.winEffectsEnabled]);
+
+  const clearWinEffect = useCallback(() => {
+    setWinEffect(null);
+  }, []);
 
   const addLoss = (amount, game) => {
     dispatch({ type: 'ADD_LOSS', amount, game });
@@ -319,7 +325,8 @@ export function CasinoProvider({ children }) {
       showLargeBetConfirm,
       confirmLargeBet,
       cancelLargeBet,
-      showWinNotification,
+      winEffect,
+      clearWinEffect,
       showBetUpdateSuggestion,
       suggestNewBet,
       updateLastKnownBalance

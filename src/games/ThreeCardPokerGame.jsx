@@ -120,27 +120,30 @@ export default function ThreeCardPokerGame() {
     const pHand = evaluateHand(playerCards);
 
     if (pairPlusBet > 0 && PAIR_PLUS_PAYOUTS[pHand.name]) {
-      totalWin = pairPlusBet * PAIR_PLUS_PAYOUTS[pHand.name];
+      totalWin = pairPlusBet * (PAIR_PLUS_PAYOUTS[pHand.name] + 1);
     }
 
+    const totalBet = anteBet + pairPlusBet;
     const result = {
       outcome: 'fold',
       pHand,
       dHand: null,
       anteWin: 0,
       playWin: 0,
-      pairPlusWin: totalWin
+      pairPlusWin: totalWin,
+      totalWin,
+      profit: totalWin - totalBet
     };
 
     setResult(result);
-    setHistory(h => [{ outcome: 'fold', won: totalWin > 0 }, ...h.slice(0, 4)]);
+    setHistory(h => [{ outcome: 'fold', won: totalWin > totalBet }, ...h.slice(0, 3)]);
     setGamePhase('ended');
 
     if (totalWin > 0) {
-      addWin(totalWin, anteBet + pairPlusBet, 'threecardpoker', totalWin / (anteBet + pairPlusBet));
+      addWin(totalWin, totalBet, 'threecardpoker', totalWin / totalBet);
       audio.playWin();
     } else {
-      addWin(0, anteBet + pairPlusBet, 'threecardpoker', 0);
+      addWin(0, totalBet, 'threecardpoker', 0);
       audio.playLose();
     }
   }, [gamePhase, playerCards, anteBet, pairPlusBet, addWin]);
@@ -193,7 +196,7 @@ export default function ThreeCardPokerGame() {
     };
 
     setResult(result);
-    setHistory(h => [{ outcome, won: totalWin > anteBet * 2 + pairPlusBet }, ...h.slice(0, 4)]);
+    setHistory(h => [{ outcome, won: totalWin > anteBet * 2 + pairPlusBet }, ...h.slice(0, 3)]);
     setGamePhase('ended');
 
     if (totalWin > 0) {

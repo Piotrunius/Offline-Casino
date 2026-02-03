@@ -448,3 +448,54 @@ body {
 .text-glow {
     text-shadow: 0 0 10px currentColor;
 }
+
+/* Win Effects Animations */
+@keyframes confetti {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+@keyframes coins {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes sparkle {
+
+    0%,
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-confetti {
+    animation: confetti 3s ease-out forwards;
+}
+
+.animate-coins {
+    animation: coins 2s ease-in forwards;
+}
+
+.animate-sparkle {
+    animation: sparkle 1s ease-in-out forwards;
+}
