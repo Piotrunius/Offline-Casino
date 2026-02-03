@@ -1,38 +1,57 @@
+import { useEffect } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
 export default function BetControls({
   bet,
   setBet,
-  onPlay,
   disabled = false,
-  buttonText = 'BET',
   showMultiplier = false,
   multiplier = 1,
   winAmount = 0,
   children
 }) {
-  const { state } = useCasino();
+  const { state, setGlobalBet } = useCasino();
+
+  // Sync with global bet on mount and when global bet changes
+  useEffect(() => {
+    if (state.globalBet && !disabled) {
+      setBet(Math.min(state.globalBet, state.balance));
+    }
+  }, [state.globalBet]);
 
   const handleBetChange = (value) => {
     const numValue = parseFloat(value) || 0;
-    setBet(Math.min(Math.max(0, numValue), state.balance));
+    const newBet = Math.min(Math.max(0, numValue), state.balance);
+    setBet(newBet);
+    setGlobalBet(newBet); // Sync to global
     audio.playClick();
   };
 
   const handleMultiply = (factor) => {
     const newBet = Math.min(bet * factor, state.balance);
-    setBet(Math.max(0.01, newBet));
+    const finalBet = Math.max(0.01, newBet);
+    setBet(finalBet);
+    setGlobalBet(finalBet); // Sync to global
     audio.playClick();
   };
 
   const handleMin = () => {
     setBet(1);
+    setGlobalBet(1);
     audio.playClick();
   };
 
   const handleMax = () => {
     setBet(state.balance);
+    setGlobalBet(state.balance);
+    audio.playClick();
+  };
+
+  const handleAuto5Percent = () => {
+    const autoBet = Math.floor(state.balance * 0.05) || 1;
+    setBet(autoBet);
+    setGlobalBet(autoBet);
     audio.playClick();
   };
 
@@ -56,32 +75,40 @@ export default function BetControls({
             disabled={disabled}
           />
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           <button
             onClick={handleMin}
             disabled={disabled}
-            className="btn-secondary py-2 text-sm font-semibold"
+            className="btn-secondary py-2 text-xs font-semibold"
           >
             MIN
           </button>
           <button
             onClick={() => handleMultiply(0.5)}
             disabled={disabled}
-            className="btn-secondary py-2 text-sm font-semibold"
+            className="btn-secondary py-2 text-xs font-semibold"
           >
             1/2
           </button>
           <button
+            onClick={handleAuto5Percent}
+            disabled={disabled}
+            className="btn-secondary py-2 text-xs font-semibold bg-cyan-900/30 hover:bg-cyan-800/40 text-cyan-400"
+            title="Auto 5% of balance"
+          >
+            5%
+          </button>
+          <button
             onClick={() => handleMultiply(2)}
             disabled={disabled}
-            className="btn-secondary py-2 text-sm font-semibold"
+            className="btn-secondary py-2 text-xs font-semibold"
           >
             2x
           </button>
           <button
             onClick={handleMax}
             disabled={disabled}
-            className="btn-secondary py-2 text-sm font-semibold"
+            className="btn-secondary py-2 text-xs font-semibold"
           >
             MAX
           </button>
@@ -105,17 +132,12 @@ export default function BetControls({
         </div>
       )}
 
-      {/* Play Button */}
-      <button
-        onClick={() => {
-          audio.playBet();
-          onPlay();
-        }}
-        disabled={disabled || bet <= 0 || bet > state.balance}
-        className="btn-primary w-full py-4 text-lg"
-      >
-        {buttonText}
-      </button>
+      {/* Large bet warning indicator */}
+      {bet > state.balance * 0.5 && (
+        <div className="text-xs text-yellow-400 text-center bg-yellow-900/20 rounded-lg py-2">
+          ⚠ Large bet ({((bet / state.balance) * 100).toFixed(0)}% of balance)
+        </div>
+      )}
     </div>
   );
 }

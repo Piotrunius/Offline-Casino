@@ -27,18 +27,12 @@ const Icons = {
       <line x1="12" y1="18" x2="12" y2="22"/>
       <line x1="2" y1="12" x2="6" y2="12"/>
       <line x1="18" y1="12" x2="22" y2="12"/>
-      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
-      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
-      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
-      <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
     </svg>
   ),
   Rocket: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
       <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
-      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
     </svg>
   ),
   Triangle: () => (
@@ -57,7 +51,6 @@ const Icons = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10"/>
       <path d="M12 6v12"/>
-      <path d="M15 9.5c0-1.38-1.34-2.5-3-2.5s-3 1.12-3 2.5 1.34 2.5 3 2.5 3 1.12 3 2.5-1.34 2.5-3 2.5"/>
     </svg>
   ),
   Wheel: () => (
@@ -66,8 +59,6 @@ const Icons = {
       <circle cx="12" cy="12" r="4"/>
       <line x1="12" y1="2" x2="12" y2="8"/>
       <line x1="12" y1="16" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="8" y2="12"/>
-      <line x1="16" y1="12" x2="22" y2="12"/>
     </svg>
   ),
   Tower: () => (
@@ -92,12 +83,6 @@ const Icons = {
       <circle cx="12" cy="12" r="3"/>
       <path d="M12 2v3"/>
       <path d="M12 19v3"/>
-      <path d="M2 12h3"/>
-      <path d="M19 12h3"/>
-      <path d="M4.93 4.93l2.12 2.12"/>
-      <path d="M16.95 16.95l2.12 2.12"/>
-      <path d="M4.93 19.07l2.12-2.12"/>
-      <path d="M16.95 7.05l2.12-2.12"/>
     </svg>
   ),
   Cards: () => (
@@ -111,9 +96,6 @@ const Icons = {
       <rect x="2" y="4" width="20" height="16" rx="2"/>
       <line x1="8" y1="4" x2="8" y2="20"/>
       <line x1="16" y1="4" x2="16" y2="20"/>
-      <circle cx="5" cy="12" r="2"/>
-      <circle cx="12" cy="12" r="2"/>
-      <circle cx="19" cy="12" r="2"/>
     </svg>
   ),
   HiLo: () => (
@@ -161,10 +143,11 @@ const Icons = {
       <line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
   ),
-  Refresh: () => (
+  Save: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="23 4 23 10 17 10"/>
-      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+      <polyline points="17 21 17 13 7 13 7 21"/>
+      <polyline points="7 3 7 8 15 8"/>
     </svg>
   ),
   Stats: () => (
@@ -224,7 +207,11 @@ const GAMES = [
 ];
 
 export default function App() {
-  const { state, addFreeCredits, updateSettings, exportProgress, importProgress } = useCasino();
+  const {
+    state, addFreeCredits, updateSettings, exportProgress, importProgress,
+    showLargeBetConfirm, confirmLargeBet, cancelLargeBet,
+    showWinNotification, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance
+  } = useCasino();
   const [activeGame, setActiveGame] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -299,34 +286,6 @@ export default function App() {
               ))}
             </div>
           </nav>
-
-          {/* Bottom Actions */}
-          <div className="p-4 border-t border-white/5 space-y-2">
-            <button
-              onClick={() => setShowStats(true)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 transition-colors"
-            >
-              <div className="w-5 h-5"><Icons.Stats /></div>
-              {sidebarOpen && <span className="text-sm">Statistics</span>}
-            </button>
-            <button
-              onClick={() => {
-                setExportCode(exportProgress());
-                setShowExportImport(true);
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 transition-colors"
-            >
-              <div className="w-5 h-5"><Icons.Refresh /></div>
-              {sidebarOpen && <span className="text-sm">Save/Load</span>}
-            </button>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-gray-400 transition-colors"
-            >
-              <div className="w-5 h-5"><Icons.Settings /></div>
-              {sidebarOpen && <span className="text-sm">Settings</span>}
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -352,14 +311,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Balance */}
               <div className="flex items-center gap-2 bg-[#0a0a10] border border-white/10 rounded-xl px-4 py-2">
-                <span className="text-gray-400 text-sm">Balance:</span>
+                <span className="text-gray-400 text-sm hidden sm:inline">Balance:</span>
                 <span className="font-bold text-white number-mono">${state.balance.toFixed(2)}</span>
               </div>
 
-              {/* Add Credits - Only show when balance is low and uses < 3 */}
+              {/* Add Credits */}
               {state.balance <= 10 && (state.freeCreditsUsed || 0) < 3 && (
                 <button
                   onClick={() => {
@@ -367,13 +326,42 @@ export default function App() {
                       audio.playCashout();
                     }
                   }}
-                  className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white px-4 py-2 rounded-xl font-semibold transition-all animate-pulse"
+                  className="flex items-center gap-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white px-3 py-2 rounded-xl font-semibold transition-all animate-pulse"
                 >
                   <div className="w-4 h-4"><Icons.Plus /></div>
-                  <span className="hidden sm:inline">Free $1000</span>
-                  <span className="text-xs opacity-70">({3 - (state.freeCreditsUsed || 0)} left)</span>
+                  <span className="hidden sm:inline">+$1000</span>
                 </button>
               )}
+
+              {/* MOVED TO HEADER: Statistics Button */}
+              <button
+                onClick={() => setShowStats(true)}
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                title="Statistics"
+              >
+                <div className="w-5 h-5"><Icons.Stats /></div>
+              </button>
+
+              {/* MOVED TO HEADER: Save/Load Button */}
+              <button
+                onClick={() => {
+                  setExportCode(exportProgress());
+                  setShowExportImport(true);
+                }}
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                title="Save/Load"
+              >
+                <div className="w-5 h-5"><Icons.Save /></div>
+              </button>
+
+              {/* MOVED TO HEADER: Settings Button */}
+              <button
+                onClick={() => setShowSettings(true)}
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-all"
+                title="Settings"
+              >
+                <div className="w-5 h-5"><Icons.Settings /></div>
+              </button>
 
               {/* Sound Toggle */}
               <button
@@ -409,6 +397,94 @@ export default function App() {
           className="lg:hidden fixed inset-0 bg-black/60 z-40"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {/* WIN NOTIFICATION POPUP */}
+      {showWinNotification && (
+        <div className="fixed top-20 right-4 z-50 animate-bounce-in">
+          <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-4 shadow-2xl shadow-green-500/30 border border-green-400/50">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                <Icons.Trophy />
+              </div>
+              <div>
+                <div className="text-lg font-black text-white">BIG WIN!</div>
+                <div className="text-2xl font-black text-yellow-300">+${showWinNotification.profit.toFixed(2)}</div>
+                <div className="text-sm text-white/70">{showWinNotification.multiplier.toFixed(2)}x on {showWinNotification.game}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LARGE BET CONFIRMATION MODAL */}
+      {showLargeBetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={cancelLargeBet} />
+          <div className="relative bg-[#0a0a10] border border-yellow-500/50 rounded-2xl p-6 w-full max-w-sm animate-bounce-in">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+                  <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Large Bet Warning</h3>
+              <p className="text-gray-400 mb-4">
+                You're about to bet <span className="text-yellow-400 font-bold">${showLargeBetConfirm.amount.toFixed(2)}</span>
+                <br/>
+                <span className="text-sm">({((showLargeBetConfirm.amount / state.balance) * 100).toFixed(0)}% of your balance)</span>
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelLargeBet}
+                  className="flex-1 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-white font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLargeBet}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-bold transition-all"
+                >
+                  Confirm Bet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BET UPDATE SUGGESTION MODAL */}
+      {showBetUpdateSuggestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={updateLastKnownBalance} />
+          <div className="relative bg-[#0a0a10] border border-green-500/50 rounded-2xl p-6 w-full max-w-sm animate-bounce-in">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                <Icons.Trophy />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Balance Increased!</h3>
+              <p className="text-gray-400 mb-4">
+                Your balance has increased significantly. Would you like to update your bet amount to 5% of your new balance?
+                <br/>
+                <span className="text-green-400 font-bold">${Math.floor(state.balance * 0.05)}</span>
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={updateLastKnownBalance}
+                  className="flex-1 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-white font-bold transition-all"
+                >
+                  Keep Current
+                </button>
+                <button
+                  onClick={suggestNewBet}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-bold transition-all"
+                >
+                  Update Bet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Settings Modal */}
@@ -456,7 +532,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Animation Section */}
+              {/* Gameplay Section */}
               <div>
                 <div className="text-xs uppercase text-gray-500 mb-3">Gameplay</div>
                 <div className="space-y-4">
@@ -501,36 +577,30 @@ export default function App() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-gray-300">Show Win Notifications</span>
-                      <p className="text-xs text-gray-500">Display popup on big wins</p>
+                      <span className="text-gray-300">Win Notifications</span>
+                      <p className="text-xs text-gray-500">Popup on big wins (80%+ of bet)</p>
                     </div>
                     <button
-                      onClick={() => updateSettings({ showWinNotifications: state.settings.showWinNotifications !== false ? false : true })}
-                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.showWinNotifications !== false ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                      onClick={() => updateSettings({ showWinNotifications: !state.settings.showWinNotifications })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.showWinNotifications ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
-                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.showWinNotifications !== false ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.showWinNotifications ? 'translate-x-6' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Default Bet Section */}
+              {/* Betting Info */}
               <div>
                 <div className="text-xs uppercase text-gray-500 mb-3">Betting</div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Default Bet Amount</span>
-                    <span className="text-gray-500 text-sm">${state.settings.defaultBet || 10}</span>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-400 text-sm">Current Global Bet</span>
+                    <span className="text-cyan-400 font-bold">${state.globalBet}</span>
                   </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="100"
-                    step="1"
-                    value={state.settings.defaultBet || 10}
-                    onChange={(e) => updateSettings({ defaultBet: parseInt(e.target.value) })}
-                    className="w-full accent-cyan-500"
-                  />
+                  <p className="text-xs text-gray-500">
+                    Bet amount syncs across all games. Use 5% button in any game for auto-calculation.
+                  </p>
                 </div>
               </div>
 
@@ -593,36 +663,8 @@ export default function App() {
                 <div className="text-2xl font-bold text-yellow-400">${state.biggestWin.toFixed(0)}</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Total Won</div>
-                <div className="text-2xl font-bold text-green-400">${state.totalWins.toFixed(0)}</div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Total Lost</div>
-                <div className="text-2xl font-bold text-red-400">${state.totalLosses.toFixed(0)}</div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">ROI</div>
-                <div className={`text-2xl font-bold ${state.totalBets > 0 && (state.totalWins - state.totalLosses) / state.totalBets >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {state.totalBets > 0 ? (((state.totalWins - state.totalLosses) / state.totalBets) * 100).toFixed(1) : 0}%
-                </div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Avg Bet</div>
-                <div className="text-2xl font-bold text-purple-400">
-                  ${state.gamesPlayed > 0 ? (state.totalBets / state.gamesPlayed).toFixed(0) : 0}
-                </div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Current Streak</div>
-                <div className="text-2xl font-bold text-cyan-400">{state.currentStreak}</div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
                 <div className="text-gray-500 text-xs uppercase">Best Streak</div>
                 <div className="text-2xl font-bold text-purple-400">{state.bestStreak}</div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Free Credits Used</div>
-                <div className="text-2xl font-bold text-gray-400">{state.freeCreditsUsed || 0}/3</div>
               </div>
             </div>
 
@@ -718,7 +760,7 @@ export default function App() {
                   if (importCode.trim()) {
                     const success = importProgress(importCode.trim());
                     if (success) {
-                      setImportStatus('✓ Success! Progress loaded.');
+                      setImportStatus('Success! Progress loaded.');
                       audio.playWin();
                       setTimeout(() => {
                         setShowExportImport(false);
@@ -726,7 +768,7 @@ export default function App() {
                         setImportCode('');
                       }, 1500);
                     } else {
-                      setImportStatus('✗ Invalid code. Please check and try again.');
+                      setImportStatus('Invalid code. Please check and try again.');
                       audio.playLose();
                     }
                   }

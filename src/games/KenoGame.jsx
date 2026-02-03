@@ -12,11 +12,12 @@ const PAYOUT_TABLE = {
 
 export default function KenoGame() {
   const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(10);
+  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
   const [selectedNums, setSelectedNums] = useState([]);
   const [drawnNums, setDrawnNums] = useState([]);
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
   const [randomPickCount, setRandomPickCount] = useState(5);
 
   const toggleNum = (num) => {
@@ -72,7 +73,6 @@ export default function KenoGame() {
         audio.playCardDeal();
 
         if (i === drawn.length - 1) {
-          // Calculate results
           setTimeout(() => {
             const hits = selectedNums.filter(n => drawn.includes(n)).length;
             const mult = PAYOUT_TABLE[hits] || 0;
@@ -89,6 +89,7 @@ export default function KenoGame() {
               setResult({ won: false, hits, mult: 0, profit: -bet });
               audio.playLose();
             }
+            setHistory(h => [{ hits, won: adjustedMult > 0 }, ...h.slice(0, 4)]);
           }, 300);
         }
       }, i * delay);
@@ -126,31 +127,36 @@ export default function KenoGame() {
           })}
         </div>
 
-        {/* Random Pick Controls */}
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm text-gray-400">Random:</span>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(count => (
-              <button key={count}
-                onClick={() => setRandomPickCount(count)}
-                disabled={playing}
-                className={`w-8 h-8 rounded text-xs font-bold ${
-                  randomPickCount === count
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                } disabled:opacity-50`}>
-                {count}
-              </button>
-            ))}
+        {/* FIXED: Random Pick with SLIDER instead of buttons */}
+        <div className="mb-4 p-3 bg-gray-800/50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">Random Pick Count</span>
+            <span className="text-lg font-bold text-cyan-400">{randomPickCount}</span>
           </div>
-          <button onClick={randomPick} disabled={playing}
-            className="px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold disabled:opacity-50">
-            PICK
-          </button>
-          <button onClick={clearPicks} disabled={playing}
-            className="px-3 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 text-white text-sm font-bold disabled:opacity-50">
-            CLEAR
-          </button>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={randomPickCount}
+            onChange={(e) => setRandomPickCount(parseInt(e.target.value))}
+            disabled={playing}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>1</span>
+            <span>5</span>
+            <span>10</span>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button onClick={randomPick} disabled={playing}
+              className="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold disabled:opacity-50">
+              RANDOM PICK
+            </button>
+            <button onClick={clearPicks} disabled={playing}
+              className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 text-white text-sm font-bold disabled:opacity-50">
+              CLEAR
+            </button>
+          </div>
         </div>
 
         {/* Selection Info */}
@@ -182,7 +188,7 @@ export default function KenoGame() {
       </div>
 
       <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} onPlay={play} buttonText="PLAY" hideButton />
+        <BetControls bet={bet} setBet={setBet} disabled={playing} />
 
         <div className="game-card p-4">
           <div className="text-xs text-gray-500 uppercase mb-2">Payouts (10 picks)</div>
@@ -198,6 +204,19 @@ export default function KenoGame() {
             * Payouts scale with number of picks
           </div>
         </div>
+
+        {history.length > 0 && (
+          <div className="game-card p-4">
+            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
+            <div className="flex flex-wrap gap-2">
+              {history.map((h, i) => (
+                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                  {h.hits}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

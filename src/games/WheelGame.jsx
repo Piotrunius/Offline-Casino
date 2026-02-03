@@ -3,38 +3,39 @@ import BetControls from '../components/BetControls';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
+// FIXED: Wheel segments with proper arrangement - pointer at TOP (12 o'clock)
 const SEGMENTS = [
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '1.5x', mult: 1.5, color: '#00d4ff' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '2x', mult: 2, color: '#00ff88' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '3x', mult: 3, color: '#ffee00' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '1.2x', mult: 1.2, color: '#00aaff' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '5x', mult: 5, color: '#ff8800' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '1.5x', mult: 1.5, color: '#00d4ff' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '10x', mult: 10, color: '#ff3366' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '2x', mult: 2, color: '#00ff88' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '50x', mult: 50, color: '#ff00ff' },
-  { label: '0x', mult: 0, color: '#1a1a2e' },
-  { label: '1.5x', mult: 1.5, color: '#00d4ff' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 1.5, color: '#16213e', label: '1.5x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 2, color: '#0f3460', label: '2x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 1.2, color: '#16213e', label: '1.2x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 3, color: '#e94560', label: '3x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 1.5, color: '#16213e', label: '1.5x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 5, color: '#ff6b6b', label: '5x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 1.2, color: '#16213e', label: '1.2x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 2, color: '#0f3460', label: '2x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 10, color: '#ffd700', label: '10x' },
+  { mult: 0, color: '#1a1a2e', label: '0x' },
+  { mult: 1.5, color: '#16213e', label: '1.5x' },
 ];
 
 const HOUSE_EDGE = 0.05;
 
 export default function WheelGame() {
   const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(10);
+  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
   const [spinning, setSpinning] = useState(false);
+  const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
-  const [rotation, setRotation] = useState(0);
   const canvasRef = useRef(null);
   const animRef = useRef(null);
 
@@ -47,67 +48,64 @@ export default function WheelGame() {
     const size = canvas.width;
     const cx = size / 2;
     const cy = size / 2;
-    const r = size / 2 - 25;
+    const r = size / 2 - 20;
 
     ctx.clearRect(0, 0, size, size);
 
+    // Draw wheel
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate((rot * Math.PI) / 180);
 
     SEGMENTS.forEach((seg, i) => {
-      const start = (i * segAngle - 90) * Math.PI / 180;
-      const end = ((i + 1) * segAngle - 90) * Math.PI / 180;
+      const startAngle = (i * segAngle - 90) * Math.PI / 180;
+      const endAngle = ((i + 1) * segAngle - 90) * Math.PI / 180;
 
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.arc(0, 0, r, start, end);
+      ctx.arc(0, 0, r, startAngle, endAngle);
       ctx.closePath();
-
-      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      if (seg.mult === 0) {
-        grad.addColorStop(0, '#2a2a3e');
-        grad.addColorStop(1, '#1a1a2e');
-      } else {
-        grad.addColorStop(0, seg.color);
-        grad.addColorStop(1, seg.color + '80');
-      }
-      ctx.fillStyle = grad;
+      ctx.fillStyle = seg.color;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
       ctx.stroke();
 
+      // Label
       ctx.save();
-      ctx.rotate(start + (segAngle / 2) * Math.PI / 180);
+      ctx.rotate((startAngle + endAngle) / 2);
       ctx.translate(r * 0.7, 0);
       ctx.rotate(Math.PI / 2);
-      ctx.fillStyle = seg.mult === 0 ? '#555' : '#fff';
+      ctx.fillStyle = seg.mult > 0 ? '#fff' : '#666';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillText(seg.label, 0, 0);
       ctx.restore();
     });
 
     ctx.restore();
 
-    // Center
+    // Center circle
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.12, 0, Math.PI * 2);
-    ctx.fillStyle = '#0a0a14';
+    ctx.arc(cx, cy, r * 0.15, 0, Math.PI * 2);
+    ctx.fillStyle = '#0a0a0f';
     ctx.fill();
     ctx.strokeStyle = '#00f5ff';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Pointer at TOP
+    // FIXED: Pointer at TOP (12 o'clock position) - pointing DOWN into wheel
     ctx.beginPath();
-    ctx.moveTo(cx, 8);
-    ctx.lineTo(cx - 12, 30);
-    ctx.lineTo(cx + 12, 30);
+    ctx.moveTo(cx, 15);
+    ctx.lineTo(cx - 12, 0);
+    ctx.lineTo(cx + 12, 0);
     ctx.closePath();
     ctx.fillStyle = '#00f5ff';
     ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }, [segAngle]);
 
   const spin = useCallback(() => {
@@ -118,32 +116,29 @@ export default function WheelGame() {
     setResult(null);
     audio.playBet();
 
-    // Determine result with weighted probability
+    // Weighted random selection
+    const weights = SEGMENTS.map(s => s.mult === 0 ? 3 : s.mult >= 10 ? 0.1 : s.mult >= 5 ? 0.3 : 1);
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    let rand = Math.random() * totalWeight;
     let resultIdx = 0;
-    const rand = Math.random() * 100;
-    let cumulative = 0;
-    const weights = SEGMENTS.map(s => s.mult === 0 ? 8 : 50 / s.mult);
-    const total = weights.reduce((a, b) => a + b, 0);
-
-    for (let i = 0; i < SEGMENTS.length; i++) {
-      cumulative += (weights[i] / total) * 100;
-      if (rand <= cumulative) {
-        resultIdx = i;
-        break;
-      }
+    for (let i = 0; i < weights.length; i++) {
+      rand -= weights[i];
+      if (rand <= 0) { resultIdx = i; break; }
     }
 
     const resultSeg = SEGMENTS[resultIdx];
 
-    // Calculate rotation to land on result
-    // Pointer is at TOP (0 degrees), wheel rotates clockwise
-    // We need segment at index resultIdx to be at top
+    // FIXED: Calculate rotation so pointer at TOP points to winning segment
+    // Pointer is at 12 o'clock (top), which is -90 degrees or 270 degrees
+    // We need the CENTER of the winning segment to align with the pointer
     const segmentCenterAngle = resultIdx * segAngle + segAngle / 2;
-    const spins = 5 + Math.random() * 2;
-    const targetRotation = spins * 360 - segmentCenterAngle + 90;
+    const spins = 5 + Math.random() * 3;
+    // To align segment center with top pointer, we rotate so that:
+    // -segmentCenterAngle + offset lands segment at top
+    // Since wheel rotates clockwise visually, we add rotation
+    const targetRotation = spins * 360 + (360 - segmentCenterAngle);
 
     const startRotation = rotation % 360;
-    const totalRotation = targetRotation;
     const duration = state.settings.fastMode ? 3000 : 6000;
     const startTime = Date.now();
 
@@ -151,7 +146,7 @@ export default function WheelGame() {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / duration);
       const eased = 1 - Math.pow(1 - progress, 4);
-      const currentRotation = startRotation + totalRotation * eased;
+      const currentRotation = startRotation + targetRotation * eased;
 
       setRotation(currentRotation);
       drawWheel(currentRotation);
@@ -172,7 +167,7 @@ export default function WheelGame() {
           setResult({ won: false, mult: 0, profit: -bet });
         }
 
-        setHistory(h => [{ mult: resultSeg.mult, won: resultSeg.mult > 0 }, ...h.slice(0, 19)]);
+        setHistory(h => [{ mult: resultSeg.mult, won: resultSeg.mult > 0 }, ...h.slice(0, 4)]);
       }
     };
 
@@ -206,7 +201,18 @@ export default function WheelGame() {
       </div>
 
       <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} onPlay={spin} buttonText="SPIN" hideButton />
+        <BetControls bet={bet} setBet={setBet} disabled={spinning} />
+
+        <div className="game-card p-4">
+          <div className="text-xs text-gray-500 uppercase mb-2">Multipliers</div>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            {[...new Set(SEGMENTS.filter(s => s.mult > 0).map(s => s.mult))].sort((a, b) => a - b).map(m => (
+              <div key={m} className="bg-gray-800 rounded px-2 py-1 text-center">
+                <span className={m >= 5 ? 'text-yellow-400' : 'text-cyan-400'}>{m}x</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {history.length > 0 && (
           <div className="game-card p-4">

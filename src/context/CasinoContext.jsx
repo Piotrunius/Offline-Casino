@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useReducer } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
 
 const CasinoContext = createContext(null);
 
-// Simple encryption/decryption for export (base64 + character shifting)
+// Simple encryption/decryption for export
 const ENCRYPTION_KEY = 'OfflineCasino2024';
 
 const encrypt = (data) => {
@@ -40,13 +40,17 @@ const initialState = {
   currentStreak: 0,
   bestStreak: 0,
   freeCreditsUsed: 0,
+  globalBet: 50, // Auto-calculated 5% of starting balance
+  lastKnownBalance: 1000, // For tracking balance increases
   history: [],
   settings: {
     soundEnabled: true,
     soundVolume: 0.5,
     animationsEnabled: true,
     fastMode: false,
-    hotkeys: true
+    hotkeys: true,
+    confirmLargeBets: true,
+    showWinNotifications: true
   }
 };
 
@@ -65,9 +69,10 @@ function reducer(state, action) {
       const profit = action.amount - action.bet;
       const isWin = profit > 0;
       const newStreak = isWin ? state.currentStreak + 1 : 0;
+      const newBalance = state.balance + action.amount;
       return {
         ...state,
-        balance: state.balance + action.amount,
+        balance: newBalance,
         totalWins: state.totalWins + (isWin ? profit : 0),
         biggestWin: Math.max(state.biggestWin, profit),
         currentStreak: newStreak,
@@ -116,6 +121,18 @@ function reducer(state, action) {
         settings: { ...state.settings, ...action.settings }
       };
     }
+    case 'SET_GLOBAL_BET': {
+      return {
+        ...state,
+        globalBet: action.amount
+      };
+    }
+    case 'UPDATE_LAST_KNOWN_BALANCE': {
+      return {
+        ...state,
+        lastKnownBalance: action.balance
+      };
+    }
     case 'RESET_STATS': {
       return {
         ...state,
@@ -139,12 +156,20 @@ function reducer(state, action) {
 
 export function CasinoProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [showLargeBetConfirm, setShowLargeBetConfirm] = useState(null);
+  const [showWinNotification, setShowWinNotification] = useState(null);
+  const [showBetUpdateSuggestion, setShowBetUpdateSuggestion] = useState(false);
+  const prevBalanceRef = useRef(state.balance);
 
   useEffect(() => {
     const saved = localStorage.getItem('casino_state');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // Calculate initial global bet as 5% of balance
+        if (!parsed.globalBet) {
+          parsed.globalBet = Math.floor(parsed.balance * 0.05) || 10;
+        }
         dispatch({ type: 'LOAD_STATE', state: parsed });
       } catch (e) {
         console.error('Failed to load state:', e);
@@ -163,20 +188,60 @@ export function CasinoProvider({ children }) {
       currentStreak: state.currentStreak,
       bestStreak: state.bestStreak,
       freeCreditsUsed: state.freeCreditsUsed,
+      globalBet: state.globalBet,
+      lastKnownBalance: state.lastKnownBalance,
       history: state.history.slice(0, 50),
       settings: state.settings
     }));
   }, [state]);
 
-  const placeBet = (amount, game) => {
+  // Check for balance increase (90%+ increase suggests bet update)
+  useEffect(() => {
+    if (state.lastKnownBalance > 0) {
+      const increase = (state.balance - state.lastKnownBalance) / state.lastKnownBalance;
+      if (increase >= 0.9 && state.balance > state.lastKnownBalance) {
+        setShowBetUpdateSuggestion(true);
+      }
+    }
+  }, [state.balance, state.lastKnownBalance]);
+
+  const placeBet = useCallback((amount, game, onConfirm) => {
     if (amount > state.balance || amount <= 0) return false;
+
+    // Check for large bet confirmation
+    if (state.settings.confirmLargeBets && amount > state.balance * 0.5) {
+      setShowLargeBetConfirm({ amount, game, onConfirm });
+      return false;
+    }
+
     dispatch({ type: 'PLACE_BET', amount, game });
     return true;
-  };
+  }, [state.balance, state.settings.confirmLargeBets]);
 
-  const addWin = (amount, bet, game, multiplier) => {
+  const confirmLargeBet = useCallback(() => {
+    if (showLargeBetConfirm) {
+      dispatch({ type: 'PLACE_BET', amount: showLargeBetConfirm.amount, game: showLargeBetConfirm.game });
+      showLargeBetConfirm.onConfirm?.();
+      setShowLargeBetConfirm(null);
+      return true;
+    }
+    return false;
+  }, [showLargeBetConfirm]);
+
+  const cancelLargeBet = useCallback(() => {
+    setShowLargeBetConfirm(null);
+  }, []);
+
+  const addWin = useCallback((amount, bet, game, multiplier) => {
     dispatch({ type: 'ADD_WIN', amount, bet, game, multiplier });
-  };
+
+    // Show win notification for big wins (profit > 80% of bet)
+    const profit = amount - bet;
+    if (state.settings.showWinNotifications && profit > 0 && profit >= bet * 0.8) {
+      setShowWinNotification({ profit, multiplier, game });
+      setTimeout(() => setShowWinNotification(null), 3000);
+    }
+  }, [state.settings.showWinNotifications]);
 
   const addLoss = (amount, game) => {
     dispatch({ type: 'ADD_LOSS', amount, game });
@@ -190,6 +255,21 @@ export function CasinoProvider({ children }) {
 
   const updateSettings = (settings) => {
     dispatch({ type: 'UPDATE_SETTINGS', settings });
+  };
+
+  const setGlobalBet = (amount) => {
+    dispatch({ type: 'SET_GLOBAL_BET', amount });
+  };
+
+  const updateLastKnownBalance = () => {
+    dispatch({ type: 'UPDATE_LAST_KNOWN_BALANCE', balance: state.balance });
+    setShowBetUpdateSuggestion(false);
+  };
+
+  const suggestNewBet = () => {
+    const newBet = Math.floor(state.balance * 0.05);
+    setGlobalBet(newBet);
+    updateLastKnownBalance();
   };
 
   const resetStats = () => {
@@ -207,6 +287,7 @@ export function CasinoProvider({ children }) {
       currentStreak: state.currentStreak,
       bestStreak: state.bestStreak,
       freeCreditsUsed: state.freeCreditsUsed,
+      globalBet: state.globalBet,
       history: state.history.slice(0, 50),
       settings: state.settings,
       exportedAt: Date.now()
@@ -231,9 +312,17 @@ export function CasinoProvider({ children }) {
       addLoss,
       addFreeCredits,
       updateSettings,
+      setGlobalBet,
       resetStats,
       exportProgress,
-      importProgress
+      importProgress,
+      showLargeBetConfirm,
+      confirmLargeBet,
+      cancelLargeBet,
+      showWinNotification,
+      showBetUpdateSuggestion,
+      suggestNewBet,
+      updateLastKnownBalance
     }}>
       {children}
     </CasinoContext.Provider>

@@ -17,13 +17,16 @@ const createDeck = () => {
   return deck.sort(() => Math.random() - 0.5);
 };
 
+// FIXED: Added null/undefined checks to prevent crashes
 const calcValue = (cards) => {
+  if (!cards || !Array.isArray(cards) || cards.length === 0) return 0;
   let total = 0;
   let aces = 0;
   for (const card of cards) {
+    if (!card || !card.value) continue;
     if (card.value === 'A') { aces++; total += 11; }
     else if (['K', 'Q', 'J'].includes(card.value)) total += 10;
-    else total += parseInt(card.value);
+    else total += parseInt(card.value) || 0;
   }
   while (total > 21 && aces > 0) { total -= 10; aces--; }
   return total;
@@ -34,9 +37,9 @@ const Card = ({ card, hidden }) => (
     {hidden ? (
       <div className="w-12 h-16 bg-gradient-to-br from-gray-600 to-gray-800 rounded" />
     ) : (
-      <div className={`text-center ${card.color === 'red' ? 'text-red-600' : 'text-gray-900'}`}>
-        <div className="text-xl font-bold">{card.value}</div>
-        <div className="text-2xl">{card.suit}</div>
+      <div className={`text-center ${card?.color === 'red' ? 'text-red-600' : 'text-gray-900'}`}>
+        <div className="text-xl font-bold">{card?.value}</div>
+        <div className="text-2xl">{card?.suit}</div>
       </div>
     )}
   </div>
@@ -44,7 +47,7 @@ const Card = ({ card, hidden }) => (
 
 export default function BlackjackGame() {
   const { state, placeBet, addWin } = useCasino();
-  const [bet, setBet] = useState(10);
+  const [bet, setBet] = useState(() => Math.floor(state.balance * 0.05) || 10);
   const [deck, setDeck] = useState([]);
   const [player, setPlayer] = useState([]);
   const [dealer, setDealer] = useState([]);
@@ -54,8 +57,9 @@ export default function BlackjackGame() {
   const [insuranceBet, setInsuranceBet] = useState(0);
   const [showInsurance, setShowInsurance] = useState(false);
   const [dealerHidden, setDealerHidden] = useState(true);
+  const [history, setHistory] = useState([]);
 
-  const isBlackjack = (cards) => cards.length === 2 && calcValue(cards) === 21;
+  const isBlackjack = (cards) => cards && cards.length === 2 && calcValue(cards) === 21;
 
   const deal = useCallback(() => {
     if (bet <= 0 || bet > state.balance) return;
@@ -75,13 +79,11 @@ export default function BlackjackGame() {
     setDealerHidden(true);
     audio.playCardDeal();
 
-    // Check for insurance offer (dealer shows Ace)
-    if (dCards[0].value === 'A' && state.balance >= bet / 2) {
+    if (dCards[0]?.value === 'A' && state.balance >= bet / 2) {
       setShowInsurance(true);
       return;
     }
 
-    // Immediate blackjack check (only if no insurance offered)
     setTimeout(() => checkBlackjacks(pCards, dCards, newDeck, 0), 300);
   }, [bet, state.balance, placeBet]);
 
@@ -94,29 +96,30 @@ export default function BlackjackGame() {
       setPlaying(false);
       setGameOver(true);
 
+      let resultType, resultMsg, profit;
+
       if (playerBJ && dealerBJ) {
-        // Push - return bet
         addWin(bet, bet, 'blackjack', 1);
-        setResult({ type: 'PUSH', msg: 'Both Blackjack - Push', profit: 0 });
+        resultType = 'PUSH'; resultMsg = 'Both Blackjack - Push'; profit = 0;
         audio.playLose();
       } else if (playerBJ) {
-        // Player blackjack pays 3:2
         const win = bet * 2.5;
         addWin(win, bet, 'blackjack', 2.5);
-        setResult({ type: 'BLACKJACK', msg: 'Blackjack!', profit: win - bet });
+        resultType = 'BLACKJACK'; resultMsg = 'Blackjack!'; profit = win - bet;
         audio.playWin();
       } else if (dealerBJ) {
-        // Dealer blackjack
         const insuranceWin = insurance > 0 ? insurance * 3 : 0;
         if (insuranceWin > 0) {
           addWin(insuranceWin, bet + insurance, 'blackjack', insuranceWin / (bet + insurance));
-          setResult({ type: 'DEALER_BJ', msg: 'Dealer Blackjack - Insurance Pays', profit: insuranceWin - bet - insurance });
+          resultType = 'DEALER_BJ'; resultMsg = 'Dealer Blackjack - Insurance Pays'; profit = insuranceWin - bet - insurance;
         } else {
           addWin(0, bet, 'blackjack', 0);
-          setResult({ type: 'DEALER_BJ', msg: 'Dealer Blackjack', profit: -bet });
+          resultType = 'DEALER_BJ'; resultMsg = 'Dealer Blackjack'; profit = -bet;
         }
         audio.playLose();
       }
+      setResult({ type: resultType, msg: resultMsg, profit });
+      setHistory(h => [{ won: profit > 0, profit }, ...h.slice(0, 4)]);
       return true;
     }
     return false;
@@ -138,6 +141,7 @@ export default function BlackjackGame() {
   const hit = useCallback(() => {
     if (!playing || gameOver) return;
     const card = deck.pop();
+    if (!card) return;
     const newPlayer = [...player, card];
     setPlayer(newPlayer);
     setDeck([...deck]);
@@ -150,6 +154,7 @@ export default function BlackjackGame() {
       setDealerHidden(false);
       addWin(0, bet, 'blackjack', 0);
       setResult({ type: 'BUST', msg: 'Bust!', profit: -bet - insuranceBet });
+      setHistory(h => [{ won: false, profit: -bet - insuranceBet }, ...h.slice(0, 4)]);
       audio.playLose();
     }
   }, [playing, gameOver, deck, player, bet, insuranceBet, addWin]);
@@ -164,45 +169,46 @@ export default function BlackjackGame() {
 
     const dealerPlay = () => {
       const dealerVal = calcValue(currentDealer);
-      const playerVal = calcValue(player);
 
       if (dealerVal < 17) {
         setTimeout(() => {
-          currentDealer.push(currentDeck.pop());
-          setDealer([...currentDealer]);
-          setDeck([...currentDeck]);
-          audio.playCardDeal();
+          const card = currentDeck.pop();
+          if (card) {
+            currentDealer.push(card);
+            setDealer([...currentDealer]);
+            setDeck([...currentDeck]);
+            audio.playCardDeal();
+          }
           dealerPlay();
         }, state.settings.fastMode ? 200 : 500);
       } else {
-        // Game resolution
         setGameOver(true);
         const finalDealerVal = calcValue(currentDealer);
         const finalPlayerVal = calcValue(player);
 
+        let resultType, resultMsg, profit;
+
         if (finalDealerVal > 21) {
-          // Dealer bust
           const win = bet * 2;
           addWin(win, bet, 'blackjack', 2);
-          setResult({ type: 'WIN', msg: 'Dealer Busts!', profit: win - bet - insuranceBet });
+          resultType = 'WIN'; resultMsg = 'Dealer Busts!'; profit = win - bet - insuranceBet;
           audio.playWin();
         } else if (finalPlayerVal > finalDealerVal) {
-          // Player wins
           const win = bet * 2;
           addWin(win, bet, 'blackjack', 2);
-          setResult({ type: 'WIN', msg: 'You Win!', profit: win - bet - insuranceBet });
+          resultType = 'WIN'; resultMsg = 'You Win!'; profit = win - bet - insuranceBet;
           audio.playWin();
         } else if (finalPlayerVal < finalDealerVal) {
-          // Dealer wins
           addWin(0, bet, 'blackjack', 0);
-          setResult({ type: 'LOSE', msg: 'Dealer Wins', profit: -bet - insuranceBet });
+          resultType = 'LOSE'; resultMsg = 'Dealer Wins'; profit = -bet - insuranceBet;
           audio.playLose();
         } else {
-          // Push
           addWin(bet, bet, 'blackjack', 1);
-          setResult({ type: 'PUSH', msg: 'Push', profit: -insuranceBet });
+          resultType = 'PUSH'; resultMsg = 'Push'; profit = -insuranceBet;
           audio.playLose();
         }
+        setResult({ type: resultType, msg: resultMsg, profit });
+        setHistory(h => [{ won: profit > 0, profit }, ...h.slice(0, 4)]);
       }
     };
 
@@ -214,6 +220,7 @@ export default function BlackjackGame() {
     if (!placeBet(bet, 'blackjack')) return;
 
     const card = deck.pop();
+    if (!card) return;
     const newPlayer = [...player, card];
     setPlayer(newPlayer);
     setDeck([...deck]);
@@ -226,30 +233,27 @@ export default function BlackjackGame() {
       setDealerHidden(false);
       addWin(0, bet * 2, 'blackjack', 0);
       setResult({ type: 'BUST', msg: 'Bust!', profit: -bet * 2 - insuranceBet });
+      setHistory(h => [{ won: false, profit: -bet * 2 - insuranceBet }, ...h.slice(0, 4)]);
       audio.playLose();
     } else {
-      // Auto-stand after double
       setBet(bet * 2);
-      setTimeout(() => {
-        stand();
-      }, 500);
+      setTimeout(() => { stand(); }, 500);
     }
   }, [playing, gameOver, player, bet, state.balance, deck, insuranceBet, placeBet, addWin, stand]);
 
-  const playerValue = calcValue(player);
-  const dealerValue = dealerHidden ? calcValue([dealer[0]]) : calcValue(dealer);
+  const playerValue = player.length > 0 ? calcValue(player) : 0;
+  const dealerValue = dealer.length > 0 ? (dealerHidden ? calcValue([dealer[0]]) : calcValue(dealer)) : 0;
 
   return (
     <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 game-card p-6">
         <div className="text-xs text-gray-500 mb-4">House Edge: {(HOUSE_EDGE * 100).toFixed(1)}%</div>
 
-        {/* Dealer */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-3">
             <span className="text-sm text-gray-400 uppercase">Dealer</span>
             <span className="text-lg font-bold text-yellow-400">
-              {dealer.length > 0 && (dealerHidden ? `${calcValue([dealer[0]])}` : dealerValue)}
+              {dealer.length > 0 && dealerValue}
               {!dealerHidden && dealerValue > 21 && <span className="text-red-500 ml-2">BUST</span>}
             </span>
           </div>
@@ -260,7 +264,6 @@ export default function BlackjackGame() {
           </div>
         </div>
 
-        {/* Result */}
         {result && (
           <div className={`text-center py-4 mb-4 rounded-lg ${
             result.type === 'WIN' || result.type === 'BLACKJACK' ? 'bg-green-900/50 text-green-400' :
@@ -274,7 +277,6 @@ export default function BlackjackGame() {
           </div>
         )}
 
-        {/* Insurance Modal */}
         {showInsurance && (
           <div className="text-center py-4 mb-4 rounded-lg bg-blue-900/50 border border-blue-500">
             <div className="text-lg font-bold text-blue-300 mb-3">Insurance?</div>
@@ -290,7 +292,6 @@ export default function BlackjackGame() {
           </div>
         )}
 
-        {/* Player */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-3">
             <span className="text-sm text-gray-400 uppercase">Player</span>
@@ -307,7 +308,6 @@ export default function BlackjackGame() {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="grid grid-cols-4 gap-3">
           <button onClick={deal} disabled={playing || showInsurance}
             className="py-3 rounded-lg bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-bold disabled:opacity-50">
@@ -329,7 +329,7 @@ export default function BlackjackGame() {
       </div>
 
       <div className="space-y-4">
-        <BetControls bet={bet} setBet={setBet} onPlay={deal} buttonText="DEAL" hideButton />
+        <BetControls bet={bet} setBet={setBet} disabled={playing} />
 
         <div className="game-card p-4">
           <div className="text-xs text-gray-500 uppercase mb-2">Payouts</div>
@@ -340,6 +340,19 @@ export default function BlackjackGame() {
             <div className="flex justify-between"><span>Push</span><span className="text-gray-400">1x</span></div>
           </div>
         </div>
+
+        {history.length > 0 && (
+          <div className="game-card p-4">
+            <div className="text-xs text-gray-500 uppercase mb-3">History</div>
+            <div className="flex flex-wrap gap-2">
+              {history.map((h, i) => (
+                <span key={i} className={`px-2 py-1 rounded text-sm font-mono ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                  {h.profit >= 0 ? '+' : ''}{h.profit.toFixed(0)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
