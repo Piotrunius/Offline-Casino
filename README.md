@@ -28,7 +28,7 @@ A free, offline casino game collection built with React and Vite. Play 15 differ
 
 ## ✨ Features
 
-- **15 unique casino games** - Variety of card, dice, and slot games
+- **19 unique casino games** - Variety of card, dice, and slot games
 - **Virtual currency** - No real money involved
 - **No registration required** - Start playing immediately
 - **Works offline** - Play anytime, anywhere

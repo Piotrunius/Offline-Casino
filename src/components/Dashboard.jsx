@@ -196,7 +196,7 @@ export default function Dashboard({ onSelectGame }) {
           Welcome to <span className="text-cyan-400">Offline Casino</span>
         </h1>
         <p className="text-gray-300 text-lg">
-          Play 13 casino games with virtual currency. No real money, just fun!
+          19 casino games with virtual currency. No real money, just fun!
         </p>
         <div className="flex flex-wrap gap-4 mt-4">
           <div className="bg-black/30 rounded-xl px-6 py-3">
@@ -325,7 +325,7 @@ export default function Dashboard({ onSelectGame }) {
           <div>
             <h3 className="font-bold text-cyan-400 mb-2">Features</h3>
             <ul className="space-y-1 text-sm">
-              <li>- 15 unique casino games</li>
+              <li>- 19 unique casino games</li>
               <li>- Play with virtual currency</li>
               <li>- No registration required</li>
               <li>- Works offline</li>
