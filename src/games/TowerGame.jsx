@@ -253,6 +253,19 @@ export default function TowerGame() {
             </div>
           </div>
 
+          {/* History */}
+          {history.length > 0 && (
+            <div className="flex gap-2 justify-center">
+              {history.map((h, i) => (
+                <span key={i} className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                  h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
+                }`}>
+                  {h.won ? `${h.mult.toFixed(1)}x` : `L${h.rows}`}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Buttons */}
           <div className="mt-auto space-y-3">
             {playing && currentRow > 0 ? (
@@ -276,19 +289,6 @@ export default function TowerGame() {
               </div>
             )}
           </div>
-
-          {/* History */}
-          {history.length > 0 && (
-            <div className="flex gap-2 justify-center">
-              {history.map((h, i) => (
-                <span key={i} className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                  h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
-                }`}>
-                  {h.won ? `${h.mult.toFixed(1)}x` : `L${h.rows}`}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

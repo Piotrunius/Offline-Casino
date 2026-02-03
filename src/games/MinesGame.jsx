@@ -217,6 +217,17 @@ export default function MinesGame() {
             </div>
           </div>
 
+          {/* History */}
+          {history.length > 0 && (
+            <div className="flex gap-2 justify-center">
+              {history.map((h, i) => (
+                <span key={i} className={`px-3 py-2 rounded-lg text-sm font-bold ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                  {h.won ? h.mult.toFixed(1) + 'x' : '💣'}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Play/Cashout */}
           {playing ? (
             <button
@@ -234,17 +245,6 @@ export default function MinesGame() {
             >
               START GAME
             </button>
-          )}
-
-          {/* History */}
-          {history.length > 0 && (
-            <div className="flex gap-2 justify-center">
-              {history.map((h, i) => (
-                <span key={i} className={`px-3 py-2 rounded-lg text-sm font-bold ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                  {h.won ? h.mult.toFixed(1) + 'x' : '💣'}
-                </span>
-              ))}
-            </div>
           )}
         </div>
       </div>

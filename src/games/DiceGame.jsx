@@ -110,10 +110,16 @@ export default function DiceGame() {
 
           {/* Win/Lose indicator */}
           {result && (
-            <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full font-black text-lg ${
-              result.won ? 'bg-green-500 text-black' : 'bg-red-500 text-white'
+            <div className={`absolute -bottom-16 left-1/2 -translate-x-1/2 w-full max-w-xs text-center py-3 px-6 rounded-2xl ${
+              result.won
+                ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border border-green-500/50'
+                : 'bg-gradient-to-r from-red-900/60 to-rose-900/60 border border-red-500/50'
             }`}>
-              {result.won ? `+$${result.winAmount.toFixed(2)}` : 'MISS'}
+              <span className={`text-lg font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+                {result.won
+                  ? `WIN ${result.mult.toFixed(2)}x → +$${result.winAmount.toFixed(2)}`
+                  : `MISS @ ${result.roll}`}
+              </span>
             </div>
           )}
         </div>

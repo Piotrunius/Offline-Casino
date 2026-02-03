@@ -335,6 +335,19 @@ export default function ThreeCardPokerGame() {
             ))}
           </div>
 
+          {/* History */}
+          {history.length > 0 && (
+            <div className="flex gap-2 justify-center">
+              {history.map((h, i) => (
+                <span key={i} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                  h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
+                }`}>
+                  {h.outcome}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Actions */}
           {gamePhase === 'betting' ? (
             <button
@@ -367,19 +380,6 @@ export default function ThreeCardPokerGame() {
             >
               NEW GAME
             </button>
-          )}
-
-          {/* History */}
-          {history.length > 0 && (
-            <div className="flex gap-2 justify-center mt-3">
-              {history.map((h, i) => (
-                <span key={i} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-                  h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
-                }`}>
-                  {h.outcome}
-                </span>
-              ))}
-            </div>
           )}
         </div>
       </div>

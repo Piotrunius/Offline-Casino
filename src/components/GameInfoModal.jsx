@@ -302,14 +302,6 @@ export default function GameInfoModal({ gameId, onClose }) {
           </h3>
           <p className="text-gray-300">{info.strategy}</p>
         </div>
-
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold hover:from-cyan-500 hover:to-blue-500"
-        >
-          Got it!
-        </button>
       </div>
     </div>
   );

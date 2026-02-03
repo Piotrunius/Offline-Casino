@@ -93,6 +93,37 @@ const Icons = {
       <path d="M12 8v8M9 12h6" />
     </svg>
   ),
+  dragontiger: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <path d="M4 8c2-4 6-4 8-2s6 0 8-2"/>
+      <path d="M4 16c2 4 6 4 8 2s6 0 8 2"/>
+      <circle cx="8" cy="12" r="2"/>
+      <circle cx="16" cy="12" r="2"/>
+    </svg>
+  ),
+  videopoker: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="2" y="6" width="6" height="10" rx="1"/>
+      <rect x="9" y="6" width="6" height="10" rx="1"/>
+      <rect x="16" y="6" width="6" height="10" rx="1"/>
+      <path d="M5 18v2M12 18v2M19 18v2"/>
+    </svg>
+  ),
+  sicbo: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="2" y="6" width="12" height="12" rx="2"/>
+      <rect x="10" y="2" width="12" height="12" rx="2"/>
+      <circle cx="16" cy="8" r="1" fill="currentColor"/>
+      <circle cx="8" cy="12" r="1" fill="currentColor"/>
+    </svg>
+  ),
+  threecardpoker: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
+      <rect x="2" y="6" width="7" height="12" rx="1" transform="rotate(-5 5 12)"/>
+      <rect x="8" y="5" width="7" height="12" rx="1"/>
+      <rect x="14" y="6" width="7" height="12" rx="1" transform="rotate(5 18 12)"/>
+    </svg>
+  ),
   scratchcard: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
       <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -102,21 +133,21 @@ const Icons = {
 };
 
 const GAMES_INFO = [
-  { id: 'blackjack', name: 'Blackjack', description: 'Beat the dealer by getting closer to 21', edge: '0.5%', icon: '🃏' },
-  { id: 'dice', name: 'Dice', description: 'Roll over or under your target', edge: '2%', icon: '🎲' },
-  { id: 'slots', name: 'Slots', description: 'Spin reels for matching symbols', edge: '3-5%', icon: '🎰' },
-  { id: 'crash', name: 'Crash', description: 'Cash out before the multiplier crashes', edge: '3%', icon: '🚀' },
-  { id: 'mines', name: 'Mines', description: 'Find gems while avoiding mines', edge: '3%', icon: '💣' },
-  { id: 'hilo', name: 'Hi-Lo', description: 'Predict the next card high or low', edge: '3%', icon: '⬆️' },
-  { id: 'tower', name: 'Tower', description: 'Climb the tower without hitting traps', edge: '3%', icon: '🗼' },
-  { id: 'limbo', name: 'Limbo', description: 'Hit your target multiplier', edge: '2%', icon: '🎯' },
-  { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%', icon: '🪙' },
-  { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%', icon: '🔢' },
-  { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%', icon: '🎴' },
-  { id: 'dragontiger', name: 'Dragon Tiger', description: 'Bet on dragon or tiger to win', edge: '2.5%', icon: '🐉' },
-  { id: 'videopoker', name: 'Video Poker', description: 'Hold cards to make winning hands', edge: '2%', icon: '🎥' },
-  { id: 'sicbo', name: 'Sicbo', description: 'Bet on three dice outcomes', edge: '2.8%', icon: '🎲' },
-  { id: 'threecardpoker', name: '3 Card Poker', description: 'Beat dealer with 3 cards', edge: '3.4%', icon: '🃏' }
+  { id: 'blackjack', name: 'Blackjack', description: 'Beat the dealer by getting closer to 21', edge: '0.5%', icon: 'blackjack' },
+  { id: 'dice', name: 'Dice', description: 'Roll over or under your target', edge: '2%', icon: 'dice' },
+  { id: 'slots', name: 'Slots', description: 'Spin reels for matching symbols', edge: '3-5%', icon: 'slots' },
+  { id: 'crash', name: 'Crash', description: 'Cash out before the multiplier crashes', edge: '3%', icon: 'crash' },
+  { id: 'mines', name: 'Mines', description: 'Find gems while avoiding mines', edge: '3%', icon: 'mines' },
+  { id: 'hilo', name: 'Hi-Lo', description: 'Predict the next card high or low', edge: '3%', icon: 'hilo' },
+  { id: 'tower', name: 'Tower', description: 'Climb the tower without hitting traps', edge: '3%', icon: 'tower' },
+  { id: 'limbo', name: 'Limbo', description: 'Hit your target multiplier', edge: '2%', icon: 'limbo' },
+  { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%', icon: 'coinflip' },
+  { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%', icon: 'keno' },
+  { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%', icon: 'baccarat' },
+  { id: 'dragontiger', name: 'Dragon Tiger', description: 'Bet on dragon or tiger to win', edge: '2.5%', icon: 'dragontiger' },
+  { id: 'videopoker', name: 'Video Poker', description: 'Hold cards to make winning hands', edge: '2%', icon: 'videopoker' },
+  { id: 'sicbo', name: 'Sicbo', description: 'Bet on three dice outcomes', edge: '2.8%', icon: 'sicbo' },
+  { id: 'threecardpoker', name: '3 Card Poker', description: 'Beat dealer with 3 cards', edge: '3.4%', icon: 'threecardpoker' }
 ];
 
 export default function Dashboard({ onSelectGame }) {
@@ -230,7 +261,7 @@ export default function Dashboard({ onSelectGame }) {
               onClick={() => onSelectGame && onSelectGame(game.id)}
               className="game-card p-4 text-left hover:border-cyan-500/50 transition-all group"
             >
-              <div className="text-3xl mb-2">{game.icon}</div>
+              <div className="text-cyan-400 mb-2">{Icons[game.icon]}</div>
               <div className="font-bold text-white group-hover:text-cyan-400 transition-colors">
                 {game.name}
               </div>
