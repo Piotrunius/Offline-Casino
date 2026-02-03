@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-const WIN_MULTIPLIER = 1.5;
+// Multipliers based on difficulty
+const DIFFICULTY_MULTIPLIERS = {
+  easy: 1.5,
+  medium: 3.5,
+  hard: 5.0
+};
+
 const TIE_MULTIPLIER = 0; // Tie returns nothing (lose)
 
 const WINNING_LINES = [
@@ -167,9 +173,11 @@ export default function TicTacToeGame() {
     setGamePhase('ended');
     setHistory(h => [{ outcome, board: finalBoard }, ...h.slice(0, 3)]);
 
+    const winMultiplier = DIFFICULTY_MULTIPLIERS[difficulty] + 1;
+
     if (outcome === 'win') {
-      const winAmount = bet * (WIN_MULTIPLIER + 1);
-      addWin(winAmount, bet, 'tictactoe', WIN_MULTIPLIER + 1);
+      const winAmount = bet * winMultiplier;
+      addWin(winAmount, bet, 'tictactoe', winMultiplier);
       setResult({ won: true, outcome: 'win', profit: winAmount - bet });
       audio.playWin();
     } else if (outcome === 'lose') {
@@ -295,7 +303,7 @@ export default function TicTacToeGame() {
         <div className="bg-black/30 rounded-xl p-3">
           <div className="flex justify-between text-gray-400">
             <span>Win Payout:</span>
-            <span className="text-green-400 font-bold">{WIN_MULTIPLIER + 1}x</span>
+            <span className="text-green-400 font-bold">{(DIFFICULTY_MULTIPLIERS[difficulty] + 1).toFixed(1)}x</span>
           </div>
           <div className="flex justify-between text-gray-400 mt-1">
             <span>Tie:</span>

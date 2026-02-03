@@ -15,6 +15,73 @@ export const GAME_INFO = {
     history: 'Dice gambling dates back to ancient civilizations. The Egyptians used knucklebones as early as 3000 BCE.',
     strategy: 'Lower win chances = higher multipliers. Balance risk vs reward based on your bankroll.'
   },
+  war: {
+    name: 'War',
+    emoji: '🎴',
+    description: 'The classic card game War! Draw a card against the dealer - higher card wins. Ties trigger an epic War battle for double the stakes!',
+    houseEdge: '2.5%',
+    maxMultiplier: '3.8x (War win)',
+    rules: [
+      'Place your bet and draw a card',
+      'Dealer draws a card too',
+      'Higher card wins (A is highest, 2 is lowest)',
+      'Win pays 1.95x your bet',
+      'Tie triggers WAR - match your bet or surrender',
+      'War win pays 3.8x, surrender returns half your bet'
+    ],
+    history: 'War evolved from 18th century European card games. The simple rules made it one of the first card games many people learn as children.',
+    strategy: 'Always go to War on ties if you can afford it - the payout is worth the risk. Surrendering gives the house a bigger edge.'
+  },
+  tictactoe: {
+    name: 'Tic Tac Toe',
+    emoji: '❌',
+    description: 'Challenge the AI to the classic game of Tic Tac Toe! Choose your difficulty and bet - beat the computer to win big!',
+    houseEdge: '0-30% (varies by difficulty)',
+    maxMultiplier: '5.0x (Hard mode)',
+    rules: [
+      'Select difficulty: Easy (1.5x), Medium (3.5x), or Hard (5.0x)',
+      'Place your bet and start the game',
+      'Get three in a row (horizontal, vertical, or diagonal) to win',
+      'Ties count as a loss - you must beat the AI',
+      'Higher difficulty = smarter AI but bigger payouts'
+    ],
+    history: 'Tic Tac Toe dates back to ancient Egypt around 1300 BCE. The Romans played a version called Terni Lapilli.',
+    strategy: 'Easy mode is beatable with basic strategy. Hard mode uses optimal play - look for opportunities when the AI makes mistakes.'
+  },
+  plinko: {
+    name: 'Plinko',
+    emoji: '📍',
+    description: 'Drop a ball from the top and watch it bounce through pegs to land on multipliers. Choose your risk level for bigger potential wins!',
+    houseEdge: '1-5% (varies by risk)',
+    maxMultiplier: '1000x (High risk, 16 rows)',
+    rules: [
+      'Select number of rows (8-16)',
+      'Choose risk level: Low, Medium, or High',
+      'Drop the ball from the top',
+      'Ball bounces randomly through pegs',
+      'Win based on which multiplier slot it lands in',
+      'Higher risk = more extreme multipliers'
+    ],
+    history: 'Plinko was popularized by the TV game show The Price Is Right in 1983. It became a casino favorite in online gambling.',
+    strategy: 'Low risk for steady small wins, high risk for jackpot hunting. More rows = more volatility.'
+  },
+  stockexchange: {
+    name: 'Stock Exchange',
+    emoji: '📈',
+    description: 'Trade virtual stocks in a simulated market! Buy low, sell high, and react to breaking news that affects stock prices.',
+    houseEdge: 'Variable (market simulation)',
+    maxMultiplier: 'Unlimited (based on gains)',
+    rules: [
+      'Each stock has a fluctuating price',
+      'Buy stocks when prices are low',
+      'Sell stocks when prices are high',
+      'News events can spike or crash prices',
+      'Green news = price increase, Red news = price drop',
+      'Build your portfolio and maximize profits'
+    ],
+    history: 'Stock market gambling games became popular in the 2000s as financial markets captured public imagination.',
+    strategy: 'Watch for news events and react quickly. Diversify your portfolio to reduce risk. Buy during red news panics.'
+  },
   mines: {
     name: 'Mines',
     emoji: '💣',

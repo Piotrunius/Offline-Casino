@@ -2,24 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// Horse name pools
 const FIRST_NAMES = ['Thunder', 'Storm', 'Blaze', 'Shadow', 'Spirit', 'Nova', 'Lightning', 'Midnight', 'Golden', 'Silver', 'Dark', 'Swift', 'Wild', 'Royal', 'Lucky'];
 const SECOND_NAMES = ['Runner', 'Bolt', 'Star', 'Dream', 'Fire', 'Wind', 'Strike', 'Dash', 'Flash', 'Glory', 'Knight', 'Prince', 'Storm', 'Rider', 'Champion'];
 
 const COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#ec4899'];
 
-// Generate random horse with stats
 const generateHorse = (index) => {
   const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
   const secondName = SECOND_NAMES[Math.floor(Math.random() * SECOND_NAMES.length)];
   const name = `${firstName} ${secondName}`;
 
-  // Random stats that affect odds
-  const speed = 50 + Math.floor(Math.random() * 50); // 50-99
+  const speed = 50 + Math.floor(Math.random() * 50);
   const stamina = 50 + Math.floor(Math.random() * 50);
-  const form = Math.floor(Math.random() * 5) + 1; // 1-5 stars
+  const form = Math.floor(Math.random() * 5) + 1;
 
-  // Calculate base win chance (will be normalized later)
   const baseChance = (speed * 0.4 + stamina * 0.3 + form * 10) / 100;
 
   return {
@@ -35,13 +31,11 @@ const generateHorse = (index) => {
   };
 };
 
-// Calculate odds from base chances
 const calculateOdds = (horses) => {
   const totalChance = horses.reduce((sum, h) => sum + h.baseChance, 0);
   return horses.map(h => {
     const winProb = h.baseChance / totalChance;
-    // Convert probability to odds (e.g., 0.2 -> 5.0)
-    const odds = Math.max(1.5, Math.min(15, (1 / winProb) * 0.9)); // House edge built in
+    const odds = Math.max(1.5, Math.min(15, (1 / winProb) * 0.9));
     return { ...h, odds: Math.round(odds * 10) / 10, winProb };
   });
 };
@@ -63,24 +57,11 @@ export default function HorsesGame() {
 
   const godMode = state.adminSettings?.godMode || state.adminSettings?.gameSettings?.horses?.alwaysWin;
 
-  // Shuffle horses periodically (every 5 races or on mount)
+  // Generate new horses every race
   useEffect(() => {
-    if (raceNumber > 1 && raceNumber % 5 === 1) {
+    if (raceNumber > 1) {
       const newHorses = Array(6).fill(null).map((_, i) => generateHorse(i));
       setHorses(calculateOdds(newHorses));
-    }
-  }, [raceNumber]);
-
-  // Slightly adjust odds between races
-  useEffect(() => {
-    if (!racing && raceNumber > 1) {
-      setHorses(prev => {
-        const adjusted = prev.map(h => ({
-          ...h,
-          baseChance: h.baseChance * (0.9 + Math.random() * 0.2) // ±10% variance
-        }));
-        return calculateOdds(adjusted);
-      });
     }
   }, [raceNumber]);
 
@@ -95,15 +76,11 @@ export default function HorsesGame() {
     setPositions(horses.map(() => 0));
     audio.playBet();
 
-    const duration = state.settings?.fastMode ? 2500 : 5000;
-    const startTime = Date.now();
-
-    // Determine winner based on probabilities or god mode
+    // Determine winner
     let winner;
     if (godMode) {
       winner = selectedHorse;
     } else {
-      // Weighted random selection based on win probabilities
       const totalProb = horses.reduce((sum, h) => sum + h.winProb, 0);
       let random = Math.random() * totalProb;
       winner = 0;
@@ -116,35 +93,79 @@ export default function HorsesGame() {
       }
     }
 
-    // Speed factors based on horse stats
-    const speedFactors = horses.map((horse, i) => {
-      const base = 0.7 + (horse.speed / 200) + (horse.stamina / 300);
-      const randomFactor = 0.95 + Math.random() * 0.1;
-      return i === winner ? base * randomFactor + 0.12 : base * randomFactor;
+    const duration = state.settings?.fastMode ? 3000 : 5500;
+    const startTime = Date.now();
+
+    // Horse individual acceleration factors (more realistic)
+    const accelerations = horses.map((horse, i) => {
+      const base = 0.5 + (horse.speed / 200) * 0.6 + (horse.stamina / 200) * 0.4;
+      const random = 0.9 + Math.random() * 0.2;
+      // Winner is consistently faster
+      return i === winner ? base * random * 1.15 : base * random;
     });
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
-      const progress = Math.min(1, elapsed / duration);
+      const rawProgress = elapsed / duration;
 
-      const newPositions = speedFactors.map((speed, i) => {
-        const baseProgress = progress * speed;
-        // Add wobble for excitement
-        const wobble = Math.sin(elapsed / 80 + i * 1.5) * 0.012;
-        return Math.min(1, baseProgress + (progress < 0.9 ? wobble : 0));
+      // More realistic easing: slow start, fast middle, slow end
+      let eased;
+      if (rawProgress < 0.2) {
+        // Acceleration phase
+        eased = rawProgress * rawProgress * 2.5;
+      } else if (rawProgress < 0.85) {
+        // Cruise phase
+        eased = 0.1 + (rawProgress - 0.2) * 1.12;
+      } else {
+        // Deceleration phase
+        const remaining = 1 - rawProgress;
+        eased = 1 - remaining * remaining * 5;
+      }
+
+      const finalProgress = Math.min(1, eased);
+
+      // Calculate positions with more realistic behavior
+      const newPositions = accelerations.map((accel, i) => {
+        // Base movement
+        let pos = finalProgress * accel;
+
+        // Add realistic "stride" wobble (galloping motion)
+        if (finalProgress < 0.9) {
+          const stridePhase = (elapsed / 100 + i * 0.5) % 1;
+          const wobble = Math.sin(stridePhase * Math.PI * 2) * 0.015 * (1 - finalProgress);
+          pos += wobble;
+        }
+
+        return Math.min(1, pos);
       });
 
-      // Ensure winner finishes first at the end
-      if (progress > 0.85) {
-        const maxOther = Math.max(...newPositions.filter((_, i) => i !== winner));
-        newPositions[winner] = Math.max(newPositions[winner], maxOther + 0.015);
+      // Enforce winner lead in final moments
+      if (finalProgress > 0.7) {
+        const winnerPos = newPositions[winner];
+        const maxOtherPos = Math.max(...newPositions.filter((_, i) => i !== winner));
+
+        // Winner must maintain clear lead
+        if (winnerPos < maxOtherPos + 0.02) {
+          newPositions[winner] = maxOtherPos + 0.03 + (finalProgress - 0.7) * 0.15;
+        }
+      }
+
+      // Hard finish line
+      if (finalProgress >= 0.98) {
+        newPositions[winner] = 1.0;
+        for (let i = 0; i < newPositions.length; i++) {
+          if (i !== winner) {
+            newPositions[i] = Math.min(0.98, newPositions[i]);
+          }
+        }
       }
 
       setPositions(newPositions);
 
-      if (progress < 1) {
+      if (finalProgress < 1) {
         animRef.current = requestAnimationFrame(animate);
       } else {
+        // Race complete
         setRacing(false);
         setRaceNumber(prev => prev + 1);
 
@@ -159,7 +180,7 @@ export default function HorsesGame() {
           odds: multiplier
         }, ...h.slice(0, 4)]);
 
-        // Update horse stats
+        // Update horse records
         setHorses(prev => prev.map((h, i) => ({
           ...h,
           races: h.races + 1,
@@ -180,6 +201,10 @@ export default function HorsesGame() {
     };
 
     animRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
   }, [racing, bet, state.balance, selectedHorse, godMode, state.settings?.fastMode, horses, placeBet, addWin]);
 
   const handleBetChange = (val) => {
@@ -197,13 +222,13 @@ export default function HorsesGame() {
         {/* Track Header */}
         <div className="flex justify-between items-center text-xs text-gray-500 mb-2 px-2 flex-shrink-0">
           <span>Race #{raceNumber}</span>
-          <span className="text-yellow-500 font-bold">FINISH</span>
+          <span className="text-yellow-500 font-bold">FINISH LINE</span>
         </div>
 
         {/* Race Lanes */}
-        <div className="flex-1 flex flex-col justify-center gap-1.5 min-h-0">
+        <div className="flex-1 flex flex-col justify-center gap-2 min-h-0">
           {horses.map((horse, i) => (
-            <div key={i} className="relative h-9">
+            <div key={i} className="relative h-10 group">
               {/* Lane Background */}
               <div
                 className={`absolute inset-0 rounded-lg transition-all ${
@@ -213,7 +238,7 @@ export default function HorsesGame() {
                 }`}
                 style={{
                   ringColor: selectedHorse === i ? horse.color : 'transparent',
-                  borderLeft: `3px solid ${horse.color}`
+                  borderLeft: `4px solid ${horse.color}`
                 }}
               />
 
@@ -223,22 +248,23 @@ export default function HorsesGame() {
               {/* Horse */}
               <div
                 className="absolute top-1 bottom-1 flex items-center transition-all duration-75"
-                style={{ left: `calc(${positions[i] * 88}% + 8px)` }}
+                style={{ left: `calc(${positions[i] * 90}% + 8px)` }}
               >
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg border-2"
                   style={{
                     backgroundColor: horse.color,
-                    transform: racing ? `scaleX(${1 + Math.sin(Date.now() / 50) * 0.08})` : 'scaleX(1)'
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    transform: racing ? `scaleX(${1 + Math.sin(Date.now() / 50) * 0.06})` : 'scaleX(1)'
                   }}
                 >
                   {i + 1}
                 </div>
               </div>
 
-              {/* Horse Info (when not racing) */}
+              {/* Horse Info */}
               {!racing && (
-                <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="text-[10px] text-gray-400">{horse.odds}x</span>
                 </div>
               )}
@@ -303,7 +329,6 @@ export default function HorsesGame() {
                 }`}
                 style={{ ringColor: horse.color }}
               >
-                {/* Horse Number */}
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
                   style={{ backgroundColor: horse.color }}
@@ -311,7 +336,6 @@ export default function HorsesGame() {
                   {i + 1}
                 </div>
 
-                {/* Horse Info */}
                 <div className="flex-1 text-left">
                   <div className="text-white truncate">{horse.name}</div>
                   <div className="flex items-center gap-2 text-[10px] text-gray-400">
@@ -321,7 +345,6 @@ export default function HorsesGame() {
                   </div>
                 </div>
 
-                {/* Odds */}
                 <div className="text-right flex-shrink-0">
                   <div className={`text-lg font-bold ${horse.odds >= 5 ? 'text-green-400' : horse.odds >= 3 ? 'text-yellow-400' : 'text-gray-300'}`}>
                     {horse.odds}x

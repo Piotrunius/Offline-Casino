@@ -123,6 +123,12 @@ const Icons = {
       <path d="M12 19l-7-7h14z"/>
     </svg>
   ),
+  Cards: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="4" y="4" width="10" height="14" rx="1"/>
+      <rect x="10" y="6" width="10" height="14" rx="1"/>
+    </svg>
+  ),
   Menu: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="3" y1="6" x2="21" y2="6"/>
@@ -243,6 +249,19 @@ const Icons = {
       <polyline points="16 7 22 7 22 13"/>
       <line x1="2" y1="21" x2="22" y2="21"/>
     </svg>
+  ),
+  Bell: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  ),
+  Wallet: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="1" y="6" width="22" height="14" rx="2"/>
+      <path d="M1 10h22"/>
+      <circle cx="17" cy="14" r="2"/>
+    </svg>
   )
 };
 
@@ -258,7 +277,6 @@ import CrashGame from './games/CrashGame';
 import DiceGame from './games/DiceGame';
 import DragonTigerGame from './games/DragonTigerGame';
 import HiLoGame from './games/HiLoGame';
-import HorsesGame from './games/HorsesGame';
 import KenoGame from './games/KenoGame';
 import LimboGame from './games/LimboGame';
 import MinesGame from './games/MinesGame';
@@ -270,6 +288,7 @@ import ThreeCardPokerGame from './games/ThreeCardPokerGame';
 import TicTacToeGame from './games/TicTacToeGame';
 import TowerGame from './games/TowerGame';
 import VideoPokerGame from './games/VideoPokerGame';
+import WarGame from './games/WarGame';
 
 const GAMES = [
   { id: 'dashboard', name: 'Dashboard', icon: Icons.Home, component: Dashboard, color: '#00f5ff' },
@@ -283,7 +302,7 @@ const GAMES = [
   { id: 'keno', name: 'Keno', icon: Icons.Grid, component: KenoGame, color: '#ff6600' },
   { id: 'blackjack', name: 'Blackjack', icon: Icons.Blackjack, component: BlackjackGame, color: '#ff4444' },
   { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
-  { id: 'horses', name: 'Horse Racing', icon: Icons.Horse, component: HorsesGame, color: '#bb8844' },
+  { id: 'war', name: 'War', icon: Icons.Cards, component: WarGame, color: '#ff4444' },
   { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' },
   { id: 'baccarat', name: 'Baccarat', icon: Icons.Baccarat, component: BaccaratGame, color: '#8844ff' },
   { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.DragonTiger, component: DragonTigerGame, color: '#ff6633' },
@@ -317,6 +336,7 @@ export default function App() {
   // Konami Code detection
   const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
   const konamiIndex = useRef(0);
+  const prevBalanceRef = useRef(state.balance);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -430,10 +450,32 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Balance */}
-              <div className="flex items-center gap-2 bg-[#0a0a10] border border-white/10 rounded-xl px-4 py-2">
-                <span className="text-gray-400 text-sm hidden sm:inline">Balance:</span>
-                <span className="font-bold text-white number-mono">${state.balance.toFixed(2)}</span>
+              {/* Wallet - Balance + Portfolio */}
+              <div className="flex items-center gap-3 bg-[#0a0a10] border border-white/10 rounded-xl px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm hidden sm:inline">Cash:</span>
+                  <span className="font-bold text-white number-mono">${state.balance.toFixed(2)}</span>
+                </div>
+                {state.stockExchange?.portfolio && Object.keys(state.stockExchange.portfolio).length > 0 && (
+                  <>
+                    <div className="w-px h-4 bg-white/10 hidden sm:block" />
+                    <div className="hidden sm:flex items-center gap-1">
+                      <div className="w-4 h-4 text-green-400"><Icons.Stock /></div>
+                      <span className="text-green-400 font-bold number-mono text-sm">
+                        ${(() => {
+                          const stocks = state.stockExchange?.stocks || [];
+                          const portfolio = state.stockExchange?.portfolio || {};
+                          let total = 0;
+                          Object.entries(portfolio).forEach(([symbol, shares]) => {
+                            const stock = stocks.find(s => s.symbol === symbol);
+                            if (stock) total += stock.price * shares;
+                          });
+                          return total.toFixed(0);
+                        })()}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Add Credits */}
@@ -703,6 +745,19 @@ export default function App() {
                       className={`w-12 h-6 rounded-full transition-colors ${state.settings.confirmLargeBets ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.confirmLargeBets ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-gray-300">Notifications</span>
+                      <p className="text-xs text-gray-500">Show big win notifications</p>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ notificationsEnabled: !state.settings.notificationsEnabled })}
+                      className={`w-12 h-6 rounded-full transition-colors ${state.settings.notificationsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.notificationsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
                 </div>

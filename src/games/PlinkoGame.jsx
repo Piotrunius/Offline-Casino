@@ -32,7 +32,7 @@ export default function PlinkoGame() {
 
   const godMode = state.adminSettings?.godMode || state.adminSettings?.gameSettings?.plinko?.forceHighMultiplier;
 
-  // Calculate peg positions once
+  // Calculate peg positions once - PYRAMID LAYOUT (centered)
   const pegs = (() => {
     const result = [];
     const boardWidth = 100;
@@ -40,13 +40,19 @@ export default function PlinkoGame() {
     const endY = 75;
     const rowHeight = (endY - startY) / PEG_ROWS;
 
+    // Last row has max pegs - use that as reference for spacing
+    const maxPegs = PEGS_PER_ROW(PEG_ROWS - 1);
+    const pegSpacing = boardWidth / (maxPegs + 1);
+
     for (let row = 0; row < PEG_ROWS; row++) {
       const numPegs = PEGS_PER_ROW(row);
-      const spacing = boardWidth / (numPegs + 1);
+      // Calculate offset to center the row
+      const rowWidth = (numPegs - 1) * pegSpacing;
+      const startX = (boardWidth - rowWidth) / 2;
 
       for (let col = 0; col < numPegs; col++) {
         result.push({
-          x: spacing * (col + 1),
+          x: startX + col * pegSpacing,
           y: startY + row * rowHeight,
           row
         });
@@ -260,15 +266,6 @@ export default function PlinkoGame() {
             ))}
           </div>
         </div>
-
-        {/* Session Stats - Fixed position, no scroll */}
-        <div className={`mt-3 px-5 py-2 rounded-xl font-bold text-base flex-shrink-0 ${
-          totalProfit >= 0
-            ? 'bg-gradient-to-r from-green-900/60 to-green-800/40 text-green-400 border border-green-600/30'
-            : 'bg-gradient-to-r from-red-900/60 to-red-800/40 text-red-400 border border-red-600/30'
-        }`}>
-          Session: {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
-        </div>
       </div>
 
       {/* Controls Panel */}
@@ -364,12 +361,12 @@ export default function PlinkoGame() {
           Click multiple times for multiple balls!
         </div>
 
-        {/* Results History - Scrollable if needed */}
+        {/* Results History - Last 6 only */}
         {results.length > 0 && (
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0">
             <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2">Recent Drops</div>
-            <div className="space-y-1.5 max-h-32 overflow-y-auto">
-              {results.map((r) => (
+            <div className="space-y-1.5">
+              {results.slice(0, 6).map((r) => (
                 <div
                   key={r.id}
                   className={`flex justify-between items-center px-3 py-2 rounded-lg text-sm ${

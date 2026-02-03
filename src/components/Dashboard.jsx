@@ -144,7 +144,7 @@ const GAMES_INFO = [
   { id: 'limbo', name: 'Limbo', description: 'Hit your target multiplier', edge: '2%', icon: 'limbo' },
   { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%', icon: 'coinflip' },
   { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%', icon: 'keno' },
-  { id: 'horses', name: 'Horse Racing', description: 'Bet on horses and watch them race', edge: '3%', icon: 'coinflip' },
+  { id: 'war', name: 'War', description: 'Higher card wins - ties trigger War', edge: '2.5%', icon: 'coinflip' },
   { id: 'tictactoe', name: 'Tic Tac Toe', description: 'Beat the AI in classic game', edge: '5%', icon: 'keno' },
   { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%', icon: 'baccarat' },
   { id: 'dragontiger', name: 'Dragon Tiger', description: 'Bet on dragon or tiger to win', edge: '2.5%', icon: 'dragontiger' },

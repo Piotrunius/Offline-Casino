@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// Base stocks configuration
 const STOCK_CONFIG = [
   { symbol: 'NEON', name: 'Neon Industries', basePrice: 150, volatility: 0.025, trend: 0.0008, sector: 'tech' },
   { symbol: 'GLXY', name: 'Galaxy Corp', basePrice: 85, volatility: 0.035, trend: -0.0005, sector: 'tech' },
@@ -43,8 +42,7 @@ const NEWS_EVENTS = [
 
 export default function StockExchange() {
   const { state, setBalance, updateStockExchange } = useCasino();
-  
-  // Initialize stocks from saved state or fresh
+
   const [stocks, setStocks] = useState(() => {
     const saved = state.stockExchange?.stocks;
     if (saved && saved.length === STOCK_CONFIG.length) {
@@ -52,7 +50,7 @@ export default function StockExchange() {
     }
     return STOCK_CONFIG.map(s => ({ ...s, price: s.basePrice }));
   });
-  
+
   const [portfolio, setPortfolio] = useState(state.stockExchange?.portfolio || {});
   const [selectedStock, setSelectedStock] = useState(stocks[0]);
   const [orderType, setOrderType] = useState('buy');
@@ -60,12 +58,24 @@ export default function StockExchange() {
   const [priceHistory, setPriceHistory] = useState(() => {
     const saved = state.stockExchange?.priceHistory;
     if (saved && Object.keys(saved).length > 0) {
-      return saved;
+      const history = {};
+      stocks.forEach(stock => {
+        if (saved[stock.symbol] && saved[stock.symbol].length > 0) {
+          const savedHistory = [...saved[stock.symbol]];
+          savedHistory[savedHistory.length - 1] = {
+            time: Date.now(),
+            price: stock.price
+          };
+          history[stock.symbol] = savedHistory;
+        } else {
+          history[stock.symbol] = generateInitialHistory(stock.price || stock.basePrice, 150);
+        }
+      });
+      return history;
     }
-    // Generate initial history
     const history = {};
     stocks.forEach(stock => {
-      history[stock.symbol] = generateInitialHistory(stock.price || stock.basePrice, 100);
+      history[stock.symbol] = generateInitialHistory(stock.price || stock.basePrice, 150);
     });
     return history;
   });
@@ -76,52 +86,61 @@ export default function StockExchange() {
   const [watchlist, setWatchlist] = useState(state.stockExchange?.watchlist || ['NEON', 'BOLT', 'APEX']);
   const [orderHistory, setOrderHistory] = useState(state.stockExchange?.orderHistory || []);
   const [marketTrend, setMarketTrend] = useState(state.stockExchange?.marketTrend || 0);
+  const [, setTick] = useState(0);
   const tickRef = useRef(null);
   const lastSaveRef = useRef(Date.now());
 
-  // Generate initial price history
-  function generateInitialHistory(currentPrice, points) {
+  function generateInitialHistory(currentPrice, points, endAtCurrent = true) {
     const history = [];
-    let price = currentPrice * 0.9;
-    for (let i = 0; i < points; i++) {
-      price *= 1 + (Math.random() - 0.48) * 0.015;
+    let price = currentPrice * (0.8 + Math.random() * 0.4);
+
+    for (let i = 0; i < points - 1; i++) {
+      price *= 1 + (Math.random() - 0.5) * 0.02;
+      price = Math.max(0.01, price);
       history.push({
         time: Date.now() - (points - i) * 60000,
-        price: Math.max(0.01, price)
+        price
       });
     }
+
+    history.push({
+      time: Date.now(),
+      price: currentPrice
+    });
+
     return history;
   }
 
-  // Save stock exchange state to context periodically
+  // Save stock exchange state periodically
   useEffect(() => {
     const now = Date.now();
-    if (now - lastSaveRef.current > 2000) { // Save every 2 seconds
+    if (now - lastSaveRef.current > 2000) {
       lastSaveRef.current = now;
-      updateStockExchange({ 
-        portfolio, 
-        watchlist, 
+      updateStockExchange({
+        portfolio,
+        watchlist,
         orderHistory: orderHistory.slice(0, 20),
         stocks,
         priceHistory,
-        news: news.slice(0, 15),
+        news: news.slice(0, 30),
         marketTrend
       });
     }
-  }, [portfolio, watchlist, orderHistory, stocks, priceHistory, news, marketTrend]);
+  }, [portfolio, watchlist, orderHistory, stocks, priceHistory, news, marketTrend, updateStockExchange]);
 
-  // Market simulation tick - runs continuously
+  // Market simulation - THIS RUNS CONTINUOUSLY
   useEffect(() => {
     const tick = () => {
       if (marketStatus !== 'open') return;
 
-      // Update market trend randomly
+      // Global trend oscillates dramatically - REMOVED, only market trend now
+      // Market trend - base random walk without global influence
       setMarketTrend(prev => {
-        const change = (Math.random() - 0.5) * 0.0015;
-        return Math.max(-0.008, Math.min(0.008, prev + change));
+        const change = (Math.random() - 0.5) * 0.002;
+        return Math.max(-0.01, Math.min(0.01, prev + change));
       });
 
-      // Update all stock prices
+      // Update all stock prices - simplified without global trend
       setStocks(prevStocks => prevStocks.map(stock => {
         const marketEffect = marketTrend;
         const randomWalk = (Math.random() - 0.5) * 2 * stock.volatility;
@@ -138,7 +157,7 @@ export default function StockExchange() {
         stocks.forEach(stock => {
           if (newHistory[stock.symbol]) {
             newHistory[stock.symbol] = [
-              ...newHistory[stock.symbol].slice(-199),
+              ...newHistory[stock.symbol].slice(-249),
               { time: Date.now(), price: stock.price }
             ];
           }
@@ -146,15 +165,29 @@ export default function StockExchange() {
         return newHistory;
       });
 
-      // Random news events (0.8% chance per tick)
-      if (Math.random() < 0.008) {
+      // More frequent news (1.2% chance per tick)
+      if (Math.random() < 0.012) {
         generateNewsEvent();
       }
+
+      setTick(t => t + 1);
     };
 
     tickRef.current = setInterval(tick, 1000 / timeSpeed);
     return () => clearInterval(tickRef.current);
   }, [marketStatus, stocks, marketTrend, timeSpeed]);
+
+  // News auto-delete after 90 seconds
+  useEffect(() => {
+    const newsCleanup = setInterval(() => {
+      const now = Date.now();
+      setNews(prev => prev.filter(item => {
+        const age = now - (item.createdAt || item.id);
+        return age < 90000;
+      }));
+    }, 1000);
+    return () => clearInterval(newsCleanup);
+  }, []);
 
   // Calculate portfolio value
   useEffect(() => {
@@ -168,7 +201,7 @@ export default function StockExchange() {
     setTotalPortfolioValue(total);
   }, [portfolio, stocks]);
 
-  // Update selected stock reference when stocks change
+  // Update selected stock reference
   useEffect(() => {
     if (selectedStock) {
       const updated = stocks.find(s => s.symbol === selectedStock.symbol);
@@ -176,7 +209,7 @@ export default function StockExchange() {
         setSelectedStock(updated);
       }
     }
-  }, [stocks]);
+  }, [stocks, selectedStock]);
 
   const generateNewsEvent = () => {
     const randomStock = stocks[Math.floor(Math.random() * stocks.length)];
@@ -184,6 +217,7 @@ export default function StockExchange() {
 
     const newsItem = {
       id: Date.now(),
+      createdAt: Date.now(),
       time: new Date().toLocaleTimeString(),
       symbol: randomStock.symbol,
       message: event.message.replace('{symbol}', randomStock.symbol),
@@ -191,9 +225,9 @@ export default function StockExchange() {
       impact: event.impact
     };
 
-    setNews(prev => [newsItem, ...prev.slice(0, 14)]);
+    setNews(prev => [newsItem, ...prev.slice(0, 29)]);
 
-    // Apply news impact to stock price
+    // Apply impact
     setStocks(prev => prev.map(s => {
       if (s.symbol === randomStock.symbol) {
         return { ...s, price: s.price * (1 + event.impact) };
@@ -272,7 +306,6 @@ export default function StockExchange() {
     );
   };
 
-  // Mini chart component
   const MiniChart = ({ symbol, width = 100, height = 40 }) => {
     const history = priceHistory[symbol] || [];
     if (history.length < 2) return null;
@@ -302,13 +335,12 @@ export default function StockExchange() {
     );
   };
 
-  // Main chart
   const MainChart = () => {
     const history = priceHistory[selectedStock?.symbol] || [];
     if (history.length < 2) return <div className="text-gray-500">Loading...</div>;
 
-    const width = 500;
-    const height = 200;
+    const width = 900;
+    const height = 350;
     const prices = history.map(h => h.price);
     const min = Math.min(...prices);
     const max = Math.max(...prices);
@@ -324,30 +356,9 @@ export default function StockExchange() {
 
     return (
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-        {/* Grid lines */}
-        {[0, 0.25, 0.5, 0.75, 1].map(pct => (
-          <g key={pct}>
-            <line
-              x1="0" y1={height * pct}
-              x2={width} y2={height * pct}
-              stroke="#333"
-              strokeWidth="0.5"
-            />
-            <text
-              x={width + 5}
-              y={height * pct + 4}
-              fill="#666"
-              fontSize="10"
-            >
-              ${(max - range * pct).toFixed(2)}
-            </text>
-          </g>
-        ))}
-
-        {/* Area fill */}
         <defs>
           <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={isUp ? '#22c55e' : '#ef4444'} stopOpacity="0.3" />
+            <stop offset="0%" stopColor={isUp ? '#22c55e' : '#ef4444'} stopOpacity="0.4" />
             <stop offset="100%" stopColor={isUp ? '#22c55e' : '#ef4444'} stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -355,13 +366,11 @@ export default function StockExchange() {
           points={`0,${height} ${points} ${width},${height}`}
           fill="url(#chartGradient)"
         />
-
-        {/* Line */}
         <polyline
           points={points}
           fill="none"
           stroke={isUp ? '#22c55e' : '#ef4444'}
-          strokeWidth="2"
+          strokeWidth="3"
         />
       </svg>
     );
@@ -378,7 +387,7 @@ export default function StockExchange() {
 
   return (
     <div className="h-full flex gap-4 overflow-hidden">
-      {/* Left Panel - Market Overview */}
+      {/* Left Panel */}
       <div className="w-72 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
         {/* Market Status */}
         <div className="flex items-center justify-between flex-shrink-0">
@@ -458,18 +467,18 @@ export default function StockExchange() {
         </div>
       </div>
 
-      {/* Main Area - Chart & Details */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
+      {/* Main Area - LARGE CHART */}
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-6 flex flex-col gap-4 overflow-hidden">
         {selectedStock && (
           <>
             {/* Stock Header */}
             <div className="flex items-start justify-between flex-shrink-0">
               <div>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-white">{selectedStock.symbol}</h2>
+                  <h2 className="text-3xl font-bold text-white">{selectedStock.symbol}</h2>
                   <button
                     onClick={() => toggleWatchlist(selectedStock.symbol)}
-                    className={`text-xl ${watchlist.includes(selectedStock.symbol) ? 'text-yellow-400' : 'text-gray-600'}`}
+                    className={`text-2xl ${watchlist.includes(selectedStock.symbol) ? 'text-yellow-400' : 'text-gray-600'}`}
                   >
                     ★
                   </button>
@@ -477,12 +486,12 @@ export default function StockExchange() {
                 <div className="text-gray-500">{selectedStock.name}</div>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-white">${selectedStock.price.toFixed(2)}</div>
+                <div className="text-4xl font-bold text-white">${selectedStock.price.toFixed(2)}</div>
                 {(() => {
                   const { change, percent } = getPriceChange(selectedStock);
                   const isUp = percent >= 0;
                   return (
-                    <div className={`text-lg ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className={`text-xl ${isUp ? 'text-green-400' : 'text-red-400'}`}>
                       {isUp ? '+' : ''}{change.toFixed(2)} ({isUp ? '+' : ''}{percent.toFixed(2)}%)
                     </div>
                   );
@@ -490,29 +499,35 @@ export default function StockExchange() {
               </div>
             </div>
 
-            {/* Chart */}
-            <div className="flex-1 bg-black/30 rounded-xl p-4 min-h-[180px]">
+            {/* LARGE CHART */}
+            <div className="flex-1 bg-black/50 rounded-xl p-6 min-h-0">
               <MainChart />
             </div>
 
-            {/* Stock Info */}
-            <div className="grid grid-cols-4 gap-4 flex-shrink-0">
+            {/* Stock Info Grid */}
+            <div className="grid grid-cols-5 gap-3 flex-shrink-0">
               <div className="bg-black/30 rounded-lg p-3">
                 <div className="text-xs text-gray-500">Sector</div>
-                <div className="text-white font-bold capitalize">{selectedStock.sector}</div>
+                <div className="text-white font-bold capitalize text-sm">{selectedStock.sector}</div>
               </div>
               <div className="bg-black/30 rounded-lg p-3">
                 <div className="text-xs text-gray-500">Volatility</div>
-                <div className="text-white font-bold">{(selectedStock.volatility * 100).toFixed(1)}%</div>
+                <div className="text-white font-bold text-sm">{(selectedStock.volatility * 100).toFixed(1)}%</div>
               </div>
               <div className="bg-black/30 rounded-lg p-3">
                 <div className="text-xs text-gray-500">Your Shares</div>
-                <div className="text-white font-bold">{portfolio[selectedStock.symbol] || 0}</div>
+                <div className="text-white font-bold text-sm">{portfolio[selectedStock.symbol] || 0}</div>
               </div>
               <div className="bg-black/30 rounded-lg p-3">
                 <div className="text-xs text-gray-500">Position Value</div>
-                <div className="text-white font-bold">
+                <div className="text-white font-bold text-sm">
                   ${((portfolio[selectedStock.symbol] || 0) * selectedStock.price).toFixed(2)}
+                </div>
+              </div>
+              <div className="bg-black/30 rounded-lg p-3">
+                <div className="text-xs text-gray-500">24h Change</div>
+                <div className={`font-bold text-sm ${getPriceChange(selectedStock).percent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {getPriceChange(selectedStock).percent >= 0 ? '+' : ''}{getPriceChange(selectedStock).percent.toFixed(2)}%
                 </div>
               </div>
             </div>
@@ -520,7 +535,7 @@ export default function StockExchange() {
         )}
       </div>
 
-      {/* Right Panel - Trading & Portfolio */}
+      {/* Right Panel - Trading & News */}
       <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
         {/* Account Summary */}
         <div className="bg-gradient-to-r from-cyan-900/30 to-purple-900/30 rounded-xl p-4 flex-shrink-0">
@@ -543,7 +558,6 @@ export default function StockExchange() {
           <div className="bg-black/30 rounded-xl p-4 flex-shrink-0">
             <div className="text-xs text-gray-500 mb-3">TRADE {selectedStock.symbol}</div>
 
-            {/* Buy/Sell Toggle */}
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 onClick={() => setOrderType('buy')}
@@ -563,40 +577,44 @@ export default function StockExchange() {
               </button>
             </div>
 
-            {/* Amount */}
             <div className="mb-3">
               <label className="text-xs text-gray-500">Shares</label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="number"
-                  value={orderAmount}
-                  onChange={(e) => setOrderAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-white"
-                  min="1"
-                />
-                {orderType === 'sell' && portfolio[selectedStock.symbol] > 0 && (
-                  <button
-                    onClick={() => setOrderAmount(portfolio[selectedStock.symbol])}
-                    className="px-3 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-white font-bold text-sm"
-                  >
-                    ALL
-                  </button>
-                )}
-              </div>
+              <input
+                type="number"
+                value={orderAmount}
+                onChange={(e) => setOrderAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-white mt-1"
+                min="1"
+              />
               <div className="flex gap-1 mt-1">
                 {[1, 5, 10, 50].map(n => (
                   <button
                     key={n}
                     onClick={() => setOrderAmount(n)}
-                    className="flex-1 py-1 bg-gray-800 rounded text-xs"
+                    className="flex-1 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-xs font-bold"
                   >
                     {n}
                   </button>
                 ))}
+                {orderType === 'buy' && selectedStock && (
+                  <button
+                    onClick={() => setOrderAmount(Math.floor(state.balance / selectedStock.price))}
+                    className="flex-1 py-1.5 bg-green-700 hover:bg-green-600 rounded text-xs font-bold"
+                  >
+                    MAX
+                  </button>
+                )}
+                {orderType === 'sell' && portfolio[selectedStock.symbol] > 0 && (
+                  <button
+                    onClick={() => setOrderAmount(portfolio[selectedStock.symbol])}
+                    className="flex-1 py-1.5 bg-red-700 hover:bg-red-600 rounded text-xs font-bold"
+                  >
+                    ALL
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Total */}
             <div className="bg-black/50 rounded-lg p-3 mb-3">
               <div className="flex justify-between">
                 <span className="text-gray-400">Total:</span>
@@ -606,7 +624,6 @@ export default function StockExchange() {
               </div>
             </div>
 
-            {/* Execute Button */}
             <button
               onClick={executeTrade}
               disabled={
@@ -625,14 +642,14 @@ export default function StockExchange() {
         )}
 
         {/* Portfolio Holdings */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-shrink-0">
           <div className="text-xs text-gray-500 mb-2">YOUR PORTFOLIO</div>
           {Object.entries(portfolio).length === 0 ? (
             <div className="text-gray-600 text-sm text-center py-4">
               No holdings yet
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1 max-h-[132px] overflow-y-auto">
               {Object.entries(portfolio).map(([symbol, shares]) => {
                 const stock = stocks.find(s => s.symbol === symbol);
                 if (!stock) return null;
@@ -657,25 +674,40 @@ export default function StockExchange() {
           )}
         </div>
 
-        {/* News Feed */}
-        <div className="max-h-48 overflow-y-auto flex-shrink-0">
-          <div className="text-xs text-gray-500 mb-2">NEWS FEED ({news.length})</div>
+        {/* News Feed - EXPANDED */}
+        <div className="max-h-48 overflow-y-auto flex-shrink-0 border-t border-white/10 pt-2">
+          <div className="text-xs text-gray-500 mb-2 font-bold">MARKET NEWS ({news.length})</div>
           {news.length === 0 ? (
-            <div className="text-gray-600 text-xs text-center py-2">No news yet</div>
+            <div className="text-gray-600 text-xs text-center py-2">Waiting for news...</div>
           ) : (
             <div className="space-y-1">
-              {news.slice(0, 10).map(item => (
-                <div
-                  key={item.id}
-                  className={`text-xs p-2 rounded ${
-                    item.type === 'positive' ? 'bg-green-900/20 text-green-400' :
-                    item.type === 'negative' ? 'bg-red-900/20 text-red-400' :
-                    'bg-gray-900/20 text-gray-400'
-                  }`}
-                >
-                  <span className="text-gray-500">{item.time}</span> {item.message}
-                </div>
-              ))}
+              {news.slice(0, 12).map(item => {
+                const age = Date.now() - (item.createdAt || item.id);
+                const remaining = Math.max(0, Math.ceil((90000 - age) / 1000));
+                return (
+                  <div
+                    key={item.id}
+                    className={`text-xs p-2 rounded relative overflow-hidden border-l-2 ${
+                      item.type === 'positive' ? 'bg-green-900/30 border-green-500 text-green-400' :
+                      item.type === 'negative' ? 'bg-red-900/30 border-red-500 text-red-400' :
+                      'bg-gray-800/30 border-gray-500 text-gray-300'
+                    }`}
+                  >
+                    <div
+                      className={`absolute bottom-0 left-0 h-0.5 transition-all ${
+                        item.type === 'positive' ? 'bg-green-500' :
+                        item.type === 'negative' ? 'bg-red-500' :
+                        'bg-gray-500'
+                      }`}
+                      style={{ width: `${(remaining / 90) * 100}%` }}
+                    />
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="flex-1">{item.message}</span>
+                      <span className="text-gray-600 text-[10px] flex-shrink-0">{remaining}s</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
