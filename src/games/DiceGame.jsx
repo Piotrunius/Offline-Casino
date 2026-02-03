@@ -14,6 +14,10 @@ export default function DiceGame() {
   const [displayRoll, setDisplayRoll] = useState(null);
   const [history, setHistory] = useState([]);
 
+  // Admin cheats
+  const diceCheats = state.adminSettings?.gameSettings?.dice || {};
+  const godMode = state.adminSettings?.godMode;
+
   const calculateWinChance = () => {
     if (mode === 'under') return target;
     if (mode === 'over') return 100 - target;
@@ -33,6 +37,18 @@ export default function DiceGame() {
     return false;
   };
 
+  // Generate roll with cheats
+  const generateRoll = () => {
+    if (diceCheats.forceWin || godMode) {
+      // Force a winning roll
+      if (mode === 'under') return Math.floor(Math.random() * (target - 1)) + 1;
+      if (mode === 'over') return Math.floor(Math.random() * (100 - target)) + target + 1;
+      if (mode === 'exact') return target;
+      if (mode === 'range') return Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+    }
+    return Math.floor(Math.random() * 100) + 1;
+  };
+
   const rollDice = useCallback(async () => {
     if (rolling || bet <= 0 || bet > state.balance) return;
 
@@ -45,7 +61,7 @@ export default function DiceGame() {
 
     const duration = state.settings.fastMode ? 600 : 1000;
     const startTime = Date.now();
-    const finalRoll = Math.floor(Math.random() * 100) + 1;
+    const finalRoll = generateRoll();
 
     const animate = () => {
       const elapsed = Date.now() - startTime;

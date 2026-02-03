@@ -91,6 +91,10 @@ export default function SicboGame() {
   const [history, setHistory] = useState([]);
   const [activeCategory, setActiveCategory] = useState('basic');
 
+  // Admin cheats
+  const sicboCheats = state.adminSettings?.gameSettings?.sicbo || {};
+  const godMode = state.adminSettings?.godMode;
+
   const roll = useCallback(async () => {
     if (rolling || bet <= 0 || bet > state.balance) return;
 
@@ -101,11 +105,19 @@ export default function SicboGame() {
     setResult(null);
     audio.playBet();
 
-    const finalDice = [
-      Math.floor(Math.random() * 6) + 1,
-      Math.floor(Math.random() * 6) + 1,
-      Math.floor(Math.random() * 6) + 1
-    ];
+    let finalDice;
+
+    // Admin cheat: force triple
+    if (sicboCheats.forceTriple || godMode) {
+      const num = Math.floor(Math.random() * 6) + 1;
+      finalDice = [num, num, num];
+    } else {
+      finalDice = [
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1
+      ];
+    }
 
     const duration = state.settings.fastMode ? 800 : 1500;
     let frame = 0;
@@ -142,7 +154,7 @@ export default function SicboGame() {
       }
     };
     animate();
-  }, [rolling, bet, state.balance, betType, state.settings.fastMode, placeBet, addWin]);
+  }, [rolling, bet, state.balance, betType, state.settings.fastMode, placeBet, addWin, sicboCheats.forceTriple, godMode]);
 
   const handleBetChange = (val) => {
     const v = Math.min(Math.max(1, val), state.balance);

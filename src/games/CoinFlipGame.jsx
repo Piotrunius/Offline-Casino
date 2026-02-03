@@ -15,6 +15,10 @@ export default function CoinFlipGame() {
   const [streak, setStreak] = useState({ type: null, count: 0 });
   const animRef = useRef(null);
 
+  // Admin cheats
+  const coinflipCheats = state.adminSettings?.gameSettings?.coinflip || {};
+  const godMode = state.adminSettings?.godMode;
+
   const flip = useCallback(async () => {
     if (flipping || bet <= 0 || bet > state.balance) return;
 
@@ -25,7 +29,14 @@ export default function CoinFlipGame() {
     setResult(null);
     audio.playBet();
 
-    const isHeads = Math.random() > 0.5;
+    // Admin cheat: always win
+    let isHeads;
+    if (coinflipCheats.alwaysWin || godMode) {
+      isHeads = choice === 'heads';
+    } else {
+      isHeads = Math.random() > 0.5;
+    }
+
     const won = (isHeads && choice === 'heads') || (!isHeads && choice === 'tails');
     const duration = state.settings.fastMode ? 1000 : 2000;
     const startTime = Date.now();

@@ -11,6 +11,23 @@ const getCard = () => ({
   idx: Math.floor(Math.random() * 13)
 });
 
+// Get blackjack cards (Ace + 10-value card)
+const getBlackjackCards = () => {
+  const ace = { suit: SUITS[Math.floor(Math.random() * 4)], value: 'A', idx: 0 };
+  const tenVal = ['10', 'J', 'Q', 'K'][Math.floor(Math.random() * 4)];
+  const ten = { suit: SUITS[Math.floor(Math.random() * 4)], value: tenVal, idx: VALUES.indexOf(tenVal) };
+  return Math.random() > 0.5 ? [ace, ten] : [ten, ace];
+};
+
+// Get bust cards for dealer (total > 21)
+const getBustCards = () => {
+  const tenVal1 = ['10', 'J', 'Q', 'K'][Math.floor(Math.random() * 4)];
+  const tenVal2 = ['10', 'J', 'Q', 'K'][Math.floor(Math.random() * 4)];
+  const card1 = { suit: SUITS[Math.floor(Math.random() * 4)], value: tenVal1, idx: VALUES.indexOf(tenVal1) };
+  const card2 = { suit: SUITS[Math.floor(Math.random() * 4)], value: tenVal2, idx: VALUES.indexOf(tenVal2) };
+  return [card1, card2];
+};
+
 const calcValue = (cards) => {
   if (!cards || cards.length === 0) return 0;
   let val = 0, aces = 0;
@@ -54,6 +71,10 @@ export default function BlackjackGame() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
+  // Admin cheats
+  const blackjackCheats = state.adminSettings?.gameSettings?.blackjack || {};
+  const godMode = state.adminSettings?.godMode;
+
   const canSplit = playerCards.length === 2 &&
     playerCards[0]?.value === playerCards[1]?.value &&
     splitHand.length === 0 &&
@@ -71,8 +92,18 @@ export default function BlackjackGame() {
     setSplitHand([]);
     setActiveHand(0);
 
-    const pCards = [getCard(), getCard()];
-    const dCards = [getCard(), getCard()];
+    // Admin cheats
+    let pCards, dCards;
+    if (blackjackCheats.alwaysBlackjack || godMode) {
+      pCards = getBlackjackCards();
+      dCards = [getCard(), getCard()];
+    } else if (blackjackCheats.dealerBust) {
+      pCards = [getCard(), getCard()];
+      dCards = getBustCards();
+    } else {
+      pCards = [getCard(), getCard()];
+      dCards = [getCard(), getCard()];
+    }
 
     setPlayerCards(pCards);
     setDealerCards(dCards);

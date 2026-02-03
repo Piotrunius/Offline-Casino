@@ -21,6 +21,10 @@ export default function TowerGame() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
+  // Admin cheats
+  const towerCheats = state.adminSettings?.gameSettings?.tower || {};
+  const godMode = state.adminSettings?.godMode;
+
   const { cols, safes } = DIFFICULTIES[difficulty];
 
   // Calculate multiplier based on difficulty and row
@@ -43,6 +47,12 @@ export default function TowerGame() {
     // Generate tower - safes determined by difficulty
     const newTower = Array(ROWS).fill(null).map(() => {
       const row = Array(cols).fill(false);
+
+      // Admin cheat: all tiles safe
+      if (towerCheats.noTraps || godMode) {
+        return row.map(() => ({ safe: true, revealed: false, selected: false }));
+      }
+
       const safeIndices = new Set();
       while (safeIndices.size < safes) {
         safeIndices.add(Math.floor(Math.random() * cols));
@@ -56,7 +66,7 @@ export default function TowerGame() {
     setCurrentRow(0);
     setResult(null);
     audio.playBet();
-  }, [playing, bet, state.balance, cols, safes, placeBet]);
+  }, [playing, bet, state.balance, cols, safes, placeBet, towerCheats.noTraps, godMode]);
 
   const selectTile = useCallback((col) => {
     if (!playing || currentRow >= ROWS) return;

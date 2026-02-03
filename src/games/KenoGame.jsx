@@ -34,6 +34,10 @@ export default function KenoGame() {
   const [risk, setRisk] = useState('classic');
   const [autoSelect, setAutoSelect] = useState(5);
 
+  // Admin cheats
+  const kenoCheats = state.adminSettings?.gameSettings?.keno || {};
+  const godMode = state.adminSettings?.godMode;
+
   const toggleNumber = (n) => {
     if (playing) return;
     const newSet = new Set(selected);
@@ -77,8 +81,20 @@ export default function KenoGame() {
     setResult(null);
     audio.playBet();
 
-    // Draw 10 numbers
+    // Draw 10 numbers - with cheat support
     const drawnNums = new Set();
+    const extraMatches = kenoCheats.extraMatches || 0;
+
+    // Admin cheat: first add selected numbers to increase hits
+    if ((extraMatches > 0 || godMode) && selected.size > 0) {
+      const selectedArr = Array.from(selected);
+      const matchCount = godMode ? selected.size : Math.min(extraMatches, selected.size);
+      for (let i = 0; i < matchCount && drawnNums.size < 10; i++) {
+        drawnNums.add(selectedArr[i]);
+      }
+    }
+
+    // Fill rest with random numbers
     while (drawnNums.size < 10) {
       drawnNums.add(Math.floor(Math.random() * 40) + 1);
     }

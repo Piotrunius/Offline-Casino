@@ -14,6 +14,10 @@ export default function MinesGame() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
+  // Admin cheats
+  const minesCheats = state.adminSettings?.gameSettings?.mines || {};
+  const godMode = state.adminSettings?.godMode;
+
   const totalTiles = gridSize * gridSize;
   const maxMines = totalTiles - 1;
 
@@ -31,11 +35,15 @@ export default function MinesGame() {
 
     const total = gridSize * gridSize;
     const newGrid = Array(total).fill(null).map(() => ({ revealed: false, mine: false }));
-    const minePositions = new Set();
-    while (minePositions.size < mineCount) {
-      minePositions.add(Math.floor(Math.random() * total));
+
+    // Admin cheat: no mines at all
+    if (!minesCheats.noMines && !godMode) {
+      const minePositions = new Set();
+      while (minePositions.size < mineCount) {
+        minePositions.add(Math.floor(Math.random() * total));
+      }
+      minePositions.forEach(pos => newGrid[pos].mine = true);
     }
-    minePositions.forEach(pos => newGrid[pos].mine = true);
 
     setGrid(newGrid);
     setPlaying(true);
@@ -43,7 +51,7 @@ export default function MinesGame() {
     setCurrentMult(1);
     setResult(null);
     audio.playBet();
-  }, [playing, bet, state.balance, mineCount, gridSize, placeBet]);
+  }, [playing, bet, state.balance, mineCount, gridSize, placeBet, minesCheats.noMines, godMode]);
 
   const revealTile = useCallback((idx) => {
     if (!playing || grid[idx].revealed) return;
@@ -52,7 +60,10 @@ export default function MinesGame() {
     newGrid[idx] = { ...newGrid[idx], revealed: true };
     setGrid(newGrid);
 
-    if (newGrid[idx].mine) {
+    // Admin cheat: treat mine as safe
+    const isMine = newGrid[idx].mine && !minesCheats.noMines && !godMode;
+
+    if (isMine) {
       setPlaying(false);
       const finalGrid = newGrid.map(t => t.mine ? { ...t, revealed: true } : t);
       setGrid(finalGrid);
@@ -71,7 +82,7 @@ export default function MinesGame() {
         cashout(newMult);
       }
     }
-  }, [playing, grid, revealed, mineCount, bet, addWin, totalTiles]);
+  }, [playing, grid, revealed, mineCount, bet, addWin, totalTiles, minesCheats.noMines, godMode]);
 
   const cashout = useCallback((mult = currentMult) => {
     if (!playing) return;
@@ -100,22 +111,29 @@ export default function MinesGame() {
       <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0a1212] rounded-2xl p-6 flex flex-col items-center justify-center">
         {/* Grid */}
         <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
-          {grid.map((tile, i) => (
-            <button
-              key={i}
-              onClick={() => revealTile(i)}
-              disabled={!playing || tile.revealed}
-              className={`${tileSize} rounded-xl ${emojiSize} font-bold transition-all flex items-center justify-center shadow-lg ${
-                tile.revealed
-                  ? tile.mine
-                    ? 'bg-gradient-to-br from-red-500 to-red-700 text-white scale-95'
-                    : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white scale-95'
-                  : 'bg-gradient-to-br from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 hover:scale-105'
-              }`}
-            >
-              {tile.revealed ? (tile.mine ? '💣' : '💎') : ''}
-            </button>
-          ))}
+          {grid.map((tile, i) => {
+            // Admin cheat: highlight safe tiles
+            const showSafeHint = playing && !tile.revealed && (minesCheats.revealSafe || godMode) && !tile.mine;
+
+            return (
+              <button
+                key={i}
+                onClick={() => revealTile(i)}
+                disabled={!playing || tile.revealed}
+                className={`${tileSize} rounded-xl ${emojiSize} font-bold transition-all flex items-center justify-center shadow-lg ${
+                  tile.revealed
+                    ? tile.mine
+                      ? 'bg-gradient-to-br from-red-500 to-red-700 text-white scale-95'
+                      : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white scale-95'
+                    : showSafeHint
+                      ? 'bg-gradient-to-br from-green-800 to-green-900 hover:from-green-700 hover:to-green-800 hover:scale-105 border-2 border-green-500/50'
+                      : 'bg-gradient-to-br from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 hover:scale-105'
+                }`}
+              >
+                {tile.revealed ? (tile.mine ? '💣' : '💎') : showSafeHint ? '✓' : ''}
+              </button>
+            );
+          })}
         </div>
 
         {/* Current Multiplier */}

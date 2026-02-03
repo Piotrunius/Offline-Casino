@@ -16,9 +16,24 @@ export default function CrashGame() {
   const animRef = useRef(null);
   const crashPointRef = useRef(1);
   const canvasRef = useRef(null);
+  const autoCashoutRef = useRef(autoCashout);
+  const betRef = useRef(bet);
+  const betPlacedRef = useRef(false);
+
+  // Keep refs in sync
+  useEffect(() => { autoCashoutRef.current = autoCashout; }, [autoCashout]);
+  useEffect(() => { betRef.current = bet; }, [bet]);
+
+  // Admin settings
+  const crashCheats = state.adminSettings?.gameSettings?.crash || {};
 
   // Generate crash point with house edge ~3%
   const generateCrashPoint = () => {
+    // Admin cheat: force high crash point
+    if (crashCheats.forceWin || state.adminSettings?.godMode) {
+      return 10 + Math.random() * 90; // Always 10x-100x
+    }
+
     const e = 0.97; // 3% house edge
     const r = Math.random();
     if (r < 0.01) return 1.00; // 1% instant crash
@@ -32,6 +47,7 @@ export default function CrashGame() {
     if (!confirmed) return;
 
     setBetPlaced(true);
+    betPlacedRef.current = true;
     setPlaying(true);
     setCrashed(false);
     setResult(null);
@@ -56,14 +72,25 @@ export default function CrashGame() {
         setCrashed(true);
         setPlaying(false);
         setBetPlaced(false);
+        betPlacedRef.current = false;
         setCurrentMult(crashPoint);
-        setResult({ crashed: true, mult: crashPoint, won: false, profit: -bet });
+        setResult({ crashed: true, mult: crashPoint, won: false, profit: -betRef.current });
         setHistory(h => [{ mult: crashPoint, won: false }, ...h.slice(0, 4)]);
-        addWin(0, bet, 'crash', 0);
+        addWin(0, betRef.current, 'crash', 0);
         audio.playLose();
-      } else if (autoCashout > 0 && mult >= autoCashout && betPlaced) {
-        // Auto cashout
-        doCashout(mult);
+      } else if (autoCashoutRef.current > 0 && mult >= autoCashoutRef.current && betPlacedRef.current) {
+        // Auto cashout - using refs to get current values
+        cancelAnimationFrame(animRef.current);
+        const winAmount = betRef.current * mult;
+
+        setPlaying(false);
+        setBetPlaced(false);
+        betPlacedRef.current = false;
+        setCurrentMult(mult);
+        setResult({ crashed: false, mult, won: true, profit: winAmount - betRef.current });
+        setHistory(h => [{ mult, won: true }, ...h.slice(0, 4)]);
+        addWin(winAmount, betRef.current, 'crash', mult);
+        audio.playWin();
       } else {
         setCurrentMult(mult);
         animRef.current = requestAnimationFrame(animate);
@@ -71,7 +98,7 @@ export default function CrashGame() {
     };
 
     animRef.current = requestAnimationFrame(animate);
-  }, [playing, bet, state.balance, autoCashout, state.settings.fastMode, placeBet, addWin, betPlaced]);
+  }, [playing, bet, state.balance, state.settings.fastMode, placeBet, addWin, state.adminSettings]);
 
   const doCashout = useCallback((mult = currentMult) => {
     if (!playing || crashed || !betPlaced) return;

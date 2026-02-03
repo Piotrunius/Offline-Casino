@@ -46,7 +46,40 @@ export default function BaccaratGame() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
 
+  // Admin cheats
+  const baccaratCheats = state.adminSettings?.gameSettings?.baccarat || {};
+  const godMode = state.adminSettings?.godMode;
+
   const MULTIPLIERS = { player: 2, banker: 1.95, tie: 9, playerPair: 12, bankerPair: 12 };
+
+  // Generate cards that will win for a specific outcome
+  const getWinningCards = (outcome) => {
+    if (outcome === 'player') {
+      // Player wins with 9 vs 0
+      return {
+        pCards: [
+          { suit: '♠', value: '9', idx: 8 },
+          { suit: '♥', value: '10', idx: 9 }
+        ],
+        bCards: [
+          { suit: '♦', value: '10', idx: 9 },
+          { suit: '♣', value: '10', idx: 9 }
+        ]
+      };
+    } else {
+      // Banker wins with 9 vs 0
+      return {
+        pCards: [
+          { suit: '♠', value: '10', idx: 9 },
+          { suit: '♥', value: '10', idx: 9 }
+        ],
+        bCards: [
+          { suit: '♦', value: '9', idx: 8 },
+          { suit: '♣', value: '10', idx: 9 }
+        ]
+      };
+    }
+  };
 
   const play = useCallback(() => {
     if (bet <= 0 || bet > state.balance || gamePhase !== 'betting') return;
@@ -56,8 +89,21 @@ export default function BaccaratGame() {
     setGamePhase('dealing');
     audio.playBet();
 
-    const pCards = [getCard(), getCard()];
-    const bCards = [getCard(), getCard()];
+    let pCards, bCards;
+
+    // Admin cheat: force win
+    if (godMode || baccaratCheats.forcePlayerWin || baccaratCheats.forceBankerWin) {
+      const forceWinner = godMode
+        ? (betType === 'player' ? 'player' : 'banker')
+        : baccaratCheats.forcePlayerWin ? 'player' : 'banker';
+      const rigged = getWinningCards(forceWinner);
+      pCards = rigged.pCards;
+      bCards = rigged.bCards;
+    } else {
+      pCards = [getCard(), getCard()];
+      bCards = [getCard(), getCard()];
+    }
+
     setPlayerCards(pCards);
     setBankerCards(bCards);
 

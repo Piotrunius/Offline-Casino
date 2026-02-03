@@ -89,6 +89,13 @@ export default function HiLoGame() {
   const [potentialWin, setPotentialWin] = useState(0);
   const initialBetRef = useRef(0);
 
+  // Admin cheats
+  const hiloCheats = state.adminSettings?.gameSettings?.hilo || {};
+  const godMode = state.adminSettings?.godMode;
+
+  // For showing next card cheat
+  const [peekCard, setPeekCard] = useState(null);
+
   const getMultiplier = (type = betType, card = currentCard) => {
     if (!card) return 2;
     if (BET_TYPES[type].mult) return BET_TYPES[type].mult;
@@ -113,6 +120,12 @@ export default function HiLoGame() {
 
     const card = newDeck.pop();
     setDeck(newDeck);
+
+    // Admin cheat: peek at next card
+    if (hiloCheats.showNextCard || godMode) {
+      setPeekCard(newDeck[newDeck.length - 1] || null);
+    }
+
     return card;
   };
 
@@ -238,6 +251,16 @@ export default function HiLoGame() {
         <div className="absolute top-4 left-4 text-sm text-gray-500">
           Deck: {deck.length}/52
         </div>
+
+        {/* Admin cheat: Peek next card */}
+        {(hiloCheats.showNextCard || godMode) && peekCard && inStreak && (
+          <div className="absolute top-16 left-4 bg-red-900/80 border border-red-500/50 rounded-xl p-2">
+            <span className="text-xs text-red-400 block mb-1">NEXT CARD:</span>
+            <span className={`text-lg font-bold ${peekCard.suit === '♥' || peekCard.suit === '♦' ? 'text-red-400' : 'text-white'}`}>
+              {peekCard.value}{peekCard.suit} ({peekCard.numValue})
+            </span>
+          </div>
+        )}
 
         {/* Streak indicator */}
         {inStreak && streakCount > 0 && (

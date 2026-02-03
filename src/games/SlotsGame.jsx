@@ -38,6 +38,10 @@ export default function SlotsGame() {
   const [autoSpin, setAutoSpin] = useState(false);
   const autoSpinRef = useRef(false);
 
+  // Admin cheats
+  const slotsCheats = state.adminSettings?.gameSettings?.slots || {};
+  const godMode = state.adminSettings?.godMode;
+
   useEffect(() => {
     initReels();
   }, [reelCount, rowCount]);
@@ -133,14 +137,29 @@ export default function SlotsGame() {
       if (tick >= maxTicks) {
         clearInterval(interval);
 
-        const finalReels = [];
-        for (let r = 0; r < reelCount; r++) {
-          const col = [];
-          for (let row = 0; row < rowCount; row++) {
-            col.push(weightedRandom());
+        let finalReels;
+
+        // Admin cheat: force jackpot (all 7s)
+        if (slotsCheats.forceJackpot || godMode) {
+          finalReels = [];
+          for (let r = 0; r < reelCount; r++) {
+            const col = [];
+            for (let row = 0; row < rowCount; row++) {
+              col.push('7️⃣');
+            }
+            finalReels.push(col);
           }
-          finalReels.push(col);
+        } else {
+          finalReels = [];
+          for (let r = 0; r < reelCount; r++) {
+            const col = [];
+            for (let row = 0; row < rowCount; row++) {
+              col.push(weightedRandom());
+            }
+            finalReels.push(col);
+          }
         }
+
         setReels(finalReels);
 
         const { totalMult, winLines } = checkWins(finalReels);
@@ -161,7 +180,7 @@ export default function SlotsGame() {
         }
       }
     }, 60);
-  }, [spinning, bet, state.balance, reelCount, rowCount, volatility, placeBet, addWin]);
+  }, [spinning, bet, state.balance, reelCount, rowCount, volatility, placeBet, addWin, slotsCheats.forceJackpot, godMode]);
 
   const handleBetChange = (val) => {
     const v = Math.min(Math.max(1, val), state.balance);

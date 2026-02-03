@@ -13,6 +13,10 @@ export default function LimboGame() {
   const [animating, setAnimating] = useState(false);
   const animRef = useRef(null);
 
+  // Admin cheats
+  const limboCheats = state.adminSettings?.gameSettings?.limbo || {};
+  const godMode = state.adminSettings?.godMode;
+
   // Win chance and house edge calculation
   const winChance = Math.min(99, (99 / target));
   const expectedPayout = target * (winChance / 100);
@@ -29,8 +33,14 @@ export default function LimboGame() {
     audio.playBet();
 
     // Generate outcome (house edge ~1%)
-    const rand = Math.random();
-    const outcome = Math.max(1.00, 0.99 / rand);
+    let outcome;
+    if (limboCheats.forceHit || godMode) {
+      // Always generate a winning outcome (>= target)
+      outcome = target + Math.random() * (target * 2);
+    } else {
+      const rand = Math.random();
+      outcome = Math.max(1.00, 0.99 / rand);
+    }
     const won = outcome >= target;
 
     // Animate the number rolling
