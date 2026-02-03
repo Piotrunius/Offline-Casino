@@ -309,7 +309,7 @@ export default function BlackjackGame() {
               result.outcome === 'win' ? 'text-green-400' :
               result.outcome === 'push' ? 'text-gray-300' : 'text-red-400'
             }`}>
-              {result.outcome === 'blackjack' ? `🎰 BLACKJACK! +$${result.profit.toFixed(2)}` :
+              {result.outcome === 'blackjack' ? `BLACKJACK! +$${result.profit.toFixed(2)}` :
                result.outcome === 'win' ? `WIN! +$${result.profit.toFixed(2)}` :
                result.outcome === 'push' ? 'PUSH' :
                result.outcome === 'bust' ? `BUST! -$${bet.toFixed(2)}` :
@@ -393,7 +393,7 @@ export default function BlackjackGame() {
           {/* Payouts */}
           <div className="bg-black/40 rounded-xl p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">🎰 Blackjack</span>
+              <span className="text-gray-500">Blackjack</span>
               <span className="text-yellow-400 font-bold">3:2</span>
             </div>
             <div className="flex justify-between text-sm">
