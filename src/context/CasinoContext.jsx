@@ -46,7 +46,11 @@ const initialState = {
   stockExchange: {
     portfolio: {},
     orderHistory: [],
-    watchlist: ['NEON', 'BOLT', 'APEX']
+    watchlist: ['NEON', 'BOLT', 'APEX'],
+    stocks: null,
+    priceHistory: {},
+    news: [],
+    marketTrend: 0
   },
   settings: {
     soundEnabled: true,

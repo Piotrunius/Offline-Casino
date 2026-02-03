@@ -4,15 +4,15 @@ import audio from '../utils/audioEngine';
 
 const RISK_LEVELS = {
   low: {
-    multipliers: [5.6, 2.1, 1.1, 1, 0.5, 1, 1.1, 2.1, 5.6],
+    multipliers: [1.5, 1.2, 1.1, 0.9, 0.5, 0.9, 1.1, 1.2, 1.5],
     colors: ['#22c55e', '#22c55e', '#4ade80', '#86efac', '#94a3b8', '#86efac', '#4ade80', '#22c55e', '#22c55e']
   },
   medium: {
-    multipliers: [13, 3, 1.3, 0.7, 0.4, 0.7, 1.3, 3, 13],
+    multipliers: [3, 1.5, 0.8, 0.4, 0.2, 0.4, 0.8, 1.5, 3],
     colors: ['#eab308', '#eab308', '#facc15', '#fde047', '#94a3b8', '#fde047', '#facc15', '#eab308', '#eab308']
   },
   high: {
-    multipliers: [29, 4, 1.5, 0.3, 0, 0.3, 1.5, 4, 29],
+    multipliers: [10, 2, 0.5, 0.2, 0, 0.2, 0.5, 2, 10],
     colors: ['#ef4444', '#ef4444', '#f87171', '#fca5a5', '#94a3b8', '#fca5a5', '#f87171', '#ef4444', '#ef4444']
   }
 };
@@ -32,9 +32,9 @@ export default function PlinkoGame() {
 
   const godMode = state.adminSettings?.godMode || state.adminSettings?.gameSettings?.plinko?.forceHighMultiplier;
 
-  // Calculate peg positions
-  const getPegPositions = useCallback(() => {
-    const pegs = [];
+  // Calculate peg positions once
+  const pegs = (() => {
+    const result = [];
     const boardWidth = 100;
     const startY = 12;
     const endY = 75;
@@ -45,17 +45,15 @@ export default function PlinkoGame() {
       const spacing = boardWidth / (numPegs + 1);
 
       for (let col = 0; col < numPegs; col++) {
-        pegs.push({
+        result.push({
           x: spacing * (col + 1),
           y: startY + row * rowHeight,
           row
         });
       }
     }
-    return pegs;
-  }, []);
-
-  const pegs = getPegPositions();
+    return result;
+  })();
 
   const dropBall = useCallback(async () => {
     if (bet <= 0 || bet > state.balance) return;
@@ -66,111 +64,58 @@ export default function PlinkoGame() {
     audio.playBet();
 
     const ballId = ballIdRef.current++;
-    const duration = state.settings?.fastMode ? 2000 : 3500;
+    const duration = state.settings?.fastMode ? 1800 : 3000;
     const startTime = Date.now();
 
     const multipliers = RISK_LEVELS[risk].multipliers;
 
-    // Determine target slot
-    let targetSlot;
+    // Generate the path upfront (pre-calculate entire trajectory)
+    const path = [];
+    let x = 50 + (Math.random() - 0.5) * 8;
+    let y = 2;
+
+    // Determine final slot based on probability distribution
+    let finalSlot;
     if (godMode) {
       const maxMult = Math.max(...multipliers);
       const highIndices = multipliers.map((m, i) => m === maxMult ? i : -1).filter(i => i !== -1);
-      targetSlot = highIndices[Math.floor(Math.random() * highIndices.length)];
+      finalSlot = highIndices[Math.floor(Math.random() * highIndices.length)];
     } else {
-      // Weighted random - center more likely
-      const weights = [1, 2, 4, 8, 10, 8, 4, 2, 1];
-      const totalWeight = weights.reduce((a, b) => a + b, 0);
-      let random = Math.random() * totalWeight;
-      targetSlot = 0;
-      for (let i = 0; i < weights.length; i++) {
-        random -= weights[i];
-        if (random <= 0) {
-          targetSlot = i;
-          break;
-        }
+      // Binomial distribution - center slots much more likely
+      // This creates realistic plinko odds where edges are rare
+      let leftCount = 0;
+      for (let i = 0; i < PEG_ROWS; i++) {
+        if (Math.random() < 0.5) leftCount++;
       }
+      finalSlot = leftCount; // 0 to PEG_ROWS maps to 0 to 8
+      finalSlot = Math.max(0, Math.min(8, finalSlot));
     }
 
-    // Generate path with physics simulation
-    const path = [];
-    let x = 50 + (Math.random() - 0.5) * 10;
-    let y = 2;
-    let vx = 0;
-    let vy = 0;
+    // Calculate target X for final slot
+    const slotWidth = 100 / multipliers.length;
+    const targetX = (finalSlot + 0.5) * slotWidth;
 
-    const gravity = 0.15;
-    const friction = 0.98;
-    const bounceEnergy = 0.7;
-
-    // Calculate target x based on slot
-    const targetX = ((targetSlot + 0.5) / multipliers.length) * 100;
-    const xBias = godMode ? (targetX - 50) * 0.008 : 0;
-
+    // Generate smooth path towards target
     path.push({ x, y });
 
-    // Simulate physics
-    const steps = 200;
-    for (let step = 0; step < steps; step++) {
-      vy += gravity;
-      vx *= friction;
-      vy *= friction;
+    const totalSteps = 60;
+    for (let step = 1; step <= totalSteps; step++) {
+      const progress = step / totalSteps;
 
-      // Add slight bias towards target in god mode
-      vx += xBias;
+      // Gradually move towards target X with some wobble
+      const baseX = x + (targetX - x) * 0.03;
+      const wobble = Math.sin(step * 0.5) * (1 - progress) * 3;
+      x = baseX + wobble;
+      x = Math.max(5, Math.min(95, x));
 
-      x += vx;
-      y += vy;
+      // Y progresses smoothly
+      y = 2 + progress * 90;
 
-      // Bounce off walls
-      if (x < 5) { x = 5; vx = Math.abs(vx) * bounceEnergy; }
-      if (x > 95) { x = 95; vx = -Math.abs(vx) * bounceEnergy; }
-
-      // Check peg collisions
-      for (const peg of pegs) {
-        const dx = x - peg.x;
-        const dy = y - peg.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < 4) {
-          // Collision! Bounce off peg
-          const angle = Math.atan2(dy, dx);
-          const speed = Math.sqrt(vx * vx + vy * vy);
-
-          // Random bounce direction with some physics
-          const bounceAngle = angle + (Math.random() - 0.5) * 0.8;
-          vx = Math.cos(bounceAngle) * speed * bounceEnergy + (Math.random() - 0.5) * 1.5;
-          vy = Math.abs(Math.sin(bounceAngle) * speed * bounceEnergy) + 0.5;
-
-          // Push ball away from peg
-          x = peg.x + Math.cos(angle) * 5;
-          y = peg.y + Math.sin(angle) * 5;
-        }
-      }
-
-      // Record position every few steps
-      if (step % 2 === 0) {
-        path.push({ x: Math.max(3, Math.min(97, x)), y: Math.min(88, y) });
-      }
-
-      // Stop if reached bottom
-      if (y >= 88) break;
+      path.push({ x, y });
     }
 
-    // Final position - ensure it lands in a slot
-    const finalX = Math.max(3, Math.min(97, x));
-    path.push({ x: finalX, y: 92 });
-
-    // Determine which slot the ball lands in
-    const slotWidth = 100 / multipliers.length;
-    let finalSlot = Math.floor(finalX / slotWidth);
-    finalSlot = Math.max(0, Math.min(multipliers.length - 1, finalSlot));
-
-    // In god mode, force the correct slot
-    if (godMode) {
-      finalSlot = targetSlot;
-      path[path.length - 1].x = (targetSlot + 0.5) * slotWidth;
-    }
+    // Ensure final position is in correct slot
+    path[path.length - 1] = { x: targetX, y: 92 };
 
     const mult = multipliers[finalSlot];
 
@@ -178,8 +123,6 @@ export default function PlinkoGame() {
       id: ballId,
       path,
       currentIndex: 0,
-      startTime,
-      duration,
       mult,
       slot: finalSlot,
       bet: bet,
@@ -188,28 +131,29 @@ export default function PlinkoGame() {
 
     setBalls(prev => [...prev, newBall]);
 
-    // Animation loop
+    // Animation using pre-calculated path
+    let animationFrame;
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / duration);
 
-      // Easing for more natural movement
-      const easedProgress = 1 - Math.pow(1 - progress, 2);
-      const currentIndex = Math.min(Math.floor(easedProgress * path.length), path.length - 1);
+      // Use easeOutQuad for smooth deceleration
+      const eased = 1 - (1 - progress) * (1 - progress);
+      const currentIndex = Math.floor(eased * (path.length - 1));
 
       setBalls(prev => prev.map(b => {
         if (b.id !== ballId) return b;
-        return { ...b, currentIndex, currentPos: path[currentIndex] };
+        return { ...b, currentIndex };
       }));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animationFrame = requestAnimationFrame(animate);
       } else {
-        // Ball finished
+        // Ball finished - clean up immediately
         setBalls(prev => prev.filter(b => b.id !== ballId));
         setLastHitSlot(finalSlot);
 
-        setTimeout(() => setLastHitSlot(null), 500);
+        setTimeout(() => setLastHitSlot(null), 400);
 
         const profit = mult > 0 ? (bet * mult) - bet : -bet;
         setTotalProfit(prev => prev + profit);
@@ -235,8 +179,12 @@ export default function PlinkoGame() {
       }
     };
 
-    requestAnimationFrame(animate);
-  }, [bet, state.balance, risk, godMode, state.settings?.fastMode, placeBet, addWin, pegs]);
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+    };
+  }, [bet, state.balance, risk, godMode, state.settings?.fastMode, placeBet, addWin]);
 
   const handleBetChange = (val) => {
     const v = Math.min(Math.max(1, val), state.balance);
@@ -248,11 +196,11 @@ export default function PlinkoGame() {
   const currentColors = RISK_LEVELS[risk].colors;
 
   return (
-    <div className="h-full flex gap-4 p-3">
-      {/* Game Area - Made larger */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a15] to-[#0f0f1a] rounded-2xl p-4 flex flex-col items-center justify-center">
+    <div className="h-full flex gap-4 p-3 overflow-hidden">
+      {/* Game Area */}
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a15] to-[#0f0f1a] rounded-2xl p-4 flex flex-col items-center justify-center min-h-0">
         {/* Plinko Board */}
-        <div className="relative w-full max-w-xl aspect-[4/5] bg-gradient-to-b from-[#1a1a2e] to-[#16162a] rounded-2xl overflow-hidden border border-cyan-900/30 shadow-2xl">
+        <div className="relative w-full max-w-xl aspect-[4/5] bg-gradient-to-b from-[#1a1a2e] to-[#16162a] rounded-2xl overflow-hidden border border-cyan-900/30 shadow-2xl flex-shrink-0">
           {/* Glow effect at top */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 bg-cyan-500/20 blur-2xl rounded-full" />
 
@@ -263,7 +211,7 @@ export default function PlinkoGame() {
           {pegs.map((peg, i) => (
             <div
               key={i}
-              className="absolute w-3 h-3 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 shadow-lg"
+              className="absolute w-3 h-3 rounded-full bg-gradient-to-br from-slate-300 to-slate-500"
               style={{
                 left: `calc(${peg.x}% - 6px)`,
                 top: `calc(${peg.y}% - 6px)`,
@@ -274,17 +222,16 @@ export default function PlinkoGame() {
 
           {/* Active Balls */}
           {balls.map(ball => {
-            const pos = ball.currentPos || ball.path[0];
+            const pos = ball.path[ball.currentIndex] || ball.path[0];
             return (
               <div
                 key={ball.id}
-                className="absolute w-5 h-5 rounded-full z-20"
+                className="absolute w-5 h-5 rounded-full z-20 will-change-transform"
                 style={{
                   left: `calc(${pos.x}% - 10px)`,
                   top: `calc(${pos.y}% - 10px)`,
                   background: 'radial-gradient(circle at 30% 30%, #67e8f9, #06b6d4, #0891b2)',
-                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.8), 0 0 40px rgba(6, 182, 212, 0.4), inset 0 -2px 4px rgba(0,0,0,0.3)',
-                  transition: 'left 0.03s linear, top 0.03s linear'
+                  boxShadow: '0 0 15px rgba(6, 182, 212, 0.7), 0 0 30px rgba(6, 182, 212, 0.3)'
                 }}
               />
             );
@@ -295,7 +242,7 @@ export default function PlinkoGame() {
             {currentMultipliers.map((mult, i) => (
               <div
                 key={i}
-                className={`flex-1 mx-0.5 py-2.5 rounded-lg text-center font-bold transition-all duration-300 ${
+                className={`flex-1 mx-0.5 py-2.5 rounded-lg text-center font-bold transition-all duration-200 ${
                   lastHitSlot === i ? 'scale-110 ring-2 ring-white' : ''
                 }`}
                 style={{
@@ -307,29 +254,27 @@ export default function PlinkoGame() {
                 }}
               >
                 <span className={`text-sm drop-shadow-lg ${mult >= 1 ? 'text-white' : 'text-gray-200'}`}>
-                  {mult}×
+                  {mult}x
                 </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Session Stats */}
-        {results.length > 0 && (
-          <div className={`mt-4 px-6 py-3 rounded-xl font-bold text-lg ${
-            totalProfit >= 0
-              ? 'bg-gradient-to-r from-green-900/60 to-green-800/40 text-green-400 border border-green-600/30'
-              : 'bg-gradient-to-r from-red-900/60 to-red-800/40 text-red-400 border border-red-600/30'
-          }`}>
-            Session: {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
-          </div>
-        )}
+        {/* Session Stats - Fixed position, no scroll */}
+        <div className={`mt-3 px-5 py-2 rounded-xl font-bold text-base flex-shrink-0 ${
+          totalProfit >= 0
+            ? 'bg-gradient-to-r from-green-900/60 to-green-800/40 text-green-400 border border-green-600/30'
+            : 'bg-gradient-to-r from-red-900/60 to-red-800/40 text-red-400 border border-red-600/30'
+        }`}>
+          Session: {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
+        </div>
       </div>
 
       {/* Controls Panel */}
-      <div className="w-80 bg-[#0a0a15] rounded-2xl p-4 flex flex-col gap-4 border border-gray-800/50">
+      <div className="w-80 bg-[#0a0a15] rounded-2xl p-4 flex flex-col gap-4 border border-gray-800/50 overflow-hidden">
         {/* Bet Amount */}
-        <div>
+        <div className="flex-shrink-0">
           <label className="text-xs text-gray-400 uppercase font-bold tracking-wider">Bet Amount</label>
           <div className="relative mt-2">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 font-bold">$</span>
@@ -343,8 +288,8 @@ export default function PlinkoGame() {
           <div className="grid grid-cols-4 gap-2 mt-2">
             {[
               { label: 'MIN', action: () => handleBetChange(1) },
-              { label: '½', action: () => handleBetChange(Math.floor(bet / 2)) },
-              { label: '2×', action: () => handleBetChange(bet * 2) },
+              { label: '1/2', action: () => handleBetChange(Math.floor(bet / 2)) },
+              { label: '2X', action: () => handleBetChange(bet * 2) },
               { label: 'MAX', action: () => handleBetChange(state.balance) }
             ].map(btn => (
               <button
@@ -359,7 +304,7 @@ export default function PlinkoGame() {
         </div>
 
         {/* Risk Level */}
-        <div>
+        <div className="flex-shrink-0">
           <label className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2 block">Risk Level</label>
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(RISK_LEVELS).map(([r]) => (
@@ -383,19 +328,19 @@ export default function PlinkoGame() {
         </div>
 
         {/* Multipliers Preview */}
-        <div className="bg-black/40 rounded-xl p-3 border border-gray-800/50">
+        <div className="bg-black/40 rounded-xl p-3 border border-gray-800/50 flex-shrink-0">
           <div className="text-xs text-gray-500 uppercase font-bold mb-2">Possible Multipliers</div>
           <div className="flex gap-1.5 flex-wrap justify-center">
             {[...new Set(currentMultipliers)].sort((a, b) => b - a).map((m, i) => (
               <span
                 key={i}
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                  m >= 10 ? 'bg-gradient-to-r from-green-600 to-green-500 text-white' :
+                  m >= 3 ? 'bg-gradient-to-r from-green-600 to-green-500 text-white' :
                   m >= 1 ? 'bg-gray-700/80 text-gray-200' :
                   'bg-red-900/50 text-red-400'
                 }`}
               >
-                {m}×
+                {m}x
               </span>
             ))}
           </div>
@@ -405,25 +350,25 @@ export default function PlinkoGame() {
         <button
           onClick={dropBall}
           disabled={bet <= 0 || bet > state.balance}
-          className={`py-4 rounded-xl font-bold text-lg transition-all ${
+          className={`py-4 rounded-xl font-bold text-lg transition-all flex-shrink-0 ${
             bet <= 0 || bet > state.balance
               ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
               : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white shadow-lg shadow-cyan-600/30 hover:shadow-cyan-500/40 active:scale-95'
           }`}
         >
-          🎱 DROP BALL {balls.length > 0 && `(${balls.length} active)`}
+          DROP BALL {balls.length > 0 && `(${balls.length} active)`}
         </button>
 
         {/* Multi-drop info */}
-        <div className="text-center text-xs text-gray-500">
+        <div className="text-center text-xs text-gray-500 flex-shrink-0">
           Click multiple times for multiple balls!
         </div>
 
-        {/* Results History */}
+        {/* Results History - Scrollable if needed */}
         {results.length > 0 && (
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2">Recent Drops</div>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700">
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {results.map((r) => (
                 <div
                   key={r.id}
@@ -440,7 +385,7 @@ export default function PlinkoGame() {
                   }`}>
                     {r.risk}
                   </span>
-                  <span className="font-bold">{r.mult}×</span>
+                  <span className="font-bold">{r.mult}x</span>
                   <span className="font-mono">{r.profit >= 0 ? '+' : ''}${r.profit.toFixed(2)}</span>
                 </div>
               ))}

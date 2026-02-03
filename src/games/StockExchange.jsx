@@ -2,90 +2,123 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// Mock stocks with realistic behaviors
-const INITIAL_STOCKS = [
-  { symbol: 'NEON', name: 'Neon Industries', price: 150.00, volatility: 0.03, trend: 0.001, sector: 'tech' },
-  { symbol: 'GLXY', name: 'Galaxy Corp', price: 85.50, volatility: 0.04, trend: -0.001, sector: 'tech' },
-  { symbol: 'BOLT', name: 'Bolt Energy', price: 220.00, volatility: 0.025, trend: 0.002, sector: 'energy' },
-  { symbol: 'APEX', name: 'Apex Gaming', price: 45.00, volatility: 0.05, trend: 0.0005, sector: 'gaming' },
-  { symbol: 'CRSN', name: 'Crescent Finance', price: 320.00, volatility: 0.02, trend: 0.0015, sector: 'finance' },
-  { symbol: 'VOID', name: 'Void Technologies', price: 12.50, volatility: 0.08, trend: -0.002, sector: 'tech' },
-  { symbol: 'FLUX', name: 'Flux Dynamics', price: 95.00, volatility: 0.035, trend: 0.001, sector: 'industrial' },
-  { symbol: 'NOVA', name: 'Nova Pharmaceuticals', price: 180.00, volatility: 0.03, trend: 0.0025, sector: 'healthcare' },
-  { symbol: 'ZETA', name: 'Zeta Mining', price: 28.00, volatility: 0.06, trend: -0.0015, sector: 'materials' },
-  { symbol: 'PRMA', name: 'Prima Retail', price: 62.00, volatility: 0.04, trend: 0, sector: 'consumer' }
+// Base stocks configuration
+const STOCK_CONFIG = [
+  { symbol: 'NEON', name: 'Neon Industries', basePrice: 150, volatility: 0.025, trend: 0.0008, sector: 'tech' },
+  { symbol: 'GLXY', name: 'Galaxy Corp', basePrice: 85, volatility: 0.035, trend: -0.0005, sector: 'tech' },
+  { symbol: 'BOLT', name: 'Bolt Energy', basePrice: 220, volatility: 0.02, trend: 0.001, sector: 'energy' },
+  { symbol: 'APEX', name: 'Apex Gaming', basePrice: 45, volatility: 0.045, trend: 0.0003, sector: 'gaming' },
+  { symbol: 'CRSN', name: 'Crescent Finance', basePrice: 320, volatility: 0.018, trend: 0.0012, sector: 'finance' },
+  { symbol: 'VOID', name: 'Void Technologies', basePrice: 12, volatility: 0.07, trend: -0.001, sector: 'tech' },
+  { symbol: 'FLUX', name: 'Flux Dynamics', basePrice: 95, volatility: 0.03, trend: 0.0006, sector: 'industrial' },
+  { symbol: 'NOVA', name: 'Nova Pharmaceuticals', basePrice: 180, volatility: 0.025, trend: 0.002, sector: 'healthcare' },
+  { symbol: 'ZETA', name: 'Zeta Mining', basePrice: 28, volatility: 0.055, trend: -0.0008, sector: 'materials' },
+  { symbol: 'PRMA', name: 'Prima Retail', basePrice: 62, volatility: 0.035, trend: 0, sector: 'consumer' }
 ];
 
 const NEWS_EVENTS = [
-  { type: 'positive', message: '{symbol} announces record earnings!', impact: 0.08 },
-  { type: 'positive', message: '{symbol} secures major government contract', impact: 0.12 },
-  { type: 'positive', message: 'Analysts upgrade {symbol} to BUY', impact: 0.05 },
-  { type: 'positive', message: '{symbol} launches revolutionary new product', impact: 0.1 },
-  { type: 'negative', message: '{symbol} misses quarterly expectations', impact: -0.07 },
-  { type: 'negative', message: 'CEO of {symbol} resigns unexpectedly', impact: -0.1 },
-  { type: 'negative', message: '{symbol} faces regulatory investigation', impact: -0.15 },
-  { type: 'negative', message: 'Analysts downgrade {symbol} to SELL', impact: -0.06 },
-  { type: 'neutral', message: '{symbol} announces stock split', impact: 0 },
-  { type: 'neutral', message: '{symbol} to release earnings next week', impact: 0.02 }
+  { type: 'positive', message: '{symbol} announces record quarterly earnings!', impact: 0.06 },
+  { type: 'positive', message: '{symbol} secures major government contract', impact: 0.09 },
+  { type: 'positive', message: 'Analysts upgrade {symbol} to STRONG BUY', impact: 0.04 },
+  { type: 'positive', message: '{symbol} launches revolutionary new product line', impact: 0.07 },
+  { type: 'positive', message: '{symbol} announces strategic partnership', impact: 0.05 },
+  { type: 'positive', message: 'Institutional investors increase stake in {symbol}', impact: 0.03 },
+  { type: 'positive', message: '{symbol} beats analyst expectations by 20%', impact: 0.08 },
+  { type: 'positive', message: '{symbol} expands into emerging markets', impact: 0.04 },
+  { type: 'negative', message: '{symbol} misses quarterly expectations', impact: -0.05 },
+  { type: 'negative', message: 'CEO of {symbol} announces surprise resignation', impact: -0.08 },
+  { type: 'negative', message: '{symbol} faces regulatory investigation', impact: -0.12 },
+  { type: 'negative', message: 'Analysts downgrade {symbol} to SELL', impact: -0.05 },
+  { type: 'negative', message: '{symbol} reports supply chain disruptions', impact: -0.04 },
+  { type: 'negative', message: 'Major lawsuit filed against {symbol}', impact: -0.07 },
+  { type: 'negative', message: '{symbol} announces product recall', impact: -0.06 },
+  { type: 'negative', message: 'Insider selling detected at {symbol}', impact: -0.03 },
+  { type: 'neutral', message: '{symbol} announces 2-for-1 stock split', impact: 0 },
+  { type: 'neutral', message: '{symbol} to release earnings next week', impact: 0.015 },
+  { type: 'neutral', message: '{symbol} appoints new board member', impact: 0.01 },
+  { type: 'neutral', message: '{symbol} opens new headquarters facility', impact: 0.02 },
+  { type: 'neutral', message: 'Market watch: {symbol} trading at 52-week high', impact: 0.01 },
+  { type: 'neutral', message: '{symbol} increases R&D budget by 15%', impact: 0.02 }
 ];
-
-const SECTORS = ['tech', 'energy', 'gaming', 'finance', 'industrial', 'healthcare', 'materials', 'consumer'];
 
 export default function StockExchange() {
   const { state, setBalance, updateStockExchange } = useCasino();
-  const [stocks, setStocks] = useState(INITIAL_STOCKS);
+  
+  // Initialize stocks from saved state or fresh
+  const [stocks, setStocks] = useState(() => {
+    const saved = state.stockExchange?.stocks;
+    if (saved && saved.length === STOCK_CONFIG.length) {
+      return saved;
+    }
+    return STOCK_CONFIG.map(s => ({ ...s, price: s.basePrice }));
+  });
+  
   const [portfolio, setPortfolio] = useState(state.stockExchange?.portfolio || {});
-  const [selectedStock, setSelectedStock] = useState(INITIAL_STOCKS[0]);
-  const [orderType, setOrderType] = useState('buy'); // buy, sell
+  const [selectedStock, setSelectedStock] = useState(stocks[0]);
+  const [orderType, setOrderType] = useState('buy');
   const [orderAmount, setOrderAmount] = useState(1);
-  const [priceHistory, setPriceHistory] = useState({});
-  const [news, setNews] = useState([]);
-  const [marketStatus, setMarketStatus] = useState('open'); // open, closed
-  const [timeSpeed, setTimeSpeed] = useState(1); // 1x, 2x, 5x
-  const [chartTimeframe, setChartTimeframe] = useState('1h'); // 1m, 5m, 1h, 1d
+  const [priceHistory, setPriceHistory] = useState(() => {
+    const saved = state.stockExchange?.priceHistory;
+    if (saved && Object.keys(saved).length > 0) {
+      return saved;
+    }
+    // Generate initial history
+    const history = {};
+    stocks.forEach(stock => {
+      history[stock.symbol] = generateInitialHistory(stock.price || stock.basePrice, 100);
+    });
+    return history;
+  });
+  const [news, setNews] = useState(state.stockExchange?.news || []);
+  const [marketStatus, setMarketStatus] = useState('open');
+  const [timeSpeed, setTimeSpeed] = useState(1);
   const [totalPortfolioValue, setTotalPortfolioValue] = useState(0);
   const [watchlist, setWatchlist] = useState(state.stockExchange?.watchlist || ['NEON', 'BOLT', 'APEX']);
   const [orderHistory, setOrderHistory] = useState(state.stockExchange?.orderHistory || []);
-  const [marketTrend, setMarketTrend] = useState(0); // Overall market direction
+  const [marketTrend, setMarketTrend] = useState(state.stockExchange?.marketTrend || 0);
   const tickRef = useRef(null);
-
-  // Save stock exchange state to context
-  useEffect(() => {
-    updateStockExchange({ portfolio, watchlist, orderHistory: orderHistory.slice(0, 20) });
-  }, [portfolio, watchlist, orderHistory]);
-
-  // Initialize price history
-  useEffect(() => {
-    const history = {};
-    stocks.forEach(stock => {
-      history[stock.symbol] = generateInitialHistory(stock.price, 100);
-    });
-    setPriceHistory(history);
-  }, []);
+  const lastSaveRef = useRef(Date.now());
 
   // Generate initial price history
-  const generateInitialHistory = (currentPrice, points) => {
+  function generateInitialHistory(currentPrice, points) {
     const history = [];
-    let price = currentPrice * 0.9; // Start 10% lower
+    let price = currentPrice * 0.9;
     for (let i = 0; i < points; i++) {
-      price *= 1 + (Math.random() - 0.48) * 0.02;
+      price *= 1 + (Math.random() - 0.48) * 0.015;
       history.push({
         time: Date.now() - (points - i) * 60000,
         price: Math.max(0.01, price)
       });
     }
     return history;
-  };
+  }
 
-  // Market simulation tick
+  // Save stock exchange state to context periodically
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastSaveRef.current > 2000) { // Save every 2 seconds
+      lastSaveRef.current = now;
+      updateStockExchange({ 
+        portfolio, 
+        watchlist, 
+        orderHistory: orderHistory.slice(0, 20),
+        stocks,
+        priceHistory,
+        news: news.slice(0, 15),
+        marketTrend
+      });
+    }
+  }, [portfolio, watchlist, orderHistory, stocks, priceHistory, news, marketTrend]);
+
+  // Market simulation tick - runs continuously
   useEffect(() => {
     const tick = () => {
       if (marketStatus !== 'open') return;
 
       // Update market trend randomly
       setMarketTrend(prev => {
-        const change = (Math.random() - 0.5) * 0.002;
-        return Math.max(-0.01, Math.min(0.01, prev + change));
+        const change = (Math.random() - 0.5) * 0.0015;
+        return Math.max(-0.008, Math.min(0.008, prev + change));
       });
 
       // Update all stock prices
@@ -113,8 +146,8 @@ export default function StockExchange() {
         return newHistory;
       });
 
-      // Random news events (1% chance per tick)
-      if (Math.random() < 0.01) {
+      // Random news events (0.8% chance per tick)
+      if (Math.random() < 0.008) {
         generateNewsEvent();
       }
     };
@@ -135,6 +168,16 @@ export default function StockExchange() {
     setTotalPortfolioValue(total);
   }, [portfolio, stocks]);
 
+  // Update selected stock reference when stocks change
+  useEffect(() => {
+    if (selectedStock) {
+      const updated = stocks.find(s => s.symbol === selectedStock.symbol);
+      if (updated) {
+        setSelectedStock(updated);
+      }
+    }
+  }, [stocks]);
+
   const generateNewsEvent = () => {
     const randomStock = stocks[Math.floor(Math.random() * stocks.length)];
     const event = NEWS_EVENTS[Math.floor(Math.random() * NEWS_EVENTS.length)];
@@ -148,7 +191,7 @@ export default function StockExchange() {
       impact: event.impact
     };
 
-    setNews(prev => [newsItem, ...prev.slice(0, 9)]);
+    setNews(prev => [newsItem, ...prev.slice(0, 14)]);
 
     // Apply news impact to stock price
     setStocks(prev => prev.map(s => {
@@ -334,11 +377,11 @@ export default function StockExchange() {
   };
 
   return (
-    <div className="h-full flex gap-4">
+    <div className="h-full flex gap-4 overflow-hidden">
       {/* Left Panel - Market Overview */}
       <div className="w-72 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
         {/* Market Status */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-shrink-0">
           <div>
             <h2 className="font-bold text-white">Market</h2>
             <div className={`text-xs ${marketStatus === 'open' ? 'text-green-400' : 'text-red-400'}`}>
@@ -356,7 +399,7 @@ export default function StockExchange() {
         </div>
 
         {/* Speed Control */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-shrink-0">
           {[1, 2, 5].map(speed => (
             <button
               key={speed}
@@ -371,18 +414,18 @@ export default function StockExchange() {
         </div>
 
         {/* Market Trend */}
-        <div className="bg-black/30 rounded-lg p-2">
+        <div className="bg-black/30 rounded-lg p-2 flex-shrink-0">
           <div className="text-xs text-gray-500 mb-1">Market Trend</div>
           <div className={`text-lg font-bold ${marketTrend >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {marketTrend >= 0 ? '📈' : '📉'} {(marketTrend * 100).toFixed(3)}%
+            {marketTrend >= 0 ? '↑' : '↓'} {(marketTrend * 100).toFixed(3)}%
           </div>
         </div>
 
         {/* Stock List */}
-        <div className="flex-1 overflow-y-auto space-y-1">
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
           <div className="text-xs text-gray-500 mb-2">ALL STOCKS</div>
           {stocks.map(stock => {
-            const { change, percent } = getPriceChange(stock);
+            const { percent } = getPriceChange(stock);
             const isUp = percent >= 0;
             return (
               <button
@@ -416,11 +459,11 @@ export default function StockExchange() {
       </div>
 
       {/* Main Area - Chart & Details */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-4 flex flex-col gap-4">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
         {selectedStock && (
           <>
             {/* Stock Header */}
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between flex-shrink-0">
               <div>
                 <div className="flex items-center gap-3">
                   <h2 className="text-2xl font-bold text-white">{selectedStock.symbol}</h2>
@@ -448,12 +491,12 @@ export default function StockExchange() {
             </div>
 
             {/* Chart */}
-            <div className="flex-1 bg-black/30 rounded-xl p-4 min-h-[200px]">
+            <div className="flex-1 bg-black/30 rounded-xl p-4 min-h-[180px]">
               <MainChart />
             </div>
 
             {/* Stock Info */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-4 flex-shrink-0">
               <div className="bg-black/30 rounded-lg p-3">
                 <div className="text-xs text-gray-500">Sector</div>
                 <div className="text-white font-bold capitalize">{selectedStock.sector}</div>
@@ -478,9 +521,9 @@ export default function StockExchange() {
       </div>
 
       {/* Right Panel - Trading & Portfolio */}
-      <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4">
+      <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
         {/* Account Summary */}
-        <div className="bg-gradient-to-r from-cyan-900/30 to-purple-900/30 rounded-xl p-4">
+        <div className="bg-gradient-to-r from-cyan-900/30 to-purple-900/30 rounded-xl p-4 flex-shrink-0">
           <div className="text-xs text-gray-500 mb-1">Account Balance</div>
           <div className="text-2xl font-bold text-white">${state.balance.toFixed(2)}</div>
           <div className="mt-2 pt-2 border-t border-white/10">
@@ -497,7 +540,7 @@ export default function StockExchange() {
 
         {/* Trade Panel */}
         {selectedStock && (
-          <div className="bg-black/30 rounded-xl p-4">
+          <div className="bg-black/30 rounded-xl p-4 flex-shrink-0">
             <div className="text-xs text-gray-500 mb-3">TRADE {selectedStock.symbol}</div>
 
             {/* Buy/Sell Toggle */}
@@ -582,7 +625,7 @@ export default function StockExchange() {
         )}
 
         {/* Portfolio Holdings */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           <div className="text-xs text-gray-500 mb-2">YOUR PORTFOLIO</div>
           {Object.entries(portfolio).length === 0 ? (
             <div className="text-gray-600 text-sm text-center py-4">
@@ -615,13 +658,13 @@ export default function StockExchange() {
         </div>
 
         {/* News Feed */}
-        <div className="max-h-40 overflow-y-auto">
-          <div className="text-xs text-gray-500 mb-2">NEWS FEED</div>
+        <div className="max-h-48 overflow-y-auto flex-shrink-0">
+          <div className="text-xs text-gray-500 mb-2">NEWS FEED ({news.length})</div>
           {news.length === 0 ? (
             <div className="text-gray-600 text-xs text-center py-2">No news yet</div>
           ) : (
             <div className="space-y-1">
-              {news.slice(0, 5).map(item => (
+              {news.slice(0, 10).map(item => (
                 <div
                   key={item.id}
                   className={`text-xs p-2 rounded ${
