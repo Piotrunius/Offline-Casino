@@ -48,8 +48,18 @@ export default function StockExchange() {
     if (saved && saved.length === STOCK_CONFIG.length) {
       return saved;
     }
-    return STOCK_CONFIG.map(s => ({ ...s, price: s.basePrice }));
+    // Initialize stocks and save to global context
+    const initialStocks = STOCK_CONFIG.map(s => ({ ...s, price: s.basePrice }));
+    return initialStocks;
   });
+
+  // Initialize stocks in global context on first load
+  useEffect(() => {
+    if (!state.stockExchange?.stocks || state.stockExchange.stocks.length === 0) {
+      const initialStocks = STOCK_CONFIG.map(s => ({ ...s, price: s.basePrice }));
+      updateStockExchange({ stocks: initialStocks });
+    }
+  }, []);
 
   const [portfolio, setPortfolio] = useState(state.stockExchange?.portfolio || {});
   const [selectedStock, setSelectedStock] = useState(stocks[0]);
@@ -128,30 +138,31 @@ export default function StockExchange() {
     }
   }, [portfolio, watchlist, orderHistory, stocks, priceHistory, news, marketTrend, updateStockExchange]);
 
-  // Market simulation - THIS RUNS CONTINUOUSLY
+  // Sync stocks from global context
+  useEffect(() => {
+    if (state.stockExchange?.stocks && state.stockExchange.stocks.length > 0) {
+      setStocks(state.stockExchange.stocks);
+      // Update selected stock with new price
+      setSelectedStock(prev => {
+        const updated = state.stockExchange.stocks.find(s => s.symbol === prev?.symbol);
+        return updated || state.stockExchange.stocks[0];
+      });
+    }
+  }, [state.stockExchange?.stocks]);
+
+  // Sync market trend from global context
+  useEffect(() => {
+    if (state.stockExchange?.marketTrend !== undefined) {
+      setMarketTrend(state.stockExchange.marketTrend);
+    }
+  }, [state.stockExchange?.marketTrend]);
+
+  // Price history and news updates (local only - doesn't affect header price)
   useEffect(() => {
     const tick = () => {
       if (marketStatus !== 'open') return;
 
-      // Global trend oscillates dramatically - REMOVED, only market trend now
-      // Market trend - base random walk without global influence
-      setMarketTrend(prev => {
-        const change = (Math.random() - 0.5) * 0.002;
-        return Math.max(-0.01, Math.min(0.01, prev + change));
-      });
-
-      // Update all stock prices - simplified without global trend
-      setStocks(prevStocks => prevStocks.map(stock => {
-        const marketEffect = marketTrend;
-        const randomWalk = (Math.random() - 0.5) * 2 * stock.volatility;
-        const trendEffect = stock.trend;
-        const priceChange = 1 + marketEffect + randomWalk + trendEffect;
-        const newPrice = Math.max(0.01, stock.price * priceChange);
-
-        return { ...stock, price: newPrice };
-      }));
-
-      // Update price history
+      // Update price history from current stocks
       setPriceHistory(prev => {
         const newHistory = { ...prev };
         stocks.forEach(stock => {
@@ -175,7 +186,7 @@ export default function StockExchange() {
 
     tickRef.current = setInterval(tick, 1000 / timeSpeed);
     return () => clearInterval(tickRef.current);
-  }, [marketStatus, stocks, marketTrend, timeSpeed]);
+  }, [marketStatus, stocks, timeSpeed]);
 
   // News auto-delete after 90 seconds
   useEffect(() => {

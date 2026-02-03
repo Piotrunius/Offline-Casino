@@ -319,7 +319,7 @@ export default function HiLoGame() {
             <span className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
               {result.won
                 ? result.cashout
-                  ? `💰 CASHED OUT ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}`
+                  ? `CASHED OUT ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}`
                   : `WIN! Total ${result.mult.toFixed(2)}x`
                 : `LOSE -$${initialBetRef.current.toFixed(2)}`
               }

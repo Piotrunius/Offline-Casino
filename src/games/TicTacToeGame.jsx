@@ -47,22 +47,78 @@ export default function TicTacToeGame() {
 
   const isBoardFull = (squares) => squares.every(s => s !== null);
 
+  // Minimax algorithm for perfect AI play
+  const minimax = useCallback((squares, isMaximizing, alpha, beta) => {
+    const winner = checkWinner(squares);
+    if (winner?.winner === 'O') return 10;
+    if (winner?.winner === 'X') return -10;
+    if (squares.every(s => s !== null)) return 0;
+
+    if (isMaximizing) {
+      let maxEval = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (squares[i] === null) {
+          squares[i] = 'O';
+          const evalScore = minimax(squares, false, alpha, beta);
+          squares[i] = null;
+          maxEval = Math.max(maxEval, evalScore);
+          alpha = Math.max(alpha, evalScore);
+          if (beta <= alpha) break;
+        }
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (squares[i] === null) {
+          squares[i] = 'X';
+          const evalScore = minimax(squares, true, alpha, beta);
+          squares[i] = null;
+          minEval = Math.min(minEval, evalScore);
+          beta = Math.min(beta, evalScore);
+          if (beta <= alpha) break;
+        }
+      }
+      return minEval;
+    }
+  }, []);
+
+  const getBestMove = useCallback((squares) => {
+    let bestScore = -Infinity;
+    let bestMove = null;
+
+    for (let i = 0; i < 9; i++) {
+      if (squares[i] === null) {
+        squares[i] = 'O';
+        const score = minimax(squares, false, -Infinity, Infinity);
+        squares[i] = null;
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = i;
+        }
+      }
+    }
+    return bestMove;
+  }, [minimax]);
+
   const getAIMove = useCallback((squares, aiDifficulty) => {
     const emptySquares = squares.map((s, i) => s === null ? i : null).filter(i => i !== null);
 
     if (emptySquares.length === 0) return null;
 
-    // In god mode, AI makes stupid moves
-    if (godMode) {
+    // In god mode or admin cheat, AI makes stupid moves
+    if (godMode || state.adminSettings?.gameSettings?.tictactoe?.aiMakesStupidMoves) {
       return emptySquares[Math.floor(Math.random() * emptySquares.length)];
     }
 
-    // Easy: Random moves
+    // Easy: 70% random, 30% smart
     if (aiDifficulty === 'easy') {
-      return emptySquares[Math.floor(Math.random() * emptySquares.length)];
+      if (Math.random() < 0.7) {
+        return emptySquares[Math.floor(Math.random() * emptySquares.length)];
+      }
     }
 
-    // Check for winning move
+    // Check for winning move (all difficulties)
     for (const idx of emptySquares) {
       const testBoard = [...squares];
       testBoard[idx] = 'O';
@@ -71,7 +127,7 @@ export default function TicTacToeGame() {
       }
     }
 
-    // Check for blocking move
+    // Check for blocking move (all difficulties)
     for (const idx of emptySquares) {
       const testBoard = [...squares];
       testBoard[idx] = 'X';
@@ -80,24 +136,28 @@ export default function TicTacToeGame() {
       }
     }
 
-    // Medium: Random after blocking/winning
-    if (aiDifficulty === 'medium') {
+    // Easy: Random after blocking
+    if (aiDifficulty === 'easy') {
       return emptySquares[Math.floor(Math.random() * emptySquares.length)];
     }
 
-    // Hard: Strategic moves
-    // Prefer center
-    if (squares[4] === null) return 4;
-
-    // Prefer corners
-    const corners = [0, 2, 6, 8].filter(i => squares[i] === null);
-    if (corners.length > 0) {
-      return corners[Math.floor(Math.random() * corners.length)];
+    // Medium: 50% random, 50% strategic
+    if (aiDifficulty === 'medium') {
+      if (Math.random() < 0.5) {
+        return emptySquares[Math.floor(Math.random() * emptySquares.length)];
+      }
+      // Take center or corner
+      if (squares[4] === null) return 4;
+      const corners = [0, 2, 6, 8].filter(i => squares[i] === null);
+      if (corners.length > 0) {
+        return corners[Math.floor(Math.random() * corners.length)];
+      }
+      return emptySquares[Math.floor(Math.random() * emptySquares.length)];
     }
 
-    // Any edge
-    return emptySquares[Math.floor(Math.random() * emptySquares.length)];
-  }, [godMode]);
+    // Hard: Perfect minimax play (unbeatable)
+    return getBestMove([...squares]);
+  }, [godMode, state.adminSettings?.gameSettings?.tictactoe?.aiMakesStupidMoves, getBestMove]);
 
   const startGame = useCallback(async () => {
     if (gamePhase !== 'betting' || bet <= 0 || bet > state.balance) return;
@@ -214,7 +274,7 @@ export default function TicTacToeGame() {
             {gamePhase === 'betting' && 'Place your bet to start'}
             {gamePhase === 'playing' && isPlayerTurn && 'Your turn (X)'}
             {gamePhase === 'playing' && !isPlayerTurn && 'AI thinking...'}
-            {gamePhase === 'ended' && result?.outcome === 'win' && '🎉 You win!'}
+            {gamePhase === 'ended' && result?.outcome === 'win' && 'You win!'}
             {gamePhase === 'ended' && result?.outcome === 'lose' && 'AI wins!'}
             {gamePhase === 'ended' && result?.outcome === 'tie' && 'It\'s a tie!'}
           </span>

@@ -195,7 +195,7 @@ export default function TowerGame() {
               : 'bg-gradient-to-r from-red-900/80 to-rose-900/80 border border-red-500/50'
           }`}>
             <span className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? `💎 ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}` : '💀 TRAP!'}
+              {result.won ? `${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}` : 'TRAP!'}
             </span>
           </div>
         )}

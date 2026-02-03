@@ -120,9 +120,11 @@ export default function BlackjackGame() {
     if (pVal === 21) {
       const dVal = calcValue(dCards);
       if (dVal === 21) {
-        endGame('push', pCards, dCards, 1);
+        // Both have blackjack - push
+        endGame({ outcome: 'push', mult: 1 }, null, dCards);
       } else {
-        endGame('blackjack', pCards, dCards, 2.5);
+        // Player blackjack wins 2.5x
+        endGame({ outcome: 'blackjack', mult: 2.5 }, null, dCards);
       }
     } else {
       setGamePhase('playing');
@@ -150,7 +152,7 @@ export default function BlackjackGame() {
         if (splitHand.length > 0 && activeHand === 0) {
           playDealer();
         } else {
-          endGame('bust', newCards, dealerCards, 0);
+          endGame({ outcome: 'bust', mult: 0 }, null, dealerCards);
         }
       }
     }
@@ -172,17 +174,32 @@ export default function BlackjackGame() {
     if (!placeBet(bet, 'blackjack')) return;
 
     const newCard = getCard();
-    const newCards = [...playerCards, newCard];
-    setPlayerCards(newCards);
-    setBet(bet * 2);
     audio.playBet();
 
-    if (calcValue(newCards) > 21) {
-      endGame('bust', newCards, dealerCards, 0);
+    // Handle double on split hand
+    if (gamePhase === 'playing_split' && activeHand === 1) {
+      const newSplit = [...splitHand, newCard];
+      setSplitHand(newSplit);
+      // Move to main hand after doubling on split
+      setActiveHand(0);
+      setGamePhase('playing');
     } else {
-      playDealer();
+      const newCards = [...playerCards, newCard];
+      setPlayerCards(newCards);
+      setBet(bet * 2);
+
+      if (calcValue(newCards) > 21) {
+        if (splitHand.length > 0) {
+          // If we have split, still need to evaluate both hands
+          playDealer();
+        } else {
+          endGame({ outcome: 'bust', mult: 0 }, null, dealerCards);
+        }
+      } else {
+        playDealer();
+      }
     }
-  }, [canDouble, gamePhase, playerCards, dealerCards, bet, state.balance, placeBet]);
+  }, [canDouble, gamePhase, playerCards, splitHand, dealerCards, activeHand, bet, state.balance, placeBet]);
 
   const split = useCallback(() => {
     if (!canSplit) return;
@@ -216,40 +233,92 @@ export default function BlackjackGame() {
 
   const evaluateResults = (dCards) => {
     const dVal = calcValue(dCards);
+
+    // Calculate results for main hand
     const pVal = calcValue(playerCards);
+    let hand1Result = { outcome: 'lose', mult: 0 };
 
-    let outcome, mult;
-
-    if (dVal > 21) {
-      outcome = 'win';
-      mult = 2;
-    } else if (dVal > pVal || pVal > 21) {
-      outcome = 'lose';
-      mult = 0;
+    if (pVal > 21) {
+      hand1Result = { outcome: 'lose', mult: 0 };
+    } else if (dVal > 21) {
+      hand1Result = { outcome: 'win', mult: 2 };
     } else if (pVal > dVal) {
-      outcome = 'win';
-      mult = 2;
+      hand1Result = { outcome: 'win', mult: 2 };
+    } else if (pVal === dVal) {
+      hand1Result = { outcome: 'push', mult: 1 };
     } else {
-      outcome = 'push';
-      mult = 1;
+      hand1Result = { outcome: 'lose', mult: 0 };
     }
 
-    endGame(outcome, playerCards, dCards, mult);
+    // Calculate results for split hand if exists
+    let hand2Result = null;
+    if (splitHand.length > 0) {
+      const sVal = calcValue(splitHand);
+
+      if (sVal > 21) {
+        hand2Result = { outcome: 'lose', mult: 0 };
+      } else if (dVal > 21) {
+        hand2Result = { outcome: 'win', mult: 2 };
+      } else if (sVal > dVal) {
+        hand2Result = { outcome: 'win', mult: 2 };
+      } else if (sVal === dVal) {
+        hand2Result = { outcome: 'push', mult: 1 };
+      } else {
+        hand2Result = { outcome: 'lose', mult: 0 };
+      }
+    }
+
+    endGame(hand1Result, hand2Result, dCards);
   };
 
-  const endGame = (outcome, pCards, dCards, mult) => {
+  const endGame = (hand1Result, hand2Result, dCards) => {
     setGamePhase('ended');
-    const winAmount = bet * mult;
-    const profit = winAmount - bet;
 
-    setResult({ outcome, mult, profit, pVal: calcValue(pCards), dVal: calcValue(dCards) });
-    setHistory(h => [{ outcome, mult: mult.toFixed(1) }, ...h.slice(0, 4)]);
+    let totalMult = hand1Result.mult;
+    let totalBet = bet;
 
-    if (mult > 0) {
-      addWin(winAmount, bet, 'blackjack', mult);
-      if (mult > 1) audio.playWin(); else audio.playLose();
+    if (hand2Result) {
+      totalMult += hand2Result.mult;
+      totalBet = bet * 2; // Split doubles the bet
+    }
+
+    const winAmount = bet * totalMult;
+    const profit = winAmount - totalBet;
+
+    // Determine overall outcome for display
+    let overallOutcome;
+    if (hand2Result) {
+      const wins = (hand1Result.mult > 1 ? 1 : 0) + (hand2Result.mult > 1 ? 1 : 0);
+      const pushes = (hand1Result.mult === 1 ? 1 : 0) + (hand2Result.mult === 1 ? 1 : 0);
+      if (wins === 2) overallOutcome = 'win';
+      else if (wins === 1 && pushes === 1) overallOutcome = 'win';
+      else if (wins === 1) overallOutcome = 'partial';
+      else if (pushes === 2) overallOutcome = 'push';
+      else if (pushes === 1) overallOutcome = 'partial';
+      else overallOutcome = 'lose';
     } else {
-      addWin(0, bet, 'blackjack', 0);
+      overallOutcome = hand1Result.outcome;
+    }
+
+    setResult({
+      outcome: overallOutcome,
+      mult: totalMult,
+      profit,
+      pVal: calcValue(playerCards),
+      dVal: calcValue(dCards),
+      hand1: hand1Result,
+      hand2: hand2Result
+    });
+    setHistory(h => [{ outcome: overallOutcome, mult: totalMult.toFixed(1) }, ...h.slice(0, 4)]);
+
+    if (profit > 0) {
+      addWin(winAmount, totalBet, 'blackjack', totalMult / (hand2Result ? 2 : 1));
+      audio.playWin();
+    } else if (profit === 0) {
+      addWin(winAmount, totalBet, 'blackjack', 1);
+      audio.playBet();
+    } else {
+      addWin(winAmount, totalBet, 'blackjack', totalMult / (hand2Result ? 2 : 1));
       audio.playLose();
     }
   };
@@ -300,21 +369,34 @@ export default function BlackjackGame() {
         {result && (
           <div className={`text-center py-4 rounded-2xl my-4 ${
             result.outcome === 'blackjack' ? 'bg-gradient-to-r from-yellow-900/60 to-amber-900/60 border-2 border-yellow-500/50' :
-            result.outcome === 'win' ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border-2 border-green-500/50' :
-            result.outcome === 'push' ? 'bg-gray-700/60 border-2 border-gray-500/50' :
+            result.outcome === 'win' || result.profit > 0 ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border-2 border-green-500/50' :
+            result.outcome === 'push' || result.profit === 0 ? 'bg-gray-700/60 border-2 border-gray-500/50' :
+            result.outcome === 'partial' ? 'bg-gradient-to-r from-yellow-900/60 to-orange-900/60 border-2 border-yellow-500/50' :
             'bg-gradient-to-r from-red-900/60 to-rose-900/60 border-2 border-red-500/50'
           }`}>
             <span className={`text-3xl font-black ${
               result.outcome === 'blackjack' ? 'text-yellow-400' :
-              result.outcome === 'win' ? 'text-green-400' :
-              result.outcome === 'push' ? 'text-gray-300' : 'text-red-400'
+              result.profit > 0 ? 'text-green-400' :
+              result.profit === 0 ? 'text-gray-300' :
+              result.outcome === 'partial' ? 'text-yellow-400' : 'text-red-400'
             }`}>
               {result.outcome === 'blackjack' ? `BLACKJACK! +$${result.profit.toFixed(2)}` :
-               result.outcome === 'win' ? `WIN! +$${result.profit.toFixed(2)}` :
-               result.outcome === 'push' ? 'PUSH' :
-               result.outcome === 'bust' ? `BUST! -$${bet.toFixed(2)}` :
-               `LOSE -$${bet.toFixed(2)}`}
+               result.profit > 0 ? `WIN! +$${result.profit.toFixed(2)}` :
+               result.profit === 0 ? 'PUSH' :
+               result.outcome === 'partial' ? `PARTIAL -$${Math.abs(result.profit).toFixed(2)}` :
+               result.outcome === 'bust' ? `BUST! -$${Math.abs(result.profit).toFixed(2)}` :
+               `LOSE -$${Math.abs(result.profit).toFixed(2)}`}
             </span>
+            {result.hand2 && (
+              <div className="flex justify-center gap-4 mt-2 text-sm">
+                <span className={result.hand1.mult > 1 ? 'text-green-400' : result.hand1.mult === 1 ? 'text-gray-400' : 'text-red-400'}>
+                  Hand 1: {result.hand1.outcome.toUpperCase()}
+                </span>
+                <span className={result.hand2.mult > 1 ? 'text-green-400' : result.hand2.mult === 1 ? 'text-gray-400' : 'text-red-400'}>
+                  Hand 2: {result.hand2.outcome.toUpperCase()}
+                </span>
+              </div>
+            )}
           </div>
         )}
 

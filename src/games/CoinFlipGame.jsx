@@ -182,7 +182,7 @@ export default function CoinFlipGame() {
               : 'bg-gradient-to-r from-red-900/70 to-rose-900/70 border border-red-500/50'
           }`}>
             <div className={`text-3xl font-black capitalize ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.outcome === 'heads' ? '🪙' : '🌟'} {result.outcome.toUpperCase()}!
+              {result.outcome.toUpperCase()}!
             </div>
             <div className={`text-xl font-bold mt-1 ${result.won ? 'text-green-300' : 'text-red-300'}`}>
               {result.won ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}

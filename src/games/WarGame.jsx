@@ -21,7 +21,7 @@ export default function WarGame() {
   const [warMode, setWarMode] = useState(false);
   const [warCards, setWarCards] = useState({ player: [], dealer: [] });
 
-  const godMode = state.adminSettings?.godMode;
+  const godMode = state.adminSettings?.godMode || state.adminSettings?.gameSettings?.war?.alwaysWin;
 
   const drawCard = useCallback((excludeCards = []) => {
     let card;

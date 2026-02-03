@@ -27,7 +27,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
     baccarat: { forceBankerWin: false, forcePlayerWin: false },
     sicbo: { forceTriple: false },
     plinko: { forceHighMultiplier: false },
-    horses: { alwaysWin: false },
+    war: { alwaysWin: false },
     tictactoe: { aiMakesStupidMoves: false },
   });
 
@@ -419,17 +419,17 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                 </label>
               </div>
 
-              {/* Horses */}
+              {/* War */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🏇 Horses</div>
+                <div className="font-bold text-cyan-400 mb-2">🎴 War</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
-                    checked={gameSettings.horses?.alwaysWin}
-                    onChange={(e) => updateGameSetting('horses', 'alwaysWin', e.target.checked)}
+                    checked={gameSettings.war?.alwaysWin}
+                    onChange={(e) => updateGameSetting('war', 'alwaysWin', e.target.checked)}
                     className="accent-red-500"
                   />
-                  Your Horse Always Wins
+                  Always Win (Higher Card)
                 </label>
               </div>
 

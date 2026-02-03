@@ -218,7 +218,7 @@ export default function SlotsGame() {
           {/* Win indicator */}
           {result && result.won && (
             <div className="mt-4 text-center bg-gradient-to-r from-yellow-500 to-orange-500 py-3 px-6 rounded-xl">
-              <div className="text-2xl font-black text-black">🎰 WIN! {result.totalMult.toFixed(1)}x 🎰</div>
+              <div className="text-2xl font-black text-black">WIN! {result.totalMult.toFixed(1)}x</div>
               <div className="text-xl font-bold text-black">+${result.winAmount.toFixed(2)}</div>
             </div>
           )}

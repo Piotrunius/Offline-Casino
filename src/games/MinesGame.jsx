@@ -148,7 +148,7 @@ export default function MinesGame() {
         {result && (
           <div className={`mt-6 text-center py-4 px-8 rounded-2xl ${result.won ? 'bg-green-900/60 border-2 border-green-500/50' : 'bg-red-900/60 border-2 border-red-500/50'}`}>
             <span className={`text-3xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
-              {result.won ? `💎 CASHED ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}` : '💣 BOOM!'}
+              {result.won ? `CASHED ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}` : 'BOOM!'}
             </span>
           </div>
         )}

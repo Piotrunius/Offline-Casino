@@ -242,6 +242,38 @@ export function CasinoProvider({ children }) {
     }
   }, [state.balance, state.lastKnownBalance]);
 
+  // Global stock price ticker - updates prices even when not on Stock Exchange
+  useEffect(() => {
+    if (!state.stockExchange?.stocks || state.stockExchange.stocks.length === 0) return;
+
+    const tickInterval = setInterval(() => {
+      const updatedStocks = state.stockExchange.stocks.map(stock => {
+        // Random walk based on volatility
+        const randomWalk = (Math.random() - 0.5) * 2 * stock.volatility;
+        const trendEffect = stock.trend || 0;
+        const marketEffect = state.stockExchange.marketTrend || 0;
+        const priceChange = 1 + marketEffect + randomWalk + trendEffect;
+        const newPrice = Math.max(0.01, stock.price * priceChange);
+        return { ...stock, price: newPrice };
+      });
+
+      // Update market trend
+      const newMarketTrend = Math.max(-0.01, Math.min(0.01,
+        (state.stockExchange.marketTrend || 0) + (Math.random() - 0.5) * 0.002
+      ));
+
+      dispatch({
+        type: 'UPDATE_STOCK_EXCHANGE',
+        data: {
+          stocks: updatedStocks,
+          marketTrend: newMarketTrend
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(tickInterval);
+  }, [state.stockExchange?.stocks?.length]); // Only re-create when stocks array exists/changes size
+
   const placeBet = useCallback((amount, game) => {
     if (amount > state.balance || amount <= 0) return false;
 

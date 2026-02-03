@@ -138,8 +138,8 @@ export default function LimboGame() {
           }`}>
             <div className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
               {result.won
-                ? `🎯 HIT! ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}`
-                : `💨 MISS! Rolled ${result.outcome.toFixed(2)}x`}
+                ? `HIT! ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}`
+                : `MISS! Rolled ${result.outcome.toFixed(2)}x`}
             </div>
           </div>
         )}

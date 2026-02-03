@@ -214,8 +214,8 @@ export default function CrashGame() {
           }`}>
             <span className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
               {result.won
-                ? `🚀 CASHED OUT ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}`
-                : `💥 CRASHED @ ${result.mult.toFixed(2)}x`}
+                ? `CASHED OUT ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}`
+                : `CRASHED @ ${result.mult.toFixed(2)}x`}
             </span>
           </div>
         )}
