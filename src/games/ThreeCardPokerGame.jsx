@@ -136,7 +136,7 @@ export default function ThreeCardPokerGame() {
     };
 
     setResult(result);
-    setHistory(h => [{ outcome: 'fold', won: totalWin > totalBet }, ...h.slice(0, 3)]);
+    setHistory(h => [{ outcome: 'fold', won: totalWin > totalBet }, ...h.slice(0, 4)]);
     setGamePhase('ended');
 
     if (totalWin > 0) {
@@ -196,7 +196,7 @@ export default function ThreeCardPokerGame() {
     };
 
     setResult(result);
-    setHistory(h => [{ outcome, won: totalWin > anteBet * 2 + pairPlusBet }, ...h.slice(0, 3)]);
+    setHistory(h => [{ outcome, won: totalWin > anteBet * 2 + pairPlusBet }, ...h.slice(0, 4)]);
     setGamePhase('ended');
 
     if (totalWin > 0) {
@@ -367,6 +367,19 @@ export default function ThreeCardPokerGame() {
             >
               NEW GAME
             </button>
+          )}
+
+          {/* History */}
+          {history.length > 0 && (
+            <div className="flex gap-2 justify-center mt-3">
+              {history.map((h, i) => (
+                <span key={i} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                  h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
+                }`}>
+                  {h.outcome}
+                </span>
+              ))}
+            </div>
           )}
         </div>
       </div>

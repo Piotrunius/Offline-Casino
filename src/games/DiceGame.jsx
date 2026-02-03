@@ -68,7 +68,7 @@ export default function DiceGame() {
         const payout = won ? multiplier : 0;
 
         setResult({ roll: finalRoll, won, winAmount, mult: multiplier });
-        setHistory(h => [{ roll: finalRoll, won, mult: payout }, ...h.slice(0, 7)]);
+        setHistory(h => [{ roll: finalRoll, won, mult: payout }, ...h.slice(0, 4)]);
         setRolling(false);
 
         addWin(winAmount, bet, 'dice', payout);
@@ -293,7 +293,7 @@ export default function DiceGame() {
                 : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/30'
             }`}
           >
-            {rolling ? '🎲 ROLLING...' : `🎲 ${getModeLabel()}`}
+            {rolling ? 'ROLLING...' : getModeLabel()}
           </button>
         </div>
       </div>

@@ -102,21 +102,21 @@ const Icons = {
 };
 
 const GAMES_INFO = [
-  { id: 'blackjack', name: 'Blackjack', description: 'Beat the dealer by getting closer to 21', edge: '0.5%' },
-  { id: 'roulette', name: 'Roulette', description: 'European roulette with 0-36', edge: '2.7%' },
-  { id: 'slots', name: 'Slots', description: '5 unique machines with different paylines', edge: '3-5%' },
-  { id: 'crash', name: 'Crash', description: 'Cash out before the multiplier crashes', edge: '3%' },
-  { id: 'plinko', name: 'Plinko', description: 'Drop balls through pegs for multipliers', edge: '1-4%' },
-  { id: 'mines', name: 'Mines', description: 'Find gems while avoiding mines', edge: '3%' },
-  { id: 'dice', name: 'Dice', description: 'Roll over or under your target', edge: '2%' },
-  { id: 'hilo', name: 'Hi-Lo', description: 'Predict the next card with many bet types', edge: '3%' },
-  { id: 'tower', name: 'Tower', description: 'Climb the tower without hitting traps', edge: '3%' },
-  { id: 'wheel', name: 'Wheel', description: 'Spin the wheel for multipliers', edge: '5%' },
-  { id: 'limbo', name: 'Limbo', description: 'Hit your target multiplier', edge: '2%' },
-  { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%' },
-  { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%' },
-  { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%' },
-  { id: 'scratchcard', name: 'Scratch Card', description: 'Reveal symbols to win multipliers', edge: '5%' },
+  { id: 'blackjack', name: 'Blackjack', description: 'Beat the dealer by getting closer to 21', edge: '0.5%', icon: '🃏' },
+  { id: 'dice', name: 'Dice', description: 'Roll over or under your target', edge: '2%', icon: '🎲' },
+  { id: 'slots', name: 'Slots', description: 'Spin reels for matching symbols', edge: '3-5%', icon: '🎰' },
+  { id: 'crash', name: 'Crash', description: 'Cash out before the multiplier crashes', edge: '3%', icon: '🚀' },
+  { id: 'mines', name: 'Mines', description: 'Find gems while avoiding mines', edge: '3%', icon: '💣' },
+  { id: 'hilo', name: 'Hi-Lo', description: 'Predict the next card high or low', edge: '3%', icon: '⬆️' },
+  { id: 'tower', name: 'Tower', description: 'Climb the tower without hitting traps', edge: '3%', icon: '🗼' },
+  { id: 'limbo', name: 'Limbo', description: 'Hit your target multiplier', edge: '2%', icon: '🎯' },
+  { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%', icon: '🪙' },
+  { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%', icon: '🔢' },
+  { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%', icon: '🎴' },
+  { id: 'dragontiger', name: 'Dragon Tiger', description: 'Bet on dragon or tiger to win', edge: '2.5%', icon: '🐉' },
+  { id: 'videopoker', name: 'Video Poker', description: 'Hold cards to make winning hands', edge: '2%', icon: '🎥' },
+  { id: 'sicbo', name: 'Sicbo', description: 'Bet on three dice outcomes', edge: '2.8%', icon: '🎲' },
+  { id: 'threecardpoker', name: '3 Card Poker', description: 'Beat dealer with 3 cards', edge: '3.4%', icon: '🃏' }
 ];
 
 export default function Dashboard({ onSelectGame }) {
@@ -223,14 +223,14 @@ export default function Dashboard({ onSelectGame }) {
       {/* Games Grid */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-4">Choose a Game</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {GAMES_INFO.map(game => (
             <button
               key={game.id}
               onClick={() => onSelectGame && onSelectGame(game.id)}
               className="game-card p-4 text-left hover:border-cyan-500/50 transition-all group"
             >
-              <div className="text-cyan-400 mb-2">{Icons[game.id]}</div>
+              <div className="text-3xl mb-2">{game.icon}</div>
               <div className="font-bold text-white group-hover:text-cyan-400 transition-colors">
                 {game.name}
               </div>
@@ -291,7 +291,7 @@ export default function Dashboard({ onSelectGame }) {
           <div>
             <h3 className="font-bold text-cyan-400 mb-2">Features</h3>
             <ul className="space-y-1 text-sm">
-              <li>- 13 unique casino games</li>
+              <li>- 15 unique casino games</li>
               <li>- Play with virtual currency</li>
               <li>- No registration required</li>
               <li>- Works offline</li>
@@ -306,6 +306,26 @@ export default function Dashboard({ onSelectGame }) {
               This app is for educational and entertainment purposes only.
               If you or someone you know has a gambling problem, please seek help.
             </p>
+          </div>
+        </div>
+
+        {/* License & Copyright */}
+        <div className="mt-6 pt-4 border-t border-gray-700">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm text-gray-500">
+            <div>
+              © 2024-2026 <a href="https://piotrunius.github.io/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300">Piotrunius</a>. All rights reserved.
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Licensed under</span>
+              <a
+                href="https://opensource.org/licenses/MIT"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs font-bold hover:bg-cyan-500/30"
+              >
+                MIT License
+              </a>
+            </div>
           </div>
         </div>
       </div>

@@ -224,7 +224,7 @@ export default function MinesGame() {
               disabled={revealed === 0}
               className="w-full py-5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-black text-2xl disabled:opacity-50 mt-auto shadow-lg shadow-yellow-500/30"
             >
-              💰 CASHOUT ${(bet * currentMult).toFixed(2)}
+              CASHOUT ${(bet * currentMult).toFixed(2)}
             </button>
           ) : (
             <button

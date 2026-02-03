@@ -233,6 +233,17 @@ export default function VideoPokerGame() {
             ))}
           </div>
 
+          {/* History */}
+          {history.length > 0 && (
+            <div className="space-y-1">
+              {history.map((h, i) => (
+                <div key={i} className={`text-xs px-2 py-1 rounded ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                  {h.name}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Action Buttons */}
           {gamePhase === 'betting' ? (
             <button
@@ -256,17 +267,6 @@ export default function VideoPokerGame() {
             >
               NEW GAME
             </button>
-          )}
-
-          {/* History */}
-          {history.length > 0 && (
-            <div className="space-y-1">
-              {history.map((h, i) => (
-                <div key={i} className={`text-xs px-2 py-1 rounded ${h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                  {h.name}
-                </div>
-              ))}
-            </div>
           )}
         </div>
       </div>

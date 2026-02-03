@@ -260,7 +260,7 @@ export default function TowerGame() {
                 onClick={() => cashout()}
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl shadow-lg shadow-green-500/30 animate-pulse"
               >
-                💰 CASHOUT ${(bet * currentMult).toFixed(2)}
+                CASHOUT ${(bet * currentMult).toFixed(2)}
               </button>
             ) : !playing ? (
               <button
@@ -268,7 +268,7 @@ export default function TowerGame() {
                 disabled={bet <= 0 || bet > state.balance}
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-cyan-500/30"
               >
-                🗼 START CLIMB
+                START CLIMB
               </button>
             ) : (
               <div className="text-center text-cyan-400 py-4 font-bold">

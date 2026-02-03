@@ -58,7 +58,7 @@ export default function CrashGame() {
         setBetPlaced(false);
         setCurrentMult(crashPoint);
         setResult({ crashed: true, mult: crashPoint, won: false, profit: -bet });
-        setHistory(h => [{ mult: crashPoint, won: false }, ...h.slice(0, 7)]);
+        setHistory(h => [{ mult: crashPoint, won: false }, ...h.slice(0, 4)]);
         addWin(0, bet, 'crash', 0);
         audio.playLose();
       } else if (autoCashout > 0 && mult >= autoCashout && betPlaced) {
@@ -82,7 +82,7 @@ export default function CrashGame() {
     setPlaying(false);
     setBetPlaced(false);
     setResult({ crashed: false, mult, won: true, profit: winAmount - bet });
-    setHistory(h => [{ mult, won: true }, ...h.slice(0, 7)]);
+    setHistory(h => [{ mult, won: true }, ...h.slice(0, 4)]);
     addWin(winAmount, bet, 'crash', mult);
     audio.playWin();
   }, [playing, crashed, betPlaced, currentMult, bet, addWin]);
@@ -286,7 +286,7 @@ export default function CrashGame() {
                 onClick={() => doCashout()}
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-black text-xl shadow-lg shadow-yellow-500/30 animate-pulse"
               >
-                💰 CASHOUT ${(bet * currentMult).toFixed(2)}
+                CASHOUT ${(bet * currentMult).toFixed(2)}
               </button>
             ) : (
               <button
@@ -294,7 +294,7 @@ export default function CrashGame() {
                 disabled={playing || bet <= 0 || bet > state.balance}
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-green-500/30"
               >
-                🚀 START
+                START
               </button>
             )}
           </div>

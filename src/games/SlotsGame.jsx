@@ -148,7 +148,7 @@ export default function SlotsGame() {
         const won = totalMult > 0;
 
         setResult({ won, totalMult, winAmount, winLines });
-        setHistory(h => [{ won, mult: totalMult }, ...h.slice(0, 7)]);
+        setHistory(h => [{ won, mult: totalMult }, ...h.slice(0, 4)]);
         setSpinning(false);
 
         addWin(winAmount, bet, 'slots', totalMult);
@@ -311,7 +311,7 @@ export default function SlotsGame() {
               autoSpin ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400'
             }`}
           >
-            {autoSpin ? '🔴 AUTO SPIN ON' : '⚪ AUTO SPIN OFF'}
+            {autoSpin ? 'AUTO SPIN ON' : 'AUTO SPIN OFF'}
           </button>
 
           {/* Spin Button */}
@@ -324,7 +324,7 @@ export default function SlotsGame() {
                 : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black shadow-yellow-500/30'
             }`}
           >
-            {spinning ? '🎰 SPINNING...' : '🎰 SPIN'}
+            {spinning ? 'SPINNING...' : 'SPIN'}
           </button>
         </div>
       </div>

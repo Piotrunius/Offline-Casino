@@ -60,7 +60,7 @@ export default function LimboGame() {
         const mult = won ? target : 0;
         const winAmount = bet * mult;
         setResult({ outcome, won, mult: target, profit: won ? winAmount - bet : -bet });
-        setHistory(h => [{ mult: outcome, won, target }, ...h.slice(0, 7)]);
+        setHistory(h => [{ mult: outcome, won, target }, ...h.slice(0, 4)]);
 
         if (won) {
           addWin(winAmount, bet, 'limbo', target);
@@ -240,7 +240,7 @@ export default function LimboGame() {
             disabled={playing || bet <= 0 || bet > state.balance}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-purple-500/30"
           >
-            {playing ? '🎲 ROLLING...' : '🎯 PLAY'}
+            {playing ? 'ROLLING...' : 'PLAY'}
           </button>
         </div>
       </div>

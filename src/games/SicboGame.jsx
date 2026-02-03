@@ -130,7 +130,7 @@ export default function SicboGame() {
         const winAmount = bet * mult;
 
         setResult({ dice: finalDice, total, won, mult, profit: winAmount - bet });
-        setHistory(h => [{ total, won }, ...h.slice(0, 7)]);
+        setHistory(h => [{ total, won }, ...h.slice(0, 4)]);
 
         if (won) {
           addWin(winAmount, bet, 'sicbo', mult);
@@ -312,7 +312,7 @@ export default function SicboGame() {
             disabled={rolling || bet <= 0 || bet > state.balance}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-red-500/30"
           >
-            {rolling ? '🎲 ROLLING...' : '🎲 ROLL DICE'}
+            {rolling ? 'ROLLING...' : 'ROLL DICE'}
           </button>
         </div>
       </div>

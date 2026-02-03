@@ -165,7 +165,7 @@ export default function HiLoGame() {
         setPotentialWin(newPotentialWin);
         setStreakCount(s => s + 1);
         setResult({ won: true, mult: newMultiplier, profit: newPotentialWin - initialBetRef.current });
-        setHistory(h => [{ card: newCard, won: true }, ...h.slice(0, 7)]);
+        setHistory(h => [{ card: newCard, won: true }, ...h.slice(0, 4)]);
         audio.playWin();
 
         // Move to next round
@@ -177,7 +177,7 @@ export default function HiLoGame() {
       } else {
         // Lost - end streak
         setResult({ won: false, mult: 0, profit: -initialBetRef.current });
-        setHistory(h => [{ card: newCard, won: false }, ...h.slice(0, 7)]);
+        setHistory(h => [{ card: newCard, won: false }, ...h.slice(0, 4)]);
         audio.playLose();
         addWin(0, initialBetRef.current, 'hilo', 0);
 
@@ -372,7 +372,7 @@ export default function HiLoGame() {
         {/* History */}
         {history.length > 0 && (
           <div className="absolute bottom-4 right-4 flex gap-2">
-            {history.slice(0, 6).map((h, i) => (
+            {history.slice(0, 5).map((h, i) => (
               <div key={i} className={`w-10 h-14 rounded-lg flex flex-col items-center justify-center text-xs font-bold ${
                 isRed(h.card.suit) ? 'bg-white text-red-600' : 'bg-white text-gray-900'
               } ${h.won ? 'ring-2 ring-green-500' : 'ring-2 ring-red-500'}`}>
@@ -457,7 +457,7 @@ export default function HiLoGame() {
                 disabled={playing}
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-green-500/30 animate-pulse"
               >
-                💰 CASH OUT ${potentialWin.toFixed(2)}
+                CASH OUT ${potentialWin.toFixed(2)}
               </button>
             ) : !inStreak ? (
               <button

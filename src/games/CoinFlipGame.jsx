@@ -68,7 +68,7 @@ export default function CoinFlipGame() {
         setFlipping(false);
 
         const outcome = isHeads ? 'heads' : 'tails';
-        setHistory(h => [outcome, ...h.slice(0, 9)]);
+        setHistory(h => [outcome, ...h.slice(0, 4)]);
 
         // Update streak
         setStreak(s => {
@@ -293,7 +293,7 @@ export default function CoinFlipGame() {
                 : 'bg-gradient-to-r from-gray-400 to-gray-600 hover:from-gray-300 hover:to-gray-500 text-gray-900 shadow-gray-500/30'
             }`}
           >
-            {flipping ? '🔄 FLIPPING...' : '🪙 FLIP COIN'}
+            {flipping ? 'FLIPPING...' : 'FLIP COIN'}
           </button>
         </div>
       </div>

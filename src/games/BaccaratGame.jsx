@@ -142,7 +142,7 @@ export default function BaccaratGame() {
     const profit = winAmount - bet;
 
     setResult({ outcome, won, mult: won ? mult : 0, profit, pVal, bVal });
-    setHistory(h => [{ outcome, won, betType }, ...h.slice(0, 7)]);
+    setHistory(h => [{ outcome, won, betType }, ...h.slice(0, 4)]);
     setGamePhase('ended');
 
     if (won) {

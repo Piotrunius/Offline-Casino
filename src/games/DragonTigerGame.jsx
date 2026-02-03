@@ -87,7 +87,7 @@ export default function DragonTigerGame() {
           const winAmount = won ? bet * mult : 0;
 
           setResult({ outcome, won, mult, profit: winAmount - bet });
-          setHistory(h => [{ outcome, won }, ...h.slice(0, 7)]);
+          setHistory(h => [{ outcome, won }, ...h.slice(0, 4)]);
           setGamePhase('ended');
 
           if (won) {

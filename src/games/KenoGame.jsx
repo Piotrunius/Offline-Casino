@@ -100,7 +100,7 @@ export default function KenoGame() {
 
         setPlaying(false);
         setResult({ hits, picks, mult, profit: winAmount - bet });
-        setHistory(h => [{ hits, picks, won: mult > 0 }, ...h.slice(0, 5)]);
+        setHistory(h => [{ hits, picks, won: mult > 0 }, ...h.slice(0, 4)]);
 
         if (mult > 0) {
           addWin(winAmount, bet, 'keno', mult);
@@ -229,7 +229,7 @@ export default function KenoGame() {
             <div className="grid grid-cols-2 gap-2 mt-2">
               <button onClick={selectRandom} disabled={playing}
                 className="btn-secondary py-2 text-sm font-bold rounded-lg">
-                🎲 RANDOM
+                RANDOM
               </button>
               <button onClick={clearSelection} disabled={playing}
                 className="btn-secondary py-2 text-sm font-bold rounded-lg">
@@ -284,7 +284,7 @@ export default function KenoGame() {
             disabled={playing || bet <= 0 || bet > state.balance || selected.size === 0}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-cyan-500/30"
           >
-            {playing ? '🎱 DRAWING...' : selected.size === 0 ? 'SELECT NUMBERS' : 'PLAY KENO'}
+            {playing ? 'DRAWING...' : selected.size === 0 ? 'SELECT NUMBERS' : 'PLAY KENO'}
           </button>
 
           {/* History */}
