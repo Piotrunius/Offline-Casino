@@ -123,50 +123,6 @@ const Icons = {
       <path d="M12 19l-7-7h14z"/>
     </svg>
   ),
-    Roulette: () => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="10"/>
-        <circle cx="12" cy="12" r="6"/>
-        <line x1="12" y1="2" x2="12" y2="22"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-      </svg>
-    ),
-    Horses: () => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M6 12c2 0 4-2 4-4s-2-4-4-4-4 2-4 4 2 4 4 4z"/>
-        <path d="M18 12c2 0 4-2 4-4s-2-4-4-4-4 2-4 4 2 4 4 4z"/>
-        <line x1="10" y1="16" x2="14" y2="16"/>
-        <line x1="8" y1="20" x2="16" y2="20"/>
-      </svg>
-    ),
-    Plinko: () => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="4" r="2" fill="currentColor"/>
-        <circle cx="8" cy="10" r="1.5"/>
-        <circle cx="16" cy="10" r="1.5"/>
-        <circle cx="6" cy="16" r="1.5"/>
-        <circle cx="12" cy="16" r="1.5"/>
-        <circle cx="18" cy="16" r="1.5"/>
-        <path d="M2 22h20"/>
-      </svg>
-    ),
-    Cups: () => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M4 8h4v8H4z"/>
-        <path d="M10 8h4v8h-4z"/>
-        <path d="M16 8h4v8h-4z"/>
-        <line x1="2" y1="18" x2="22" y2="18"/>
-      </svg>
-    ),
-    TicTacToe: () => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="4" y1="2" x2="4" y2="22"/>
-        <line x1="12" y1="2" x2="12" y2="22"/>
-        <line x1="20" y1="2" x2="20" y2="22"/>
-        <line x1="2" y1="10" x2="22" y2="10"/>
-        <line x1="2" y1="18" x2="22" y2="18"/>
-      </svg>
-    ),
   Menu: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="3" y1="6" x2="21" y2="6"/>
@@ -243,6 +199,58 @@ const Icons = {
       <path d="M19 15l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>
       <path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5z"/>
     </svg>
+  ),
+  Roulette: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="6"/>
+      <circle cx="12" cy="12" r="2"/>
+      <line x1="12" y1="2" x2="12" y2="4"/>
+      <line x1="12" y1="20" x2="12" y2="22"/>
+    </svg>
+  ),
+  Horse: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M22 8c-2-4-7-4-9-2s-1 5-3 7-7 2-8 5v4h3l1-3h8l1 3h3v-4"/>
+      <circle cx="19" cy="6" r="1" fill="currentColor"/>
+    </svg>
+  ),
+  Plinko: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="4" r="2"/>
+      <circle cx="8" cy="9" r="1"/>
+      <circle cx="16" cy="9" r="1"/>
+      <circle cx="6" cy="14" r="1"/>
+      <circle cx="12" cy="14" r="1"/>
+      <circle cx="18" cy="14" r="1"/>
+      <rect x="4" y="19" width="16" height="3" rx="1"/>
+    </svg>
+  ),
+  Cups: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 8h4l-1 10H5z"/>
+      <path d="M10 8h4l-1 10h-2z"/>
+      <path d="M16 8h4l-1 10h-2z"/>
+      <circle cx="12" cy="19" r="1" fill="currentColor"/>
+    </svg>
+  ),
+  TicTacToe: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="9" y1="3" x2="9" y2="21"/>
+      <line x1="15" y1="3" x2="15" y2="21"/>
+      <line x1="3" y1="9" x2="21" y2="9"/>
+      <line x1="3" y1="15" x2="21" y2="15"/>
+      <line x1="5" y1="5" x2="7" y2="7"/>
+      <line x1="7" y1="5" x2="5" y2="7"/>
+      <circle cx="18" cy="18" r="2"/>
+    </svg>
+  ),
+  Stock: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+      <polyline points="16 7 22 7 22 13"/>
+      <line x1="2" y1="21" x2="22" y2="21"/>
+    </svg>
   )
 };
 
@@ -266,6 +274,7 @@ import PlinkoGame from './games/PlinkoGame';
 import RouletteGame from './games/RouletteGame';
 import SicboGame from './games/SicboGame';
 import SlotsGame from './games/SlotsGame';
+import StockExchange from './games/StockExchange';
 import ThreeCardPokerGame from './games/ThreeCardPokerGame';
 import ThreeCupsGame from './games/ThreeCupsGame';
 import TicTacToeGame from './games/TicTacToeGame';
@@ -274,26 +283,27 @@ import VideoPokerGame from './games/VideoPokerGame';
 
 const GAMES = [
   { id: 'dashboard', name: 'Dashboard', icon: Icons.Home, component: Dashboard, color: '#00f5ff' },
+  { id: 'stockexchange', name: 'Stock Exchange', icon: Icons.Stock, component: StockExchange, color: '#00ff88', featured: true },
   { id: 'dice', name: 'Dice', icon: Icons.Dice, component: DiceGame, color: '#00f5ff' },
   { id: 'mines', name: 'Mines', icon: Icons.Mine, component: MinesGame, color: '#ff3366' },
   { id: 'crash', name: 'Crash', icon: Icons.Rocket, component: CrashGame, color: '#ff8800' },
+  { id: 'roulette', name: 'Roulette', icon: Icons.Roulette, component: RouletteGame, color: '#00cc66' },
+  { id: 'plinko', name: 'Plinko', icon: Icons.Plinko, component: PlinkoGame, color: '#00ddff' },
   { id: 'limbo', name: 'Limbo', icon: Icons.Target, component: LimboGame, color: '#aa00ff' },
   { id: 'coinflip', name: 'Coin Flip', icon: Icons.Coin, component: CoinFlipGame, color: '#ffee00' },
   { id: 'tower', name: 'Tower', icon: Icons.Tower, component: TowerGame, color: '#00ccff' },
   { id: 'keno', name: 'Keno', icon: Icons.Grid, component: KenoGame, color: '#ff6600' },
   { id: 'blackjack', name: 'Blackjack', icon: Icons.Blackjack, component: BlackjackGame, color: '#ff4444' },
   { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
+  { id: 'horses', name: 'Horse Racing', icon: Icons.Horse, component: HorsesGame, color: '#bb8844' },
   { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' },
   { id: 'baccarat', name: 'Baccarat', icon: Icons.Baccarat, component: BaccaratGame, color: '#8844ff' },
   { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.DragonTiger, component: DragonTigerGame, color: '#ff6633' },
   { id: 'videopoker', name: 'Video Poker', icon: Icons.VideoPoker, component: VideoPokerGame, color: '#00ccaa' },
+  { id: 'threecups', name: '3 Cups', icon: Icons.Cups, component: ThreeCupsGame, color: '#dd8833' },
+  { id: 'tictactoe', name: 'Tic Tac Toe', icon: Icons.TicTacToe, component: TicTacToeGame, color: '#4488ff' },
   { id: 'sicbo', name: 'Sicbo', icon: Icons.DiceThree, component: SicboGame, color: '#ff9933' },
-  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' },
-  { id: 'roulette', name: 'Roulette', icon: Icons.Roulette, component: RouletteGame, color: '#ff00ff' },
-  { id: 'horses', name: 'Horses', icon: Icons.Horses, component: HorsesGame, color: '#ffaa33' },
-  { id: 'plinko', name: 'Plinko', icon: Icons.Plinko, component: PlinkoGame, color: '#00ff88' },
-  { id: 'threecups', name: '3 Cups Game', icon: Icons.Cups, component: ThreeCupsGame, color: '#ff5555' },
-  { id: 'tictactoe', name: 'Tic Tac Toe', icon: Icons.TicTacToe, component: TicTacToeGame, color: '#55ff55' }
+  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' }
 ];
 
 export default function App() {
@@ -379,21 +389,26 @@ export default function App() {
                   key={game.id}
                   onClick={() => handleGameChange(game.id)}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
+                    game.featured 
+                      ? 'bg-gradient-to-r from-green-900/40 to-cyan-900/40 border border-green-500/30 mb-2' 
+                      : ''
+                  } ${
                     activeGame === game.id
                       ? 'bg-gradient-to-r from-cyan-500/20 to-transparent border-l-2'
                       : 'hover:bg-white/5'
                   }`}
                   style={{
-                    borderColor: activeGame === game.id ? game.color : 'transparent',
+                    borderColor: activeGame === game.id ? game.color : game.featured ? undefined : 'transparent',
                     color: activeGame === game.id ? game.color : '#888'
                   }}
                 >
-                  <div className="w-6 h-6">
+                  <div className={`w-6 h-6 ${game.featured ? 'text-green-400' : ''}`}>
                     <game.icon />
                   </div>
                   {sidebarOpen && (
-                    <span className={`font-medium ${activeGame === game.id ? 'text-white' : ''}`}>
+                    <span className={`font-medium ${activeGame === game.id ? 'text-white' : ''} ${game.featured ? 'text-green-400' : ''}`}>
                       {game.name}
+                      {game.featured && <span className="ml-1 text-[10px] bg-green-500/30 px-1.5 py-0.5 rounded text-green-300">NEW</span>}
                     </span>
                   )}
                 </button>
