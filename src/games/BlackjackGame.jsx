@@ -139,7 +139,8 @@ export default function BlackjackGame() {
     if (gamePhase === 'playing_split' && activeHand === 1) {
       const newSplit = [...splitHand, newCard];
       setSplitHand(newSplit);
-      if (calcValue(newSplit) > 21) {
+      const newSplitVal = calcValue(newSplit);
+      if (newSplitVal >= 21) {
         setActiveHand(0);
         setGamePhase('playing');
       }
@@ -148,11 +149,19 @@ export default function BlackjackGame() {
       setPlayerCards(newCards);
       audio.playClick();
 
-      if (calcValue(newCards) > 21) {
+      const newVal = calcValue(newCards);
+      if (newVal > 21) {
         if (splitHand.length > 0 && activeHand === 0) {
-          playDealer();
+          playDealer(newCards, splitHand);
         } else {
-          endGame({ outcome: 'bust', mult: 0 }, null, dealerCards);
+          endGame({ outcome: 'bust', mult: 0 }, null, dealerCards, newCards, splitHand);
+        }
+      } else if (newVal === 21) {
+        // Auto-stand on 21
+        if (splitHand.length > 0 && activeHand === 0) {
+          playDealer(newCards, splitHand);
+        } else {
+          playDealer(newCards, splitHand);
         }
       }
     }
@@ -164,10 +173,14 @@ export default function BlackjackGame() {
     if (gamePhase === 'playing_split' && activeHand === 1) {
       setActiveHand(0);
       setGamePhase('playing');
+      // Check if main hand also has 21, if so auto-stand
+      if (calcValue(playerCards) === 21) {
+        setTimeout(() => playDealer(playerCards, splitHand), 100);
+      }
     } else {
-      playDealer();
+      playDealer(playerCards, splitHand);
     }
-  }, [gamePhase, activeHand]);
+  }, [gamePhase, activeHand, playerCards, splitHand]);
 
   const double = useCallback(() => {
     if (!canDouble || bet > state.balance) return;
@@ -191,12 +204,12 @@ export default function BlackjackGame() {
       if (calcValue(newCards) > 21) {
         if (splitHand.length > 0) {
           // If we have split, still need to evaluate both hands
-          playDealer();
+          playDealer(newCards, splitHand);
         } else {
-          endGame({ outcome: 'bust', mult: 0 }, null, dealerCards);
+          endGame({ outcome: 'bust', mult: 0 }, null, dealerCards, newCards, splitHand);
         }
       } else {
-        playDealer();
+        playDealer(newCards, splitHand);
       }
     }
   }, [canDouble, gamePhase, playerCards, splitHand, dealerCards, activeHand, bet, state.balance, placeBet]);
@@ -208,14 +221,33 @@ export default function BlackjackGame() {
     const card1 = playerCards[0];
     const card2 = playerCards[1];
 
-    setPlayerCards([card1, getCard()]);
-    setSplitHand([card2, getCard()]);
-    setActiveHand(1);
-    setGamePhase('playing_split');
+    const newHand1 = [card1, getCard()];
+    const newHand2 = [card2, getCard()];
+
+    setPlayerCards(newHand1);
+    setSplitHand(newHand2);
+
+    // Check if either hand has 21
+    const val1 = calcValue(newHand1);
+    const val2 = calcValue(newHand2);
+
+    if (val1 === 21 && val2 === 21) {
+      // Both have 21, auto-stand
+      playDealer(newHand1, newHand2);
+    } else if (val2 === 21) {
+      // Hand 2 has 21, move to hand 1
+      setActiveHand(0);
+      setGamePhase('playing');
+    } else {
+      // Normal split flow - start with hand 2
+      setActiveHand(1);
+      setGamePhase('playing_split');
+    }
+
     audio.playBet();
   }, [canSplit, playerCards, bet, placeBet]);
 
-  const playDealer = () => {
+  const playDealer = (pCards = playerCards, sCards = splitHand) => {
     setGamePhase('dealer');
     let dCards = [...dealerCards];
 
@@ -225,17 +257,17 @@ export default function BlackjackGame() {
         setDealerCards([...dCards]);
         setTimeout(play, state.settings.fastMode ? 200 : 400);
       } else {
-        evaluateResults(dCards);
+        evaluateResults(dCards, pCards, sCards);
       }
     };
     setTimeout(play, state.settings.fastMode ? 200 : 400);
   };
 
-  const evaluateResults = (dCards) => {
+  const evaluateResults = (dCards, pCards = playerCards, sCards = splitHand) => {
     const dVal = calcValue(dCards);
 
     // Calculate results for main hand
-    const pVal = calcValue(playerCards);
+    const pVal = calcValue(pCards);
     let hand1Result = { outcome: 'lose', mult: 0 };
 
     if (pVal > 21) {
@@ -252,8 +284,8 @@ export default function BlackjackGame() {
 
     // Calculate results for split hand if exists
     let hand2Result = null;
-    if (splitHand.length > 0) {
-      const sVal = calcValue(splitHand);
+    if (sCards.length > 0) {
+      const sVal = calcValue(sCards);
 
       if (sVal > 21) {
         hand2Result = { outcome: 'lose', mult: 0 };
@@ -268,10 +300,10 @@ export default function BlackjackGame() {
       }
     }
 
-    endGame(hand1Result, hand2Result, dCards);
+    endGame(hand1Result, hand2Result, dCards, pCards, sCards);
   };
 
-  const endGame = (hand1Result, hand2Result, dCards) => {
+  const endGame = (hand1Result, hand2Result, dCards, pCards = playerCards, sCards = splitHand) => {
     setGamePhase('ended');
 
     let totalMult = hand1Result.mult;
@@ -304,12 +336,12 @@ export default function BlackjackGame() {
       outcome: overallOutcome,
       mult: totalMult,
       profit,
-      pVal: calcValue(playerCards),
+      pVal: calcValue(pCards),
       dVal: calcValue(dCards),
       hand1: hand1Result,
       hand2: hand2Result
     });
-    setHistory(h => [{ outcome: overallOutcome, mult: totalMult.toFixed(1) }, ...h.slice(0, 4)]);
+    setHistory(h => [{ outcome: overallOutcome, mult: totalMult.toFixed(1) }, ...h.slice(0, 3)]);
 
     if (profit > 0) {
       addWin(winAmount, totalBet, 'blackjack', totalMult / (hand2Result ? 2 : 1));
