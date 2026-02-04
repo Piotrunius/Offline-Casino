@@ -202,7 +202,7 @@ export default function WarGame() {
         {/* War Banner */}
         {warMode && (
           <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-orange-600 px-8 py-3 rounded-full animate-pulse">
-            <span className="text-white font-black text-2xl">⚔️ WAR! ⚔️</span>
+            <span className="text-white font-black text-2xl">WAR!</span>
           </div>
         )}
 
