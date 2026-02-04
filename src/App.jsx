@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCasino } from './context/CasinoContext';
 import audio from './utils/audioEngine';
+import trackingEngine from './utils/trackingEngine';
 
 // Icons as SVG components
 const Icons = {
@@ -388,6 +389,7 @@ export default function App() {
 
   const handleGameChange = (gameId) => {
     audio.playClick();
+    trackingEngine.trackGameChange(activeGame, gameId);
     setActiveGame(gameId);
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
@@ -502,6 +504,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     if (addFreeCredits(1000)) {
+                      trackingEngine.trackAddFreeCredits(1000, (state.freeCreditsUsed || 0) + 1);
                       audio.playCashout();
                     }
                   }}
@@ -525,7 +528,10 @@ export default function App() {
 
               {/* Statistics Button */}
               <button
-                onClick={() => setShowStats(true)}
+                onClick={() => {
+                  trackingEngine.trackOpenModal('statistics');
+                  setShowStats(true);
+                }}
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
                 title="Statistics"
               >
@@ -548,6 +554,7 @@ export default function App() {
               {/* Save/Load Button */}
               <button
                 onClick={() => {
+                  trackingEngine.trackOpenModal('export_import');
                   setExportCode(exportProgress());
                   setShowExportImport(true);
                 }}
@@ -559,7 +566,10 @@ export default function App() {
 
               {/* Settings Button */}
               <button
-                onClick={() => setShowSettings(true)}
+                onClick={() => {
+                  trackingEngine.trackOpenModal('settings');
+                  setShowSettings(true);
+                }}
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-all"
                 title="Settings"
               >
@@ -569,8 +579,10 @@ export default function App() {
               {/* Sound Toggle */}
               <button
                 onClick={() => {
-                  updateSettings({ soundEnabled: !state.settings.soundEnabled });
-                  if (!state.settings.soundEnabled) audio.playClick();
+                  const newSoundState = !state.settings.soundEnabled;
+                  trackingEngine.trackToggleSetting('sound_enabled', newSoundState);
+                  updateSettings({ soundEnabled: newSoundState });
+                  if (newSoundState) audio.playClick();
                 }}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
                   state.settings.soundEnabled ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-gray-500'
@@ -699,7 +711,11 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <span className="text-gray-300">Sound Effects</span>
                     <button
-                      onClick={() => updateSettings({ soundEnabled: !state.settings.soundEnabled })}
+                      onClick={() => {
+                        const newValue = !state.settings.soundEnabled;
+                        trackingEngine.trackToggleSetting('sound_effects', newValue);
+                        updateSettings({ soundEnabled: newValue });
+                      }}
                       className={`w-12 h-6 rounded-full transition-colors ${state.settings.soundEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.soundEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
@@ -717,7 +733,11 @@ export default function App() {
                       max="1"
                       step="0.1"
                       value={state.settings.soundVolume}
-                      onChange={(e) => updateSettings({ soundVolume: parseFloat(e.target.value) })}
+                      onChange={(e) => {
+                        const newVolume = parseFloat(e.target.value);
+                        trackingEngine.trackSettingChange('sound_volume', state.settings.soundVolume, newVolume);
+                        updateSettings({ soundVolume: newVolume });
+                      }}
                       className="w-full accent-cyan-500"
                     />
                   </div>
@@ -734,7 +754,11 @@ export default function App() {
                       <p className="text-xs text-gray-500">Celebratory effects on big wins</p>
                     </div>
                     <button
-                      onClick={() => updateSettings({ winEffectsEnabled: !state.settings.winEffectsEnabled })}
+                      onClick={() => {
+                        const newValue = !state.settings.winEffectsEnabled;
+                        trackingEngine.trackToggleSetting('win_effects', newValue);
+                        updateSettings({ winEffectsEnabled: newValue });
+                      }}
                       className={`w-12 h-6 rounded-full transition-colors ${state.settings.winEffectsEnabled ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.winEffectsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
@@ -747,7 +771,11 @@ export default function App() {
                       <p className="text-xs text-gray-500">Speed up game animations</p>
                     </div>
                     <button
-                      onClick={() => updateSettings({ fastMode: !state.settings.fastMode })}
+                      onClick={() => {
+                        const newValue = !state.settings.fastMode;
+                        trackingEngine.trackToggleSetting('fast_mode', newValue);
+                        updateSettings({ fastMode: newValue });
+                      }}
                       className={`w-12 h-6 rounded-full transition-colors ${state.settings.fastMode ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.fastMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
@@ -760,7 +788,11 @@ export default function App() {
                       <p className="text-xs text-gray-500">Warn before betting over 50% balance</p>
                     </div>
                     <button
-                      onClick={() => updateSettings({ confirmLargeBets: !state.settings.confirmLargeBets })}
+                      onClick={() => {
+                        const newValue = !state.settings.confirmLargeBets;
+                        trackingEngine.trackToggleSetting('confirm_large_bets', newValue);
+                        updateSettings({ confirmLargeBets: newValue });
+                      }}
                       className={`w-12 h-6 rounded-full transition-colors ${state.settings.confirmLargeBets ? 'bg-cyan-500' : 'bg-gray-700'}`}
                     >
                       <div className={`w-5 h-5 rounded-full bg-white transform transition-transform ${state.settings.confirmLargeBets ? 'translate-x-6' : 'translate-x-0.5'}`} />
@@ -940,6 +972,7 @@ export default function App() {
                 onClick={() => {
                   if (importCode.trim()) {
                     const success = importProgress(importCode.trim());
+                    trackingEngine.trackImportProgress(success);
                     if (success) {
                       setImportStatus('Success! Progress loaded.');
                       audio.playWin();

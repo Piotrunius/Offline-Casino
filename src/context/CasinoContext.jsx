@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
+import trackingEngine from '../utils/trackingEngine';
 
 const CasinoContext = createContext(null);
 
@@ -75,6 +76,10 @@ function reducer(state, action) {
   switch (action.type) {
     case 'PLACE_BET': {
       if (action.amount > state.balance || action.amount <= 0) return state;
+      trackingEngine.trackBetPlaced(action.game, action.amount);
+      if (action.amount > state.balance * 0.5) {
+        trackingEngine.trackLargeBet(action.amount, (action.amount / state.balance) * 100);
+      }
       return {
         ...state,
         balance: state.balance - action.amount,
@@ -87,6 +92,21 @@ function reducer(state, action) {
       const isWin = profit > 0;
       const newStreak = isWin ? state.currentStreak + 1 : 0;
       const newBalance = state.balance + action.amount;
+
+      // Track the win/loss event
+      if (isWin) {
+        trackingEngine.trackWin(action.game, action.amount, action.multiplier);
+        if (profit > state.biggestWin) {
+          trackingEngine.trackBiggestWin(profit, action.game);
+        }
+        if (newStreak % 5 === 0) {
+          trackingEngine.trackStreakMilestone(newStreak);
+        }
+      } else {
+        trackingEngine.trackLoss(action.game, action.amount);
+      }
+      trackingEngine.trackGameEnd(action.game, action.bet, action.amount, profit);
+
       return {
         ...state,
         balance: newBalance,
@@ -108,6 +128,8 @@ function reducer(state, action) {
       };
     }
     case 'ADD_LOSS': {
+      trackingEngine.trackLoss(action.game, action.amount);
+      trackingEngine.trackGameEnd(action.game, action.amount, 0, -action.amount);
       return {
         ...state,
         totalLosses: state.totalLosses + action.amount,
@@ -126,10 +148,13 @@ function reducer(state, action) {
       };
     }
     case 'ADD_FREE_CREDITS': {
+      const newFreeCreditsUsed = state.freeCreditsUsed + 1;
+      trackingEngine.trackAddFreeCredits(action.amount, newFreeCreditsUsed);
+      trackingEngine.trackBalanceUpdate(state.balance, state.balance + action.amount, 'free_credits');
       return {
         ...state,
         balance: state.balance + action.amount,
-        freeCreditsUsed: state.freeCreditsUsed + 1
+        freeCreditsUsed: newFreeCreditsUsed
       };
     }
     case 'UPDATE_SETTINGS': {
@@ -195,6 +220,7 @@ export function CasinoProvider({ children }) {
   const [winEffect, setWinEffect] = useState(null);
   const [showBetUpdateSuggestion, setShowBetUpdateSuggestion] = useState(false);
   const prevBalanceRef = useRef(state.balance);
+  const sessionStartRef = useRef(state.balance);
 
   useEffect(() => {
     const saved = localStorage.getItem('casino_state');
@@ -206,10 +232,13 @@ export function CasinoProvider({ children }) {
           parsed.globalBet = Math.floor(parsed.balance * 0.05) || 10;
         }
         dispatch({ type: 'LOAD_STATE', state: parsed });
+        sessionStartRef.current = parsed.balance;
       } catch (e) {
         console.error('Failed to load state:', e);
       }
     }
+    // Track session start
+    trackingEngine.trackSessionStart(state.balance);
   }, []);
 
   useEffect(() => {
@@ -381,6 +410,7 @@ export function CasinoProvider({ children }) {
       settings: state.settings,
       exportedAt: Date.now()
     };
+    trackingEngine.trackExportProgress();
     return encrypt(exportData);
   };
 
@@ -388,8 +418,10 @@ export function CasinoProvider({ children }) {
     const data = decrypt(encryptedData);
     if (data && typeof data === 'object' && 'balance' in data) {
       dispatch({ type: 'LOAD_STATE', state: data });
+      trackingEngine.trackImportProgress(true);
       return true;
     }
+    trackingEngine.trackImportProgress(false);
     return false;
   };
 
