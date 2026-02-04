@@ -399,7 +399,7 @@ export default function StockExchange() {
   return (
     <div className="h-full flex gap-4 overflow-hidden">
       {/* Left Panel */}
-      <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
+      <div className="w-96 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex flex-col gap-4 overflow-hidden border border-green-500/20 shadow-lg shadow-green-500/10">
         {/* Market Status */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
@@ -479,7 +479,7 @@ export default function StockExchange() {
       </div>
 
       {/* Main Area - LARGE CHART */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-6 flex flex-col gap-4 overflow-hidden">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0a1a0a] rounded-2xl p-6 flex flex-col gap-4 overflow-hidden">
         {selectedStock && (
           <>
             {/* Stock Header */}
@@ -547,7 +547,7 @@ export default function StockExchange() {
       </div>
 
       {/* Right Panel - Trading & News */}
-      <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
+      <div className="w-96 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex flex-col gap-4 overflow-hidden border border-green-500/20 shadow-lg shadow-green-500/10">
         {/* Account Summary */}
         <div className="bg-gradient-to-r from-cyan-900/30 to-purple-900/30 rounded-xl p-4 flex-shrink-0">
           <div className="text-xs text-gray-500 mb-1">Account Balance</div>

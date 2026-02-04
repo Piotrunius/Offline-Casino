@@ -321,7 +321,7 @@ export default function ScratchCardsGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#1a0f0a] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500 rounded-full blur-[100px]" />
@@ -412,14 +412,6 @@ export default function ScratchCardsGame() {
                   <>
                     <div className="text-3xl font-black text-green-400">WINNER!</div>
                     <div className="text-4xl mt-2 flex justify-center gap-2">
-                      {[0,1,2].map(i => {
-                        const style = SYMBOL_STYLES[result.symbol];
-                        return (
-                          <span key={i} className={`${style?.color || 'text-white'} font-black`}>
-                            {style?.label || '?'}
-                          </span>
-                        );
-                      })}
                     </div>
                     <div className="text-2xl font-bold text-green-300 mt-2">+${result.prize.toFixed(2)}</div>
                   </>
@@ -455,8 +447,8 @@ export default function ScratchCardsGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-3">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-4 border border-orange-500/20 shadow-lg shadow-orange-500/10">
           {/* Card Type Selection */}
           <div>
             <label className="text-xs text-gray-500 uppercase font-bold">Select Card</label>

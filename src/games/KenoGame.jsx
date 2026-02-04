@@ -139,7 +139,7 @@ export default function KenoGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d0a16] rounded-2xl p-4 flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#1a0f0a] rounded-2xl p-4 flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center mb-3">
           <div className="text-sm">
@@ -233,8 +233,8 @@ export default function KenoGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-3">
+      <div className="w-96 flex flex-col gap-4">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 border border-orange-500/20 shadow-lg shadow-orange-500/10 flex flex-col gap-3">
           {/* Risk Mode */}
           <div>
             <label className="text-xs text-gray-500 uppercase font-bold">Risk Mode</label>
@@ -275,11 +275,11 @@ export default function KenoGame() {
             />
             <div className="grid grid-cols-2 gap-2 mt-2">
               <button onClick={selectRandom} disabled={playing}
-                className="btn-secondary py-2 text-sm font-bold rounded-lg">
+                className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold rounded-lg">
                 RANDOM
               </button>
               <button onClick={clearSelection} disabled={playing}
-                className="btn-secondary py-2 text-sm font-bold rounded-lg">
+                className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold rounded-lg">
                 ✕ CLEAR
               </button>
             </div>
@@ -299,10 +299,10 @@ export default function KenoGame() {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
-              <button onClick={() => handleBetChange(1)} disabled={playing} className="btn-secondary py-2 text-xs font-bold rounded-lg">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={playing} className="btn-secondary py-2 text-xs font-bold rounded-lg">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={playing} className="btn-secondary py-2 text-xs font-bold rounded-lg">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={playing} className="btn-secondary py-2 text-xs font-bold rounded-lg">MAX</button>
+              <button onClick={() => handleBetChange(1)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-xs font-bold rounded-lg">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-xs font-bold rounded-lg">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-xs font-bold rounded-lg">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-xs font-bold rounded-lg">MAX</button>
             </div>
           </div>
 
@@ -329,7 +329,7 @@ export default function KenoGame() {
           <button
             onClick={play}
             disabled={playing || bet <= 0 || bet > state.balance || selected.size === 0}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-cyan-500/30"
+            className="w-full py-5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-lg disabled:opacity-50 mt-auto shadow-lg shadow-cyan-500/30"
           >
             {playing ? 'DRAWING...' : selected.size === 0 ? 'SELECT NUMBERS' : 'PLAY KENO'}
           </button>

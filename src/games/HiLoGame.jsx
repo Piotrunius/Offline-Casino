@@ -246,7 +246,7 @@ export default function HiLoGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#15081a] rounded-2xl p-6 flex flex-col items-center justify-center relative">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#1a0a1a] rounded-2xl p-6 flex flex-col items-center justify-center relative">
         {/* Deck indicator */}
         <div className="absolute top-4 left-4 text-sm text-gray-500">
           Deck: {deck.length}/52
@@ -408,11 +408,11 @@ export default function HiLoGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-4">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-5 border border-purple-500/20 shadow-lg shadow-purple-500/10">
 
           {/* Game Mode Indicator */}
-          <div className={`text-center py-3 rounded-xl ${
+          <div className={`text-center py-3 rounded-2xl font-bold ${
             inStreak
               ? 'bg-gradient-to-r from-yellow-600/30 to-orange-600/30 border border-yellow-500/50'
               : 'bg-gray-800/50'
@@ -429,44 +429,44 @@ export default function HiLoGame() {
 
           {/* Bet Amount (only when not in streak) */}
           {!inStreak && (
-            <div>
-              <label className="text-sm text-gray-400 uppercase font-bold">Bet Amount</label>
-              <div className="relative mt-2">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xl">$</span>
+            <div className="space-y-3 animate-slide-in-down">
+              <label className="text-sm text-green-400 uppercase font-bold tracking-wider">Bet Amount</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-400 text-xl font-bold">$</span>
                 <input
                   type="number"
                   value={bet}
                   onChange={(e) => handleBetChange(Number(e.target.value))}
                   disabled={playing || inStreak}
-                  className="w-full bg-black/50 border-2 border-white/10 rounded-xl py-3 pl-12 pr-4 text-white text-xl font-bold"
+                  className="w-full bg-black/60 border-2 border-green-500/30 rounded-xl py-4 pl-10 pr-4 text-white text-xl font-bold focus:border-green-400 focus:outline-none transition-colors"
                 />
               </div>
-              <div className="grid grid-cols-4 gap-2 mt-2">
-                <button onClick={() => handleBetChange(1)} disabled={playing} className="btn-secondary py-2 text-sm font-bold rounded-lg">MIN</button>
-                <button onClick={() => handleBetChange(bet / 2)} disabled={playing} className="btn-secondary py-2 text-sm font-bold rounded-lg">½</button>
-                <button onClick={() => handleBetChange(bet * 2)} disabled={playing} className="btn-secondary py-2 text-sm font-bold rounded-lg">2x</button>
-                <button onClick={() => handleBetChange(state.balance)} disabled={playing} className="btn-secondary py-2 text-sm font-bold rounded-lg">MAX</button>
+              <div className="grid grid-cols-4 gap-2">
+                <button onClick={() => handleBetChange(1)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">MIN</button>
+                <button onClick={() => handleBetChange(bet / 2)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">½</button>
+                <button onClick={() => handleBetChange(bet * 2)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">2x</button>
+                <button onClick={() => handleBetChange(state.balance)} disabled={playing} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">MAX</button>
               </div>
             </div>
           )}
 
           {/* Streak Info */}
           {inStreak && (
-            <div className="bg-black/30 rounded-xl p-3 space-y-2">
+            <div className="bg-black/40 rounded-2xl p-4 space-y-3 border border-gray-700/50 animate-slide-in-down" style={{ animationDelay: '0.05s' }}>
               <div className="flex justify-between">
-                <span className="text-gray-500">Initial Bet</span>
-                <span className="text-white font-bold">${initialBetRef.current.toFixed(2)}</span>
+                <span className="text-gray-400">Initial Bet</span>
+                <span className="text-white font-bold text-lg">${initialBetRef.current.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Streak</span>
-                <span className="text-yellow-400 font-bold">{streakCount} wins</span>
+              <div className="flex justify-between pt-2 border-t border-gray-700/50">
+                <span className="text-gray-400">Streak</span>
+                <span className="text-yellow-400 font-bold text-lg">{streakCount}W</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Total Mult</span>
-                <span className="text-cyan-400 font-bold">{currentMultiplier.toFixed(2)}x</span>
+              <div className="flex justify-between pt-2 border-t border-gray-700/50">
+                <span className="text-gray-400">Multiplier</span>
+                <span className="text-cyan-400 font-bold text-lg">{currentMultiplier.toFixed(2)}x</span>
               </div>
-              <div className="flex justify-between border-t border-gray-700 pt-2">
-                <span className="text-gray-500">Cash Out</span>
+              <div className="flex justify-between pt-3 border-t border-gray-700/50">
+                <span className="text-gray-400">Potential Win</span>
                 <span className="text-green-400 font-black text-xl">${potentialWin.toFixed(2)}</span>
               </div>
             </div>
@@ -478,7 +478,7 @@ export default function HiLoGame() {
               <button
                 onClick={cashout}
                 disabled={playing}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-green-500/30 animate-pulse"
+                className="w-full py-5 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-green-500/40 transition-all transform hover:scale-105 disabled:hover:scale-100 animate-pulse"
               >
                 CASH OUT ${potentialWin.toFixed(2)}
               </button>
@@ -486,12 +486,12 @@ export default function HiLoGame() {
               <button
                 onClick={startGame}
                 disabled={playing || bet <= 0 || bet > state.balance}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-pink-500/30"
+                className="w-full py-5 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-pink-500/40 transition-all transform hover:scale-105 disabled:hover:scale-100"
               >
                 {playing ? 'DRAWING...' : 'START ROUND'}
               </button>
             ) : (
-              <div className="text-center text-gray-500 py-4">
+              <div className="text-center text-gray-500 py-4 text-sm">
                 Make a prediction above
               </div>
             )}

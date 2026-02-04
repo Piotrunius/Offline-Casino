@@ -188,7 +188,7 @@ export default function SicboGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#12081a] rounded-2xl p-6 flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#1a0f0a] rounded-2xl p-6 flex flex-col">
         {/* Title */}
         <div className="text-center mb-4">
           <h2 className="text-3xl font-black bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
@@ -234,8 +234,8 @@ export default function SicboGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-3 overflow-hidden">
+      <div className="w-96 flex flex-col gap-4">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 border border-orange-500/20 shadow-lg shadow-orange-500/10 flex flex-col gap-3 overflow-hidden">
           {/* Category Tabs */}
           <div className="flex gap-1">
             {Object.entries(BET_CATEGORIES).map(([key, cat]) => (
@@ -303,10 +303,10 @@ export default function SicboGame() {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
-              <button onClick={() => handleBetChange(1)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">MAX</button>
+              <button onClick={() => handleBetChange(1)} disabled={rolling} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold rounded-lg">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={rolling} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold rounded-lg">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={rolling} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold rounded-lg">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={rolling} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold rounded-lg">MAX</button>
             </div>
           </div>
 
@@ -322,7 +322,7 @@ export default function SicboGame() {
           <button
             onClick={roll}
             disabled={rolling || bet <= 0 || bet > state.balance}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-red-500/30"
+            className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white font-black text-lg disabled:opacity-50 mt-auto shadow-lg shadow-red-500/30"
           >
             {rolling ? 'ROLLING...' : 'ROLL DICE'}
           </button>

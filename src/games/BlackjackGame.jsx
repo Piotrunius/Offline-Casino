@@ -377,7 +377,7 @@ export default function BlackjackGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d1a0d] rounded-2xl p-6 flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#1a0a0a] rounded-2xl p-6 flex flex-col">
         {/* Dealer */}
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="flex items-center gap-3 mb-4">
@@ -488,8 +488,8 @@ export default function BlackjackGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-3">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-4 border border-red-500/20 shadow-lg shadow-red-500/10">
           {/* Bet Amount */}
           <div>
             <label className="text-sm text-gray-400 uppercase font-bold">Bet Amount</label>
@@ -542,7 +542,7 @@ export default function BlackjackGame() {
             <button
               onClick={deal}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
+              className="w-full py-5 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-lg disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
             >
               DEAL
             </button>

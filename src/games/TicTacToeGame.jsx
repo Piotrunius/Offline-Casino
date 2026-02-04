@@ -261,7 +261,7 @@ export default function TicTacToeGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-4 flex flex-col items-center justify-center">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0a0a1a] rounded-2xl p-4 flex flex-col items-center justify-center">
         {/* Game Status */}
         <div className="mb-6">
           <span className={`px-4 py-2 rounded-full text-sm font-bold ${
@@ -314,32 +314,32 @@ export default function TicTacToeGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4">
-        <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
+      <div className="w-96 flex flex-col gap-4">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-5 border border-blue-500/20 shadow-lg shadow-blue-500/10 overflow-y-auto">
           {/* Bet Amount */}
-          <div>
-            <label className="text-xs text-gray-500 uppercase font-bold">Bet Amount</label>
-            <div className="relative mt-2">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
+          <div className="space-y-3 animate-slide-in-down">
+            <label className="text-sm text-green-400 uppercase font-bold tracking-wider">Bet Amount</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-400 text-xl font-bold">$</span>
               <input
                 type="number"
                 value={bet}
                 onChange={(e) => handleBetChange(Number(e.target.value))}
                 disabled={gamePhase !== 'betting'}
-                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-lg font-bold"
+                className="w-full bg-black/60 border-2 border-green-500/30 rounded-xl py-4 pl-10 pr-4 text-white text-xl font-bold focus:border-green-400 focus:outline-none transition-colors"
               />
             </div>
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MAX</button>
+            <div className="grid grid-cols-4 gap-2">
+              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">MAX</button>
             </div>
           </div>
 
           {/* Difficulty */}
-          <div>
-            <label className="text-xs text-gray-500 uppercase font-bold mb-2 block">AI Difficulty</label>
+          <div className="animate-slide-in-down" style={{ animationDelay: '0.05s' }}>
+            <label className="text-sm text-purple-400 uppercase font-bold tracking-wider mb-3 block">AI Difficulty</label>
             <div className="grid grid-cols-3 gap-2">
               {['easy', 'medium', 'hard'].map(d => (
                 <button
@@ -361,14 +361,14 @@ export default function TicTacToeGame() {
           </div>
 
           {/* Payout Info */}
-          <div className="bg-black/30 rounded-xl p-3">
-            <div className="flex justify-between text-gray-400">
-              <span>Win Payout:</span>
-              <span className="text-green-400 font-bold">{(DIFFICULTY_MULTIPLIERS[difficulty] + 1).toFixed(1)}x</span>
+          <div className="bg-black/40 rounded-2xl p-4 space-y-3 border border-gray-700/50 animate-slide-in-down" style={{ animationDelay: '0.1s' }}>
+            <div className="flex justify-between">
+              <span className="text-gray-400 text-sm">Win Payout:</span>
+              <span className="text-green-400 font-bold text-lg">{(DIFFICULTY_MULTIPLIERS[difficulty] + 1).toFixed(1)}x</span>
             </div>
-            <div className="flex justify-between text-gray-400 mt-1">
-              <span>Tie:</span>
-              <span className="text-red-400 font-bold">Lose bet</span>
+            <div className="flex justify-between pt-2 border-t border-gray-700/50">
+              <span className="text-gray-400 text-sm">Tie:</span>
+              <span className="text-red-400 font-bold text-lg">Lose bet</span>
             </div>
             <div className="text-xs text-gray-500 mt-2">
               Beat the AI to win! Ties count as a loss.
@@ -396,22 +396,22 @@ export default function TicTacToeGame() {
               </div>
             </div>
           )}
-        </div>
 
-        {/* Start/New Game Button - AT BOTTOM */}
-        <button
-          onClick={gamePhase === 'ended' ? () => setGamePhase('betting') : startGame}
-          disabled={gamePhase === 'playing' || (gamePhase === 'betting' && (bet <= 0 || bet > state.balance))}
-          className={`py-4 rounded-xl font-bold text-lg transition-all ${
-            gamePhase === 'playing'
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white'
-          }`}
-        >
-          {gamePhase === 'betting' ? 'START GAME' :
-           gamePhase === 'playing' ? 'PLAYING...' :
-           'NEW GAME'}
-        </button>
+          {/* Start/New Game Button */}
+          <button
+            onClick={gamePhase === 'ended' ? () => setGamePhase('betting') : startGame}
+            disabled={gamePhase === 'playing' || (gamePhase === 'betting' && (bet <= 0 || bet > state.balance))}
+            className={`w-full py-5 rounded-2xl font-black text-lg transition-all transform hover:scale-105 disabled:hover:scale-100 mt-auto ${
+              gamePhase === 'playing'
+                ? 'bg-gray-700/50 text-gray-600 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/40'
+            }`}
+          >
+            {gamePhase === 'betting' ? 'START GAME' :
+             gamePhase === 'playing' ? 'PLAYING...' :
+             'NEW GAME'}
+          </button>
+        </div>
       </div>
     </div>
   );

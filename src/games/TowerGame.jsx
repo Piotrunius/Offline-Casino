@@ -131,7 +131,7 @@ export default function TowerGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d0814] rounded-2xl p-4 flex flex-col items-center justify-center relative">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0a1a1a] rounded-2xl p-4 flex flex-col items-center justify-center relative">
         {/* Current Multiplier */}
         {playing && currentRow > 0 && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-4">
@@ -202,8 +202,8 @@ export default function TowerGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-3">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-4 border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
           {/* Difficulty */}
           <div>
             <label className="text-xs text-gray-500 uppercase font-bold">Difficulty</label>
@@ -289,7 +289,7 @@ export default function TowerGame() {
               <button
                 onClick={startGame}
                 disabled={bet <= 0 || bet > state.balance}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xl disabled:opacity-50 shadow-lg shadow-cyan-500/30"
+                className="w-full py-5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-lg disabled:opacity-50 shadow-lg shadow-cyan-500/30"
               >
                 START CLIMB
               </button>

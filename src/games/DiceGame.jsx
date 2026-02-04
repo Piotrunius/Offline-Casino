@@ -111,7 +111,7 @@ export default function DiceGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d0a18] rounded-2xl p-6 flex flex-col items-center justify-center relative">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0a1a1a] rounded-2xl p-6 flex flex-col items-center justify-center relative">
         {/* Win/Lose indicator - TOP */}
         {result && (
           <div className={`absolute top-4 left-1/2 -translate-x-1/2 text-center py-3 px-8 rounded-2xl z-10 ${
@@ -188,8 +188,8 @@ export default function DiceGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-3">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-4 border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
           {/* Mode Selection */}
           <div>
             <label className="text-sm text-gray-400 uppercase font-bold">Bet Type</label>

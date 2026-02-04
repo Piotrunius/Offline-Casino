@@ -159,7 +159,7 @@ export default function VideoPokerGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-2xl p-5 flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0a1a1a] rounded-2xl p-5 flex flex-col">
         {/* Paytable */}
         <div className="bg-black/40 rounded-xl p-3 mb-4">
           <div className="grid grid-cols-3 gap-x-6 gap-y-1 text-sm">
@@ -214,8 +214,8 @@ export default function VideoPokerGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-4">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 border border-cyan-500/20 shadow-lg shadow-cyan-500/10 flex flex-col gap-4">
           {/* Bet Amount */}
           <div>
             <label className="text-xs text-gray-500 uppercase font-bold">Bet Amount</label>
@@ -230,10 +230,10 @@ export default function VideoPokerGame() {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
-              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MAX</button>
+              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 rounded-xl transition-all transform hover:scale-105 text-sm font-bold">MAX</button>
             </div>
           </div>
 
@@ -270,7 +270,7 @@ export default function VideoPokerGame() {
             <button
               onClick={deal}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
+              className="w-full py-5 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-lg disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
             >
               DEAL
             </button>

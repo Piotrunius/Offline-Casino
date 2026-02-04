@@ -274,7 +274,7 @@ export default function SlotsGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] via-[#120a14] to-[#0a0a12] rounded-2xl p-6 flex flex-col items-center justify-center">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#1a0f0a] rounded-2xl p-6 flex flex-col items-center justify-center">
         {/* Slot Machine Frame */}
         <div className="bg-gradient-to-b from-gray-900 to-black p-6 rounded-3xl border-4 border-yellow-600/50 shadow-2xl shadow-yellow-500/20">
           {/* Reels */}
@@ -333,8 +333,8 @@ export default function SlotsGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-3">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-4 border border-yellow-500/20 shadow-lg shadow-yellow-500/10">
           {/* Grid Size */}
           <div>
             <label className="text-sm text-gray-400 uppercase font-bold">Reels × Rows</label>

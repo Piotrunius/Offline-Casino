@@ -192,7 +192,7 @@ export default function WarGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] via-[#0a1020] to-[#0a0a12] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#1a0f0a] rounded-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500 rounded-full blur-[100px]" />
@@ -298,16 +298,14 @@ export default function WarGame() {
         )}
       </div>
 
-      {/* Controls */}
-      <div className="w-80 bg-gradient-to-b from-[#12121a] to-[#0a0a10] rounded-2xl p-6 flex flex-col gap-6">
-        <h2 className="text-xl font-black text-white">WAR</h2>
-
-        <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
+      {/* Controls - RIGHT */}
+      <div className="w-96 flex flex-col gap-4">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-5 border border-red-500/20 shadow-lg shadow-red-500/10">
           {/* Bet Amount */}
-          <div>
-            <label className="text-gray-400 text-sm mb-2 block">Bet Amount</label>
+          <div className="space-y-3 animate-slide-in-down">
+            <label className="text-sm text-red-400 uppercase font-bold tracking-wider">Bet Amount</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold">$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400 text-xl font-bold">$</span>
               <input
                 type="number"
                 value={bet}
@@ -315,36 +313,56 @@ export default function WarGame() {
                 min="1"
                 max={state.balance}
                 disabled={warMode}
-                className="w-full bg-black/40 border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-bold focus:border-cyan-500 outline-none disabled:opacity-50"
+                className="w-full bg-black/60 border-2 border-red-500/30 rounded-xl py-4 pl-10 pr-4 text-white text-xl font-bold focus:border-red-400 focus:outline-none transition-colors"
               />
             </div>
-            <div className="flex gap-2 mt-2">
-              {[10, 25, 50, 100].map(amount => (
-                <button
-                  key={amount}
-                  onClick={() => handleBetChange(amount)}
-                  disabled={warMode}
-                  className="flex-1 py-1 text-xs bg-gray-800 hover:bg-gray-700 rounded text-gray-300 disabled:opacity-50"
-                >
-                  ${amount}
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-2">
+              <button onClick={() => handleBetChange(1)} disabled={warMode} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={warMode} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={warMode} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={warMode} className="bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700 py-3 text-sm font-bold rounded-xl transition-all transform hover:scale-105">MAX</button>
             </div>
           </div>
-        </div>
 
-        {/* Play Button - AT BOTTOM */}
-        <button
-          onClick={play}
-          disabled={playing || bet > state.balance || bet <= 0 || warMode}
-          className={`py-4 rounded-xl font-black text-lg transition-all ${
-            playing || bet > state.balance || bet <= 0 || warMode
-              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              : 'bg-gradient-to-r from-red-500 to-orange-600 text-white hover:scale-[1.02] active:scale-[0.98]'
-          }`}
-        >
-          {playing ? 'DEALING...' : 'DRAW CARD'}
-        </button>
+          {/* Quick Bets */}
+          <div className="grid grid-cols-3 gap-2 animate-slide-in-down" style={{ animationDelay: '0.05s' }}>
+            {[10, 25, 50, 100, 250, 500].map(v => (
+              <button
+                key={v}
+                onClick={() => handleBetChange(v)}
+                disabled={warMode}
+                className={`py-3 rounded-2xl text-sm font-bold transition-all transform hover:scale-105 disabled:opacity-50 ${bet === v ? 'bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-lg shadow-red-500/30' : 'bg-gray-800/60 text-gray-400 hover:bg-gray-700/80 border border-gray-700'}`}
+              >
+                ${v}
+              </button>
+            ))}
+          </div>
+
+          {/* Payouts */}
+          <div className="bg-black/40 rounded-2xl p-4 space-y-3 border border-gray-700/50 animate-slide-in-down" style={{ animationDelay: '0.1s' }}>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 text-sm">Win</span>
+              <span className="text-green-400 font-bold text-lg">{WIN_MULTIPLIER}x</span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-gray-700/50">
+              <span className="text-gray-400 text-sm">War Win</span>
+              <span className="text-yellow-400 font-bold text-lg">{WAR_MULTIPLIER}x</span>
+            </div>
+          </div>
+
+          {/* Play Button */}
+          <button
+            onClick={play}
+            disabled={playing || bet > state.balance || bet <= 0 || warMode}
+            className={`w-full py-5 rounded-2xl font-black text-xl disabled:opacity-50 mt-auto shadow-lg transition-all transform hover:scale-105 disabled:hover:scale-100 ${
+              playing || bet > state.balance || bet <= 0 || warMode
+                ? 'bg-gray-700/50 text-gray-600'
+                : 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-400 hover:to-orange-500 text-white shadow-red-500/40'
+            }`}
+          >
+            {playing ? 'DEALING...' : 'DRAW CARD'}
+          </button>
+        </div>
       </div>
     </div>
   );

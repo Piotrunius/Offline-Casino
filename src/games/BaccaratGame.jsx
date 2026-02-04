@@ -224,7 +224,7 @@ export default function BaccaratGame() {
   return (
     <div className="h-full flex gap-4">
       {/* Game Area - LEFT */}
-      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#120a15] rounded-2xl p-6 flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0f0a1a] rounded-2xl p-6 flex flex-col">
         {/* Title */}
         <div className="text-center mb-2">
           <h2 className="text-2xl font-black bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-transparent">
@@ -299,8 +299,8 @@ export default function BaccaratGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-80 flex flex-col gap-3">
-        <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
+      <div className="w-96 flex flex-col gap-3">
+        <div className="bg-gradient-to-b from-[#0a0a12] to-[#0f0f1a] rounded-3xl p-6 flex-1 flex flex-col gap-4 border border-purple-500/20 shadow-lg shadow-purple-500/10">
           {/* Main Bets */}
           <div>
             <label className="text-sm text-gray-400 uppercase font-bold">Main Bet</label>
@@ -409,7 +409,7 @@ export default function BaccaratGame() {
             <button
               onClick={play}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-purple-500/30"
+              className="w-full py-5 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-lg disabled:opacity-50 mt-auto shadow-lg shadow-purple-500/30"
             >
               DEAL CARDS
             </button>
