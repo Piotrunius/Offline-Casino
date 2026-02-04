@@ -386,15 +386,25 @@ export default function BlackjackGame() {
               <span className="bg-black/60 px-4 py-2 rounded-full text-2xl font-black text-white">{calcValue(dealerCards)}</span>
             )}
           </div>
-          <div className="flex gap-4">
-            {dealerCards.length > 0 ? (
-              dealerCards.map((c, i) => (
+          {gamePhase === 'betting' ? (
+            <div className="flex flex-col items-center justify-center opacity-50">
+              <div className="flex gap-4 mb-3">
+                <div className="w-24 h-36 border-2 border-dashed border-gray-700/50 rounded-2xl flex items-center justify-center">
+                  <span className="text-4xl text-gray-700">?</span>
+                </div>
+                <div className="w-24 h-36 border-2 border-dashed border-gray-700/50 rounded-2xl flex items-center justify-center">
+                  <span className="text-4xl text-gray-700">?</span>
+                </div>
+              </div>
+              <span className="text-sm text-gray-600 uppercase">Waiting for bet...</span>
+            </div>
+          ) : (
+            <div className="flex gap-4">
+              {dealerCards.map((c, i) => (
                 <Card key={i} card={c} hidden={i === 1 && gamePhase === 'playing'} />
-              ))
-            ) : (
-              <div className="w-24 h-36 border-3 border-dashed border-gray-700 rounded-2xl" />
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Result */}
@@ -434,35 +444,46 @@ export default function BlackjackGame() {
 
         {/* Player */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="flex gap-8">
-            {/* Main Hand */}
-            <div className={`flex flex-col items-center ${activeHand === 0 && gamePhase.includes('playing') ? 'ring-4 ring-cyan-500/50 rounded-2xl p-3' : ''}`}>
-              <div className="flex gap-3">
-                {playerCards.length > 0 ? (
-                  playerCards.map((c, i) => <Card key={i} card={c} />)
-                ) : (
-                  <div className="w-24 h-36 border-3 border-dashed border-gray-700 rounded-2xl" />
-                )}
+          {gamePhase === 'betting' ? (
+            <div className="flex flex-col items-center justify-center opacity-50">
+              <div className="flex gap-4 mb-3">
+                <div className="w-24 h-36 border-2 border-dashed border-gray-700/50 rounded-2xl flex items-center justify-center">
+                  <span className="text-4xl text-gray-700">?</span>
+                </div>
+                <div className="w-24 h-36 border-2 border-dashed border-gray-700/50 rounded-2xl flex items-center justify-center">
+                  <span className="text-4xl text-gray-700">?</span>
+                </div>
               </div>
-              <div className="flex items-center gap-3 mt-3">
-                <span className="text-lg text-gray-400 uppercase font-bold">{splitHand.length > 0 ? 'Hand 1' : 'You'}</span>
-                {pVal > 0 && <span className={`bg-black/60 px-4 py-2 rounded-full text-2xl font-black ${pVal > 21 ? 'text-red-400' : 'text-white'}`}>{pVal}</span>}
-              </div>
+              <span className="text-sm text-gray-600 uppercase mb-1">Your hand</span>
+              <span className="text-xs text-gray-700">Place bet to start</span>
             </div>
-
-            {/* Split Hand */}
-            {splitHand.length > 0 && (
-              <div className={`flex flex-col items-center ${activeHand === 1 ? 'ring-4 ring-cyan-500/50 rounded-2xl p-3' : ''}`}>
+          ) : (
+            <div className="flex gap-8">
+              {/* Main Hand */}
+              <div className={`flex flex-col items-center ${activeHand === 0 && gamePhase.includes('playing') ? 'ring-4 ring-cyan-500/50 rounded-2xl p-3' : ''}`}>
                 <div className="flex gap-3">
-                  {splitHand.map((c, i) => <Card key={i} card={c} />)}
+                  {playerCards.map((c, i) => <Card key={i} card={c} />)}
                 </div>
                 <div className="flex items-center gap-3 mt-3">
-                  <span className="text-lg text-gray-400 uppercase font-bold">Hand 2</span>
-                  <span className={`bg-black/60 px-4 py-2 rounded-full text-2xl font-black ${sVal > 21 ? 'text-red-400' : 'text-white'}`}>{sVal}</span>
+                  <span className="text-lg text-gray-400 uppercase font-bold">{splitHand.length > 0 ? 'Hand 1' : 'You'}</span>
+                  {pVal > 0 && <span className={`bg-black/60 px-4 py-2 rounded-full text-2xl font-black ${pVal > 21 ? 'text-red-400' : 'text-white'}`}>{pVal}</span>}
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* Split Hand */}
+              {splitHand.length > 0 && (
+                <div className={`flex flex-col items-center ${activeHand === 1 ? 'ring-4 ring-cyan-500/50 rounded-2xl p-3' : ''}`}>
+                  <div className="flex gap-3">
+                    {splitHand.map((c, i) => <Card key={i} card={c} />)}
+                  </div>
+                  <div className="flex items-center gap-3 mt-3">
+                    <span className="text-lg text-gray-400 uppercase font-bold">Hand 2</span>
+                    <span className={`bg-black/60 px-4 py-2 rounded-full text-2xl font-black ${sVal > 21 ? 'text-red-400' : 'text-white'}`}>{sVal}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -126,31 +126,47 @@ export default function MinesGame() {
       {/* Game Area - LEFT */}
       <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0a1212] rounded-2xl p-6 flex flex-col items-center justify-center">
         {/* Grid */}
-        <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
-          {grid.map((tile, i) => {
-            // Admin cheat: highlight safe tiles
-            const showSafeHint = playing && !tile.revealed && (minesCheats.revealSafe || godMode) && !tile.mine;
+        {!playing && grid.length === 0 ? (
+          <div className="flex flex-col items-center justify-center opacity-40">
+            <div className={`grid gap-2 mb-4`} style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
+              {Array(gridSize * gridSize).fill(0).map((_, i) => (
+                <div key={i} className={`${tileSize} rounded-xl bg-gray-800/50 border-2 border-dashed border-gray-700/50 flex items-center justify-center`}>
+                  <span className="text-3xl text-gray-700">?</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-center">
+              <span className="text-gray-600 uppercase text-sm font-bold">Place bet to start</span>
+              <div className="text-gray-700 text-xs mt-1">Find {gridSize * gridSize - mineCount} gems, avoid {mineCount} mines</div>
+            </div>
+          </div>
+        ) : (
+          <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
+            {grid.map((tile, i) => {
+              // Admin cheat: highlight safe tiles
+              const showSafeHint = playing && !tile.revealed && (minesCheats.revealSafe || godMode) && !tile.mine;
 
-            return (
-              <button
-                key={i}
-                onClick={() => revealTile(i)}
-                disabled={!playing || tile.revealed}
-                className={`${tileSize} rounded-xl ${emojiSize} font-bold transition-all flex items-center justify-center shadow-lg ${
-                  tile.revealed
-                    ? tile.mine
-                      ? 'bg-gradient-to-br from-red-500 to-red-700 text-white scale-95'
-                      : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white scale-95'
-                    : showSafeHint
-                      ? 'bg-gradient-to-br from-green-800 to-green-900 hover:from-green-700 hover:to-green-800 hover:scale-105 border-2 border-green-500/50'
-                      : 'bg-gradient-to-br from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 hover:scale-105'
-                }`}
-              >
-                {tile.revealed ? (tile.mine ? '💣' : '💎') : showSafeHint ? '✓' : ''}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={i}
+                  onClick={() => revealTile(i)}
+                  disabled={!playing || tile.revealed}
+                  className={`${tileSize} rounded-xl ${emojiSize} font-bold transition-all flex items-center justify-center shadow-lg ${
+                    tile.revealed
+                      ? tile.mine
+                        ? 'bg-gradient-to-br from-red-500 to-red-700 text-white scale-95'
+                        : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white scale-95'
+                      : showSafeHint
+                        ? 'bg-gradient-to-br from-green-800 to-green-900 hover:from-green-700 hover:to-green-800 hover:scale-105 border-2 border-green-500/50'
+                        : 'bg-gradient-to-br from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 hover:scale-105'
+                  }`}
+                >
+                  {tile.revealed ? (tile.mine ? '💣' : '💎') : showSafeHint ? '✓' : ''}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Current Multiplier */}
         {playing && revealed > 0 && (

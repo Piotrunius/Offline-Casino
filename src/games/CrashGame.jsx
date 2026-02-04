@@ -178,16 +178,24 @@ export default function CrashGame() {
       {/* Game Area - LEFT */}
       <div className="flex-1 bg-gradient-to-b from-[#0a0a12] to-[#0d0816] rounded-2xl p-6 flex flex-col items-center justify-center relative">
         {/* Multiplier Display */}
-        <div className={`text-8xl font-black mb-6 transition-all ${
-          crashed ? 'text-red-500 animate-pulse' :
-          currentMult >= 5 ? 'text-yellow-400' :
-          currentMult >= 2 ? 'text-green-400' : 'text-cyan-400'
-        }`}>
-          {currentMult.toFixed(2)}x
-        </div>
+        {!playing && graphPoints.length === 0 ? (
+          <div className="flex flex-col items-center justify-center opacity-40 mb-8">
+            <div className="text-7xl font-black text-gray-700 mb-2">??.??x</div>
+            <div className="text-gray-600 uppercase text-sm font-bold">Waiting for bet...</div>
+            <div className="text-gray-700 text-xs mt-1">Place bet to start the rocket</div>
+          </div>
+        ) : (
+          <div className={`text-8xl font-black mb-6 transition-all ${
+            crashed ? 'text-red-500 animate-pulse' :
+            currentMult >= 5 ? 'text-yellow-400' :
+            currentMult >= 2 ? 'text-green-400' : 'text-cyan-400'
+          }`}>
+            {currentMult.toFixed(2)}x
+          </div>
+        )}
 
         {/* Graph */}
-        <div className="w-full max-w-lg h-48 bg-black/40 rounded-xl overflow-hidden border border-gray-800">
+        <div className="w-full max-w-lg h-48 bg-black/40 rounded-xl overflow-hidden border-2 border-gray-800/50 shadow-2xl relative">
           <canvas
             ref={canvasRef}
             width={500}
@@ -198,40 +206,45 @@ export default function CrashGame() {
 
         {/* Crashed indicator */}
         {crashed && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-red-500 font-black text-6xl animate-bounce opacity-80">
-              💥 CRASHED!
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="bg-black/80 px-8 py-6 rounded-2xl border-2 border-red-500">
+              <div className="text-red-500 font-black text-6xl animate-pulse">
+                💥 CRASHED!
+              </div>
             </div>
           </div>
         )}
 
         {/* Result */}
         {result && (
-          <div className={`mt-6 text-center py-4 px-8 rounded-2xl ${
+          <div className={`mt-6 text-center py-5 px-10 rounded-2xl shadow-2xl ${
             result.won
-              ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border border-green-500/50'
-              : 'bg-gradient-to-r from-red-900/60 to-rose-900/60 border border-red-500/50'
+              ? 'bg-gradient-to-r from-green-900/80 to-emerald-900/80 border-2 border-green-500/50'
+              : 'bg-gradient-to-r from-red-900/80 to-rose-900/80 border-2 border-red-500/50'
           }`}>
-            <span className={`text-2xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
+            <span className={`text-3xl font-black ${result.won ? 'text-green-400' : 'text-red-400'}`}>
               {result.won
-                ? `CASHED OUT ${result.mult.toFixed(2)}x → +$${result.profit.toFixed(2)}`
+                ? `CASHED OUT! ${result.mult.toFixed(2)}x`
                 : `CRASHED @ ${result.mult.toFixed(2)}x`}
             </span>
+            <div className={`text-xl font-bold mt-2 ${result.won ? 'text-green-300' : 'text-red-300'}`}>
+              {result.won ? `+$${result.profit.toFixed(2)}` : `-$${Math.abs(result.profit).toFixed(2)}`}
+            </div>
           </div>
         )}
 
         {/* History */}
         {history.length > 0 && (
-          <div className="absolute bottom-4 left-4 flex gap-2">
+          <div className="absolute bottom-4 left-4 flex gap-2 flex-wrap max-w-md">
             {history.map((h, i) => (
-              <span key={i} className={`px-3 py-1.5 rounded-lg text-sm font-bold ${
-                h.won ? 'bg-green-900/50 text-green-400' :
-                h.mult < 1.5 ? 'bg-red-900/50 text-red-400' :
-                h.mult < 2 ? 'bg-orange-900/50 text-orange-400' :
-                'bg-gray-800 text-gray-400'
+              <div key={i} className={`px-4 py-2 rounded-lg text-sm font-bold shadow-lg ${
+                h.won ? 'bg-green-900/70 text-green-300 border border-green-500/30' :
+                h.mult < 1.5 ? 'bg-red-900/70 text-red-300 border border-red-500/30' :
+                h.mult < 2 ? 'bg-orange-900/70 text-orange-300 border border-orange-500/30' :
+                'bg-gray-800/70 text-gray-300 border border-gray-600/30'
               }`}>
-                {h.mult.toFixed(2)}x
-              </span>
+                {h.won && '✓ '}{h.mult.toFixed(2)}x
+              </div>
             ))}
           </div>
         )}

@@ -157,46 +157,77 @@ export default function KenoGame() {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-8 gap-1.5 flex-1 max-h-[360px]">
-          {Array.from({ length: 40 }, (_, i) => i + 1).map(n => {
-            const isSelected = selected.has(n);
-            const isDrawn = drawn.has(n);
-            const isHit = isSelected && isDrawn;
-            const isMiss = isSelected && drawn.size === 10 && !isDrawn;
+        {!playing && selected.size === 0 && drawn.size === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 opacity-40">
+            <div className="grid grid-cols-8 gap-1.5 w-full">
+              {Array.from({ length: 40 }, (_, i) => i + 1).map(n => (
+                <div
+                  key={n}
+                  className="aspect-square rounded-lg bg-gray-800 border-2 border-dashed border-gray-700 flex items-center justify-center text-gray-500 font-bold"
+                >
+                  ?
+                </div>
+              ))}
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-gray-400 mb-1">Select 1-10 numbers and place bet</div>
+              <div className="text-xs text-gray-500">Match drawn numbers to win prizes</div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-8 gap-1.5 flex-1 max-h-[360px]">
+            {Array.from({ length: 40 }, (_, i) => i + 1).map(n => {
+              const isSelected = selected.has(n);
+              const isDrawn = drawn.has(n);
+              const isHit = isSelected && isDrawn;
+              const isMiss = isSelected && drawn.size === 10 && !isDrawn;
 
-            return (
-              <button
-                key={n}
-                onClick={() => toggleNumber(n)}
-                disabled={playing}
-                className={`aspect-square rounded-lg text-sm font-bold transition-all flex items-center justify-center ${
-                  isHit
-                    ? 'bg-gradient-to-br from-green-400 to-green-600 text-white ring-2 ring-green-300 scale-110 shadow-lg shadow-green-500/50'
-                    : isMiss
-                      ? 'bg-gradient-to-br from-gray-600 to-gray-700 text-gray-400 ring-2 ring-red-500/50'
-                      : isDrawn
-                        ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-black'
-                        : isSelected
-                          ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white ring-2 ring-cyan-300'
-                          : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                } ${playing && !isDrawn && !isSelected ? 'opacity-50' : ''}`}
-              >
-                {n}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={n}
+                  onClick={() => toggleNumber(n)}
+                  disabled={playing}
+                  className={`aspect-square rounded-lg text-sm font-bold transition-all flex items-center justify-center ${
+                    isHit
+                      ? 'bg-gradient-to-br from-green-400 to-green-600 text-white ring-2 ring-green-300 scale-110 shadow-lg shadow-green-500/50'
+                      : isMiss
+                        ? 'bg-gradient-to-br from-gray-600 to-gray-700 text-gray-400 ring-2 ring-red-500/50'
+                        : isDrawn
+                          ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-black'
+                          : isSelected
+                            ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white ring-2 ring-cyan-300'
+                            : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                  } ${playing && !isDrawn && !isSelected ? 'opacity-50' : ''}`}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Result */}
         {result && (
-          <div className={`mt-3 text-center py-3 rounded-xl ${
+          <div className={`mt-3 text-center py-4 rounded-xl border-2 font-black transition-all ${
             result.mult > 0
-              ? 'bg-gradient-to-r from-green-900/60 to-emerald-900/60 border border-green-500/30'
-              : 'bg-gradient-to-r from-red-900/60 to-rose-900/60 border border-red-500/30'
+              ? 'bg-gradient-to-r from-green-900/80 to-emerald-900/80 border-green-500/60 shadow-lg shadow-green-500/20'
+              : 'bg-gradient-to-r from-red-900/80 to-rose-900/80 border-red-500/60 shadow-lg shadow-red-500/20'
           }`}>
-            <span className={`text-xl font-black ${result.mult > 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {result.hits}/{result.picks} HITS → {result.mult > 0 ? `${result.mult.toFixed(2)}x +$${result.profit.toFixed(2)}` : 'NO WIN'}
-            </span>
+            <div className={`text-2xl font-black ${result.mult > 0 ? 'text-green-300' : 'text-red-300'}`}>
+              {result.hits}/{result.picks} HITS
+            </div>
+            {result.mult > 0 ? (
+              <div className="mt-2 space-y-1">
+                <div className="text-lg text-green-400">
+                  {result.mult.toFixed(2)}x Multiplier
+                </div>
+                <div className="text-2xl font-black text-green-300">
+                  +${result.profit.toFixed(2)}
+                </div>
+              </div>
+            ) : (
+              <div className="text-lg text-red-400 mt-2">NO WIN</div>
+            )}
           </div>
         )}
       </div>
@@ -305,14 +336,19 @@ export default function KenoGame() {
 
           {/* History */}
           {history.length > 0 && (
-            <div className="flex gap-1.5 justify-center">
-              {history.map((h, i) => (
-                <span key={i} className={`px-2 py-1 rounded-lg text-xs font-bold ${
-                  h.won ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
-                }`}>
-                  {h.hits}/{h.picks}
-                </span>
-              ))}
+            <div>
+              <div className="text-xs text-gray-500 uppercase font-bold mb-2">Recent Plays</div>
+              <div className="flex gap-2 flex-wrap">
+                {history.slice(0, 4).map((h, i) => (
+                  <span key={i} className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                    h.won
+                      ? 'bg-green-900/40 text-green-300 border-green-500/50'
+                      : 'bg-red-900/40 text-red-300 border-red-500/50'
+                  }`}>
+                    {h.won ? '✓' : '✗'} {h.hits}/{h.picks}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
