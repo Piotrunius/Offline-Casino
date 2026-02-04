@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import {
   ArrowUpDown,
   Bomb,
@@ -38,6 +39,7 @@ import AchievementsModal from './components/AchievementsModal';
 import AdminPanel from './components/AdminPanel';
 import DailyBonusModal from './components/DailyBonusModal';
 import Dashboard from './components/Dashboard';
+import FeedbackButton from './components/FeedbackButton';
 import GameInfoModal from './components/GameInfoModal';
 import WinEffects from './components/WinEffects';
 
@@ -107,26 +109,28 @@ export default function App() {
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
 
-  // Konami Code detection
-  const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
-  const konamiIndex = useRef(0);
+  // Secret admin access
+  const secretSequence = ['Digit7', 'Digit7', 'Digit7', 'KeyP', 'KeyI', 'KeyO', 'KeyT', 'KeyR', 'Enter'];
+  const secretIndex = useRef(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === konamiCode[konamiIndex.current]) {
-        konamiIndex.current++;
-        if (konamiIndex.current === konamiCode.length) {
-          setShowAdminPanel(prev => !prev);
-          konamiIndex.current = 0;
+      if (e.code === secretSequence[secretIndex.current]) {
+        secretIndex.current++;
+        if (secretIndex.current === secretSequence.length) {
+          const newState = !showAdminPanel;
+          setShowAdminPanel(newState);
+          secretIndex.current = 0;
           audio.playWin();
+          trackingEngine.trackAdminAction('admin_panel_toggle', { opened: newState });
         }
       } else {
-        konamiIndex.current = 0;
+        secretIndex.current = 0;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [showAdminPanel]);
 
   const ActiveGameComponent = activeGame === 'stockexchange'
     ? STOCK_EXCHANGE.component
@@ -276,7 +280,7 @@ export default function App() {
                   className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
                   title="Game Info"
                 >
-                  <div className="w-5 h-5 flex items-center justify-center"><Info size={20} /></div>
+                  <div className="w-5 h-5 flex items-center justify-center relative"><Info size={20} /></div>
                 </button>
               )}
 
@@ -289,7 +293,7 @@ export default function App() {
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 transition-all relative"
                 title="Daily Bonus"
               >
-                <div className="w-5 h-5 flex items-center justify-center"><Gift size={20} /></div>
+                <div className="w-5 h-5 flex items-center justify-center relative"><Gift size={20} /></div>
                 {Date.now() - (state.dailyBonus?.lastClaimed || 0) > 86400000 && (
                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
                 )}
@@ -301,10 +305,10 @@ export default function App() {
                   trackingEngine.trackOpenModal('achievements');
                   setShowAchievements(true);
                 }}
-                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all relative"
                 title="Achievements"
               >
-                <div className="w-5 h-5 flex items-center justify-center"><Trophy size={20} /></div>
+                <div className="w-5 h-5 flex items-center justify-center relative"><Trophy size={20} /></div>
               </button>
 
               {/* Stock Exchange Button */}
@@ -327,10 +331,10 @@ export default function App() {
                   setExportCode(exportProgress());
                   setShowExportImport(true);
                 }}
-                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all relative"
                 title="Save/Load"
               >
-                <div className="w-5 h-5 flex items-center justify-center"><Save size={20} /></div>
+                <div className="w-5 h-5 flex items-center justify-center relative"><Save size={20} /></div>
               </button>
 
               {/* Settings Button */}
@@ -339,11 +343,14 @@ export default function App() {
                   trackingEngine.trackOpenModal('settings');
                   setShowSettings(true);
                 }}
-                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-all"
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-all relative"
                 title="Settings"
               >
-                <div className="w-5 h-5 flex items-center justify-center"><Settings size={20} /></div>
+                <div className="w-5 h-5 flex items-center justify-center relative"><Settings size={20} /></div>
               </button>
+
+              {/* Feedback Button */}
+              <FeedbackButton currentPage={activeGame} getExportCode={exportProgress} />
 
               {/* Sound Toggle */}
               <button
@@ -465,8 +472,13 @@ export default function App() {
       {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80" onClick={() => setShowSettings(false)} />
-          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md animate-bounce-in max-h-[90vh] overflow-y-auto">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowSettings(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+          >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Settings</h3>
               <button onClick={() => setShowSettings(false)} className="w-8 h-8 text-gray-400 hover:text-white flex items-center justify-center">
@@ -604,15 +616,20 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* Export/Import Modal */}
       {showExportImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80" onClick={() => setShowExportImport(false)} />
-          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-lg animate-bounce-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowExportImport(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl"
+          >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Save / Load Progress</h3>
               <button onClick={() => setShowExportImport(false)} className="w-8 h-8 text-gray-400 hover:text-white flex items-center justify-center">
@@ -680,7 +697,7 @@ export default function App() {
                 Load Progress
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -692,7 +709,7 @@ export default function App() {
         />
       )}
 
-      {/* Admin Panel (Konami Code) */}
+      {/* Admin Panel */}
       {showAdminPanel && (
         <AdminPanel
           state={state}

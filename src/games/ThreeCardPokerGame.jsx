@@ -393,7 +393,7 @@ export default function ThreeCardPokerGame() {
                 disabled={anteBet > state.balance}
                 className="flex-1 py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-xl disabled:opacity-50"
               >
-                PLAY (+${anteBet})
+                PLAY +${anteBet}
               </button>
             </div>
           ) : (

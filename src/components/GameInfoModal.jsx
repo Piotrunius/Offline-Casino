@@ -1,7 +1,24 @@
-import { 
-  Dices, Swords, X, Eraser, TrendingUp, Bomb, Rocket, Target, Coins, 
-  Building2, LayoutGrid, Spade, Cherry, ArrowUpDown, Gem, Flame, Gamepad2, 
-  Files, Dice5, HelpCircle 
+import { motion } from 'framer-motion';
+import {
+    ArrowUpDown,
+    Bomb,
+    Building2,
+    Cherry,
+    Coins,
+    Dice5,
+    Dices,
+    Eraser,
+    Files,
+    Flame, Gamepad2,
+    Gem,
+    HelpCircle,
+    LayoutGrid,
+    Rocket,
+    Spade,
+    Swords,
+    Target,
+    TrendingUp,
+    X
 } from 'lucide-react';
 
 export const GAME_INFO = {
@@ -318,8 +335,13 @@ export default function GameInfoModal({ gameId, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
-      <div className="relative bg-[#0a0a10] border border-cyan-500/30 rounded-2xl p-6 w-full max-w-2xl animate-bounce-in max-h-[90vh] overflow-y-auto">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="relative bg-[#0a0a10] border border-cyan-500/30 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl shadow-cyan-500/10"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -378,7 +400,7 @@ export default function GameInfoModal({ gameId, onClose }) {
           </h3>
           <p className="text-gray-300">{info.strategy}</p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

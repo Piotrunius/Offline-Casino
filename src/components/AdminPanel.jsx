@@ -1,9 +1,31 @@
-import { useState } from 'react';
-import { 
-  Crown, X, Banknote, Zap, Gamepad2, AlertTriangle, Trash2, RotateCcw, 
-  Skull, Save, Plus, Dices, Rocket, Bomb, Cherry, Spade, Coins, Building2, 
-  Target, LayoutGrid, ArrowUpDown, Gem, Flame, Eraser, Swords, Circle
+import {
+  AlertTriangle,
+  ArrowUpDown,
+  Banknote,
+  Bomb,
+  Building2,
+  Cherry,
+  Circle,
+  Coins,
+  Crown,
+  Dices,
+  Eraser,
+  Gamepad2,
+  Gem,
+  LayoutGrid,
+  Plus,
+  Rocket,
+  RotateCcw,
+  Save,
+  Skull,
+  Spade,
+  Swords,
+  Target,
+  Trash2,
+  X,
+  Zap
 } from 'lucide-react';
+import { useState } from 'react';
 
 export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSettings, onResetStats }) {
   const [balance, setBalance] = useState(state.balance);
@@ -75,7 +97,6 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
             </div>
             <div>
               <h2 className="text-xl font-black text-red-400">ADMIN PANEL</h2>
-              <p className="text-xs text-red-300/60">Konami Code Activated</p>
             </div>
           </div>
           <button
@@ -487,9 +508,6 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
         {/* Footer */}
         <div className="bg-red-900/30 border-t border-red-500/30 p-4 flex justify-between items-center">
-          <p className="text-xs text-red-300/60">
-            <Gamepad2 size={12} className="inline mr-1" /> Press Konami Code again to close
-          </p>
           <div className="flex gap-2">
             <button
               onClick={onClose}

@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { Banknote, CloudRain, Coins, Flame, Gem, Heart, Shield, Trophy, X, Zap } from 'lucide-react';
 import React from 'react';
 import { useCasino } from '../context/CasinoContext';
@@ -23,8 +24,13 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
-      <div className="relative bg-[#0a0a10] border border-yellow-500/20 rounded-2xl p-6 w-full max-w-2xl animate-bounce-in max-h-[80vh] overflow-y-auto">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="relative bg-[#0a0a10] border border-yellow-500/20 rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl shadow-yellow-500/10"
+      >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="text-yellow-500"><Trophy size={32} /></div>
@@ -91,7 +97,7 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
             );
           })}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
