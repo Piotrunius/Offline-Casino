@@ -236,7 +236,7 @@ export default function MinesGame() {
           </div>
 
           {/* Info */}
-          <div className="bg-black/40 rounded-xl p-4 space-y-2">
+          <div className="bg-black/30 rounded-xl p-3 space-y-2">
             {playing ? (
               <>
                 <div className="flex justify-between">
@@ -292,7 +292,7 @@ export default function MinesGame() {
             <button
               onClick={() => cashout()}
               disabled={revealed === 0}
-              className="w-full py-5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-black text-2xl disabled:opacity-50 mt-auto shadow-lg shadow-yellow-500/30"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-yellow-500/30"
             >
               CASHOUT ${(bet * currentMult).toFixed(2)}
             </button>
@@ -300,7 +300,7 @@ export default function MinesGame() {
             <button
               onClick={startGame}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-2xl disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
             >
               START GAME
             </button>

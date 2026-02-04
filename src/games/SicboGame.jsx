@@ -5,7 +5,7 @@ import audio from '../utils/audioEngine';
 // Organized bet categories
 const BET_CATEGORIES = {
   basic: {
-    label: '🎯 Basic Bets',
+    label: 'Basic Bets',
     bets: {
       small: { label: 'SMALL', desc: '4-10', mult: 2 },
       big: { label: 'BIG', desc: '11-17', mult: 2 },
@@ -14,14 +14,14 @@ const BET_CATEGORIES = {
     }
   },
   special: {
-    label: '⭐ Special Bets',
+    label: 'Special Bets',
     bets: {
       triple: { label: 'ANY TRIPLE', desc: '111-666', mult: 30 },
       double: { label: 'ANY DOUBLE', desc: 'Pair', mult: 10 },
     }
   },
   totals: {
-    label: '🔢 Total Bets',
+    label: 'Total Bets',
     bets: {
       specific4: { label: '4', desc: 'Total = 4', mult: 60 },
       specific17: { label: '17', desc: 'Total = 17', mult: 60 },

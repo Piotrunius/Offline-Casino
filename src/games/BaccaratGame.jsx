@@ -389,15 +389,15 @@ export default function BaccaratGame() {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 mt-3">
-              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MAX</button>
+              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold rounded-lg">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold rounded-lg">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold rounded-lg">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold rounded-lg">MAX</button>
             </div>
           </div>
 
           {/* Potential Win */}
-          <div className="bg-black/40 rounded-xl p-4">
+          <div className="bg-black/30 rounded-xl p-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Potential Win</span>
               <span className="text-green-400 font-black text-2xl">${(bet * MULTIPLIERS[betType]).toFixed(2)}</span>
@@ -409,18 +409,18 @@ export default function BaccaratGame() {
             <button
               onClick={play}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-2xl disabled:opacity-50 mt-auto shadow-lg shadow-purple-500/30"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-purple-500/30"
             >
               DEAL CARDS
             </button>
           ) : gamePhase === 'dealing' ? (
-            <button disabled className="w-full py-5 rounded-xl bg-gray-700 text-gray-400 font-black text-xl mt-auto">
+            <button disabled className="w-full py-4 rounded-xl bg-gray-700 text-gray-400 font-black text-lg mt-auto">
               DEALING...
             </button>
           ) : (
             <button
               onClick={newGame}
-              className="w-full py-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-2xl mt-auto shadow-lg shadow-cyan-500/30"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-xl mt-auto shadow-lg shadow-cyan-500/30"
             >
               NEW GAME
             </button>

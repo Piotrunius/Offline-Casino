@@ -399,7 +399,7 @@ export default function StockExchange() {
   return (
     <div className="h-full flex gap-4 overflow-hidden">
       {/* Left Panel */}
-      <div className="w-72 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
+      <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4 overflow-hidden">
         {/* Market Status */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>

@@ -1,7 +1,13 @@
+import { 
+  Dices, Swords, X, Eraser, TrendingUp, Bomb, Rocket, Target, Coins, 
+  Building2, LayoutGrid, Spade, Cherry, ArrowUpDown, Gem, Flame, Gamepad2, 
+  Files, Dice5, HelpCircle 
+} from 'lucide-react';
+
 export const GAME_INFO = {
   dice: {
     name: 'Dice',
-    emoji: '🎲',
+    icon: Dices,
     description: 'A classic probability game where you predict if a randomly generated number (1-100) will be higher, lower, equal to, or within a range of your chosen target.',
     houseEdge: '2%',
     maxMultiplier: '98x',
@@ -17,7 +23,7 @@ export const GAME_INFO = {
   },
   war: {
     name: 'War',
-    emoji: '⚔️',
+    icon: Swords,
     description: 'The classic card game of War! Draw a card and beat the dealer. Ties trigger the exciting WAR mode for double the stakes!',
     houseEdge: '2.5%',
     maxMultiplier: '3.8x (War win)',
@@ -35,7 +41,7 @@ export const GAME_INFO = {
   },
   tictactoe: {
     name: 'Tic Tac Toe',
-    emoji: '❌',
+    icon: X,
     description: 'Challenge the AI to the classic game of Tic Tac Toe! Choose your difficulty and bet - beat the computer to win big!',
     houseEdge: '0-30% (varies by difficulty)',
     maxMultiplier: '5.0x (Hard mode)',
@@ -51,7 +57,7 @@ export const GAME_INFO = {
   },
   scratchcards: {
     name: 'Scratch Cards',
-    emoji: '🎫',
+    icon: Eraser,
     description: 'Buy scratch cards and reveal symbols to match three of a kind! Different card tiers offer different prizes and win chances.',
     houseEdge: '3-5% (varies by card)',
     maxMultiplier: '100x (Jackpot card)',
@@ -68,7 +74,7 @@ export const GAME_INFO = {
   },
   stockexchange: {
     name: 'Stock Exchange',
-    emoji: '📈',
+    icon: TrendingUp,
     description: 'Trade virtual stocks in a simulated market! Buy low, sell high, and react to breaking news that affects stock prices.',
     houseEdge: 'Variable (market simulation)',
     maxMultiplier: 'Unlimited (based on gains)',
@@ -85,7 +91,7 @@ export const GAME_INFO = {
   },
   mines: {
     name: 'Mines',
-    emoji: '💣',
+    icon: Bomb,
     description: 'Navigate a grid filled with hidden gems and mines. Each revealed gem increases your multiplier, but hit a mine and lose everything!',
     houseEdge: '3%',
     maxMultiplier: 'Variable (depends on grid size and mine count)',
@@ -101,7 +107,7 @@ export const GAME_INFO = {
   },
   crash: {
     name: 'Crash',
-    emoji: '🚀',
+    icon: Rocket,
     description: 'Watch the multiplier climb higher and higher. Cash out before it crashes, or lose everything!',
     houseEdge: '4%',
     maxMultiplier: '∞ (Theoretically unlimited)',
@@ -117,7 +123,7 @@ export const GAME_INFO = {
   },
   limbo: {
     name: 'Limbo',
-    emoji: '🎯',
+    icon: Target,
     description: 'Set a target multiplier and hope the random result exceeds it. Simple, fast, and thrilling!',
     houseEdge: '2%',
     maxMultiplier: '1000x',
@@ -132,7 +138,7 @@ export const GAME_INFO = {
   },
   coinflip: {
     name: 'Coin Flip',
-    emoji: '🪙',
+    icon: Coins,
     description: 'The simplest bet - heads or tails. A 50/50 chance for double or nothing!',
     houseEdge: '2%',
     maxMultiplier: '1.96x',
@@ -147,7 +153,7 @@ export const GAME_INFO = {
   },
   tower: {
     name: 'Tower',
-    emoji: '🗼',
+    icon: Building2,
     description: 'Climb the tower by choosing the safe path. Each correct choice increases your multiplier!',
     houseEdge: '3%',
     maxMultiplier: 'Variable (depends on difficulty)',
@@ -163,7 +169,7 @@ export const GAME_INFO = {
   },
   keno: {
     name: 'Keno',
-    emoji: '🎱',
+    icon: LayoutGrid,
     description: 'Pick your lucky numbers and watch the draw. More matches = bigger wins!',
     houseEdge: '5%',
     maxMultiplier: '100x+',
@@ -178,7 +184,7 @@ export const GAME_INFO = {
   },
   blackjack: {
     name: 'Blackjack',
-    emoji: '🃏',
+    icon: Spade,
     description: 'The classic card game - beat the dealer by getting closer to 21 without going over!',
     houseEdge: '0.5% (with optimal strategy)',
     maxMultiplier: '2.5x (Blackjack pays 3:2)',
@@ -195,7 +201,7 @@ export const GAME_INFO = {
   },
   slots: {
     name: 'Slots',
-    emoji: '🎰',
+    icon: Cherry,
     description: 'Spin the reels and match symbols for big wins! Different volatility levels for all play styles.',
     houseEdge: '3-10% (varies by volatility)',
     maxMultiplier: '2500x (5 sevens)',
@@ -211,7 +217,7 @@ export const GAME_INFO = {
   },
   hilo: {
     name: 'HiLo',
-    emoji: '⬆️⬇️',
+    icon: ArrowUpDown,
     description: 'Predict whether the next card will be higher, lower, or the same. Chain correct guesses for bigger wins!',
     houseEdge: '3%',
     maxMultiplier: '13x (guessing Ace)',
@@ -227,7 +233,7 @@ export const GAME_INFO = {
   },
   baccarat: {
     name: 'Baccarat',
-    emoji: '🎴',
+    icon: Gem,
     description: 'Bet on Player, Banker, or Tie. A sophisticated game of chance favored in high-stakes rooms.',
     houseEdge: '1.06% (Banker), 1.24% (Player), 14.36% (Tie)',
     maxMultiplier: '8x (Tie), 12x (Pair bets)',
@@ -244,7 +250,7 @@ export const GAME_INFO = {
   },
   dragontiger: {
     name: 'Dragon Tiger',
-    emoji: '🐉',
+    icon: Flame,
     description: 'The simplest card game - bet on Dragon or Tiger, and the higher card wins!',
     houseEdge: '3.73%',
     maxMultiplier: '8x (Tie)',
@@ -259,7 +265,7 @@ export const GAME_INFO = {
   },
   videopoker: {
     name: 'Video Poker',
-    emoji: '🎥',
+    icon: Gamepad2,
     description: 'Draw poker meets slot machines. Hold your best cards and draw for winning hands!',
     houseEdge: '0.5-5% (varies by strategy)',
     maxMultiplier: '250x (Royal Flush)',
@@ -275,7 +281,7 @@ export const GAME_INFO = {
   },
   sicbo: {
     name: 'Sic Bo',
-    emoji: '🎲',
+    icon: Dice5,
     description: 'Ancient Chinese dice game. Bet on the outcome of three dice for various payouts!',
     houseEdge: '2.78-33% (varies by bet)',
     maxMultiplier: '180x (Specific Triple)',
@@ -290,7 +296,7 @@ export const GAME_INFO = {
   },
   threecardpoker: {
     name: '3 Card Poker',
-    emoji: '🃏',
+    icon: Files,
     description: 'Fast-paced poker variant. Beat the dealer with just three cards, or win on Pair Plus!',
     houseEdge: '2.01% (Ante), 2.32% (Pair Plus)',
     maxMultiplier: '40x (Straight Flush)',
@@ -317,11 +323,13 @@ export default function GameInfoModal({ gameId, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <span className="text-4xl">{info.emoji}</span>
+            <span className="text-4xl">
+              {info.icon ? <info.icon size={40} /> : <HelpCircle size={40} />}
+            </span>
             <h2 className="text-2xl font-black text-white">{info.name}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/10 text-gray-400 hover:text-white flex items-center justify-center">
-            ✕
+            <X size={20} />
           </button>
         </div>
 

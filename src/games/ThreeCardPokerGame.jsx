@@ -297,7 +297,7 @@ export default function ThreeCardPokerGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-72 flex flex-col gap-3">
+      <div className="w-80 flex flex-col gap-3">
         <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-3">
           {/* Ante Bet */}
           <div>
@@ -378,20 +378,20 @@ export default function ThreeCardPokerGame() {
               disabled={anteBet <= 0 || anteBet + pairPlusBet > state.balance}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg"
             >
-              DEAL (${(anteBet + pairPlusBet).toFixed(0)})
+              DEAL
             </button>
           ) : gamePhase === 'decision' ? (
             <div className="flex gap-2 mt-auto">
               <button
                 onClick={fold}
-                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-lg"
+                className="flex-1 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xl"
               >
                 FOLD
               </button>
               <button
                 onClick={play}
                 disabled={anteBet > state.balance}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-lg disabled:opacity-50"
+                className="flex-1 py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-xl disabled:opacity-50"
               >
                 PLAY (+${anteBet})
               </button>

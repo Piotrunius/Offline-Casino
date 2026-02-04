@@ -213,14 +213,14 @@ export default function CoinFlipGame() {
         {streak.count >= 3 && (
           <div className="absolute top-4 right-4 px-4 py-2 bg-purple-900/50 border border-purple-500/50 rounded-xl">
             <span className="text-purple-400 font-bold">
-              🔥 {streak.count}x {streak.type?.toUpperCase()} Streak!
+              {streak.count}x {streak.type?.toUpperCase()} Streak!
             </span>
           </div>
         )}
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-72 flex flex-col gap-3">
+      <div className="w-80 flex flex-col gap-3">
         <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-4">
           {/* Choice */}
           <div>

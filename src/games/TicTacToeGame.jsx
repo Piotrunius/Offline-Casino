@@ -315,66 +315,90 @@ export default function TicTacToeGame() {
 
       {/* Controls - RIGHT */}
       <div className="w-80 bg-[#0a0a12] rounded-2xl p-4 flex flex-col gap-4">
-        {/* Bet Amount */}
-        <div>
-          <label className="text-xs text-gray-500 uppercase font-bold">Bet Amount</label>
-          <div className="relative mt-2">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
-            <input
-              type="number"
-              value={bet}
-              onChange={(e) => handleBetChange(Number(e.target.value))}
-              disabled={gamePhase !== 'betting'}
-              className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-lg font-bold"
-            />
-          </div>
-          <div className="grid grid-cols-4 gap-2 mt-2">
-            <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MIN</button>
-            <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">½</button>
-            <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">2x</button>
-            <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MAX</button>
-          </div>
-        </div>
-
-        {/* Difficulty */}
-        <div>
-          <label className="text-xs text-gray-500 uppercase font-bold mb-2 block">AI Difficulty</label>
-          <div className="grid grid-cols-3 gap-2">
-            {['easy', 'medium', 'hard'].map(d => (
-              <button
-                key={d}
-                onClick={() => setDifficulty(d)}
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
+          {/* Bet Amount */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase font-bold">Bet Amount</label>
+            <div className="relative mt-2">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
                 disabled={gamePhase !== 'betting'}
-                className={`py-2 rounded-lg font-bold text-sm transition-all ${
-                  difficulty === d
-                    ? d === 'easy' ? 'bg-green-600 text-white' :
-                      d === 'medium' ? 'bg-yellow-600 text-white' :
-                      'bg-red-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
-              >
-                {d.charAt(0).toUpperCase() + d.slice(1)}
-              </button>
-            ))}
+                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-lg font-bold"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              <button onClick={() => handleBetChange(1)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={gamePhase !== 'betting'} className="btn-secondary py-2 text-sm font-bold">MAX</button>
+            </div>
           </div>
+
+          {/* Difficulty */}
+          <div>
+            <label className="text-xs text-gray-500 uppercase font-bold mb-2 block">AI Difficulty</label>
+            <div className="grid grid-cols-3 gap-2">
+              {['easy', 'medium', 'hard'].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDifficulty(d)}
+                  disabled={gamePhase !== 'betting'}
+                  className={`py-2 rounded-lg font-bold text-sm transition-all ${
+                    difficulty === d
+                      ? d === 'easy' ? 'bg-green-600 text-white' :
+                        d === 'medium' ? 'bg-yellow-600 text-white' :
+                        'bg-red-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  {d.charAt(0).toUpperCase() + d.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Payout Info */}
+          <div className="bg-black/30 rounded-xl p-3">
+            <div className="flex justify-between text-gray-400">
+              <span>Win Payout:</span>
+              <span className="text-green-400 font-bold">{(DIFFICULTY_MULTIPLIERS[difficulty] + 1).toFixed(1)}x</span>
+            </div>
+            <div className="flex justify-between text-gray-400 mt-1">
+              <span>Tie:</span>
+              <span className="text-red-400 font-bold">Lose bet</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-2">
+              Beat the AI to win! Ties count as a loss.
+            </div>
+          </div>
+
+          {/* History */}
+          {history.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs text-gray-500 uppercase font-bold mb-2">History</div>
+              <div className="space-y-1">
+                {history.map((h, i) => (
+                  <div
+                    key={i}
+                    className={`flex justify-between px-3 py-2 rounded-lg text-sm ${
+                      h.outcome === 'win' ? 'bg-green-900/30 text-green-400' :
+                      h.outcome === 'tie' ? 'bg-gray-700/30 text-gray-400' :
+                      'bg-red-900/30 text-red-400'
+                    }`}
+                  >
+                    <span className="text-xs uppercase">{h.outcome}</span>
+                    <span className="font-bold">{h.outcome === 'win' ? 'WIN' : 'LOSE'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Payout Info */}
-        <div className="bg-black/30 rounded-xl p-3">
-          <div className="flex justify-between text-gray-400">
-            <span>Win Payout:</span>
-            <span className="text-green-400 font-bold">{(DIFFICULTY_MULTIPLIERS[difficulty] + 1).toFixed(1)}x</span>
-          </div>
-          <div className="flex justify-between text-gray-400 mt-1">
-            <span>Tie:</span>
-            <span className="text-red-400 font-bold">Lose bet</span>
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            Beat the AI to win! Ties count as a loss.
-          </div>
-        </div>
-
-        {/* Start/New Game Button */}
+        {/* Start/New Game Button - AT BOTTOM */}
         <button
           onClick={gamePhase === 'ended' ? () => setGamePhase('betting') : startGame}
           disabled={gamePhase === 'playing' || (gamePhase === 'betting' && (bet <= 0 || bet > state.balance))}
@@ -388,28 +412,6 @@ export default function TicTacToeGame() {
            gamePhase === 'playing' ? 'PLAYING...' :
            'NEW GAME'}
         </button>
-
-        {/* History */}
-        {history.length > 0 && (
-          <div className="space-y-1">
-            <div className="text-xs text-gray-500 uppercase font-bold mb-2">History</div>
-            <div className="space-y-1">
-              {history.map((h, i) => (
-                <div
-                  key={i}
-                  className={`flex justify-between px-3 py-2 rounded-lg text-sm ${
-                    h.outcome === 'win' ? 'bg-green-900/30 text-green-400' :
-                    h.outcome === 'tie' ? 'bg-gray-700/30 text-gray-400' :
-                    'bg-red-900/30 text-red-400'
-                  }`}
-                >
-                  <span className="text-xs uppercase">{h.outcome}</span>
-                  <span className="font-bold">{h.outcome === 'win' ? 'WIN' : 'LOSE'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

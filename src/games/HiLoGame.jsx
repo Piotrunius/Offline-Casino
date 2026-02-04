@@ -265,7 +265,7 @@ export default function HiLoGame() {
         {/* Streak indicator */}
         {inStreak && streakCount > 0 && (
           <div className="absolute top-4 right-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-black px-4 py-2 rounded-full font-black text-lg animate-pulse">
-            🔥 {streakCount} STREAK
+            {streakCount} STREAK
           </div>
         )}
 
@@ -408,7 +408,7 @@ export default function HiLoGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-72 flex flex-col gap-3">
+      <div className="w-80 flex flex-col gap-3">
         <div className="bg-[#0a0a12] rounded-2xl p-5 flex-1 flex flex-col gap-4">
 
           {/* Game Mode Indicator */}
@@ -419,7 +419,7 @@ export default function HiLoGame() {
           }`}>
             {inStreak ? (
               <div>
-                <div className="text-yellow-400 font-black text-lg">🎰 STREAK MODE</div>
+                <div className="text-yellow-400 font-black text-lg">STREAK MODE</div>
                 <div className="text-gray-400 text-sm">Pick or Cashout</div>
               </div>
             ) : (
@@ -452,7 +452,7 @@ export default function HiLoGame() {
 
           {/* Streak Info */}
           {inStreak && (
-            <div className="bg-black/40 rounded-xl p-4 space-y-2">
+            <div className="bg-black/30 rounded-xl p-3 space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-500">Initial Bet</span>
                 <span className="text-white font-bold">${initialBetRef.current.toFixed(2)}</span>
@@ -495,11 +495,6 @@ export default function HiLoGame() {
                 Make a prediction above
               </div>
             )}
-          </div>
-
-          {/* How to play */}
-          <div className="text-xs text-gray-600 text-center mt-2">
-            Start → Predict → Win = Continue or Cashout
           </div>
         </div>
       </div>

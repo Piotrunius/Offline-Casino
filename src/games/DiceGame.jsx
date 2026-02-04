@@ -282,15 +282,15 @@ export default function DiceGame() {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
-              <button onClick={() => handleBetChange(1)} disabled={rolling} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={rolling} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={rolling} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={rolling} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MAX</button>
+              <button onClick={() => handleBetChange(1)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={rolling} className="btn-secondary py-2 text-sm font-bold rounded-lg">MAX</button>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="bg-black/40 rounded-xl p-4 space-y-3">
+          <div className="bg-black/30 rounded-xl p-3 space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Win Chance</span>
               <span className="text-cyan-400 font-black text-lg">{winChance.toFixed(1)}%</span>
@@ -309,7 +309,7 @@ export default function DiceGame() {
           <button
             onClick={rollDice}
             disabled={rolling || bet <= 0 || bet > state.balance}
-            className={`w-full py-5 rounded-xl text-2xl font-black transition-all mt-auto shadow-lg ${
+            className={`w-full py-4 rounded-xl text-xl font-black transition-all mt-auto shadow-lg ${
               rolling
                 ? 'bg-gray-700 text-gray-400'
                 : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/30'

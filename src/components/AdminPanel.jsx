@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import { 
+  Crown, X, Banknote, Zap, Gamepad2, AlertTriangle, Trash2, RotateCcw, 
+  Skull, Save, Plus, Dices, Rocket, Bomb, Cherry, Spade, Coins, Building2, 
+  Target, LayoutGrid, ArrowUpDown, Gem, Flame, Eraser, Swords, Circle
+} from 'lucide-react';
 
 export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSettings, onResetStats }) {
   const [balance, setBalance] = useState(state.balance);
@@ -65,8 +70,8 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
         {/* Header */}
         <div className="bg-red-900/50 border-b border-red-500/30 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
-              <span className="text-xl">👑</span>
+            <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center text-white">
+              <Crown size={24} />
             </div>
             <div>
               <h2 className="text-xl font-black text-red-400">ADMIN PANEL</h2>
@@ -77,7 +82,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
             onClick={onClose}
             className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 flex items-center justify-center"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
 
@@ -86,7 +91,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
           {/* Balance Controls */}
           <div className="bg-black/40 rounded-xl p-4 border border-red-500/20">
             <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
-              💰 Balance Controls
+              <Banknote size={24} /> Balance Controls
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -100,9 +105,9 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                   />
                   <button
                     onClick={handleAddMoney}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-white"
+                    className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-white flex items-center gap-1"
                   >
-                    + ADD
+                    <Plus size={16} /> ADD
                   </button>
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -141,7 +146,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
           {/* Global Modifiers */}
           <div className="bg-black/40 rounded-xl p-4 border border-red-500/20">
             <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
-              ⚡ Global Modifiers
+              <Zap size={24} /> Global Modifiers
             </h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
@@ -195,7 +200,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                     godMode ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-gray-400'
                   }`}
                 >
-                  👼 GOD MODE {godMode ? 'ON' : 'OFF'}
+                  GOD MODE {godMode ? 'ON' : 'OFF'}
                 </button>
               </div>
               <div className="flex items-center gap-3">
@@ -205,7 +210,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                     infiniteMoney ? 'bg-green-500 text-black' : 'bg-gray-800 text-gray-400'
                   }`}
                 >
-                  ∞ INFINITE $ {infiniteMoney ? 'ON' : 'OFF'}
+                  INFINITE $ {infiniteMoney ? 'ON' : 'OFF'}
                 </button>
               </div>
             </div>
@@ -214,12 +219,12 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
           {/* Per-Game Settings */}
           <div className="bg-black/40 rounded-xl p-4 border border-red-500/20">
             <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
-              🎮 Per-Game Cheats
+              <Gamepad2 size={24} /> Per-Game Cheats
             </h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Dice */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎲 Dice</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Dices size={16} /> Dice</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -233,7 +238,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Crash */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🚀 Crash</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Rocket size={16} /> Crash</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -247,7 +252,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Mines */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">💣 Mines</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Bomb size={16} /> Mines</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -270,7 +275,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Slots */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎰 Slots</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Cherry size={16} /> Slots</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -284,7 +289,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Blackjack */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🃏 Blackjack</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Spade size={16} /> Blackjack</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -307,7 +312,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Coin Flip */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🪙 Coin Flip</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Coins size={16} /> Coin Flip</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -321,7 +326,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Tower */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🗼 Tower</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Building2 size={16} /> Tower</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -335,7 +340,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Limbo */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎯 Limbo</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Target size={16} /> Limbo</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -349,7 +354,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Keno */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎱 Keno</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><LayoutGrid size={16} /> Keno</div>
                 <div className="text-sm text-gray-300">
                   <label className="block mb-1">Extra Matches</label>
                   <input
@@ -365,7 +370,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Hi-Lo */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">⬆️ Hi-Lo</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><ArrowUpDown size={16} /> Hi-Lo</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -379,7 +384,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Baccarat */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎴 Baccarat</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Gem size={16} /> Baccarat</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -393,7 +398,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Sic Bo */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎲 Sic Bo</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Dices size={16} /> Sic Bo</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -407,7 +412,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Scratch Cards */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">🎫 Scratch Cards</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Eraser size={16} /> Scratch Cards</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -421,7 +426,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* War */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">⚔️ War</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Swords size={16} /> War</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -435,7 +440,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
 
               {/* Tic Tac Toe */}
               <div className="bg-black/30 rounded-lg p-3 border border-gray-700">
-                <div className="font-bold text-cyan-400 mb-2">⭕ Tic Tac Toe</div>
+                <div className="font-bold text-cyan-400 mb-2 flex items-center gap-2"><Circle size={16} /> Tic Tac Toe</div>
                 <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
@@ -452,29 +457,29 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
           {/* Danger Zone */}
           <div className="bg-red-950/50 rounded-xl p-4 border border-red-500/30">
             <h3 className="text-lg font-bold text-red-500 mb-4 flex items-center gap-2">
-              ⚠️ Danger Zone
+              <AlertTriangle size={24} /> Danger Zone
             </h3>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={onResetStats}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold text-white"
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold text-white flex items-center gap-2"
               >
-                🗑️ Reset All Stats
+                <Trash2 size={16} /> Reset All Stats
               </button>
               <button
                 onClick={() => {
                   onUpdateBalance(10000);
                   onResetStats();
                 }}
-                className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded-lg font-bold text-white"
+                className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded-lg font-bold text-white flex items-center gap-2"
               >
-                🔄 Full Reset (Balance + Stats)
+                <RotateCcw size={16} /> Full Reset (Balance + Stats)
               </button>
               <button
                 onClick={() => onUpdateBalance(0)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg font-bold text-white"
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg font-bold text-white flex items-center gap-2"
               >
-                💀 Set Balance to $0
+                <Skull size={16} /> Set Balance to $0
               </button>
             </div>
           </div>
@@ -483,7 +488,7 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
         {/* Footer */}
         <div className="bg-red-900/30 border-t border-red-500/30 p-4 flex justify-between items-center">
           <p className="text-xs text-red-300/60">
-            🎮 Press Konami Code again to close
+            <Gamepad2 size={12} className="inline mr-1" /> Press Konami Code again to close
           </p>
           <div className="flex gap-2">
             <button
@@ -497,9 +502,9 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
                 handleSave();
                 onClose();
               }}
-              className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 rounded-lg font-black text-white"
+              className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 rounded-lg font-black text-white flex items-center gap-2"
             >
-              💾 SAVE CHANGES
+              <Save size={16} /> SAVE CHANGES
             </button>
           </div>
         </div>

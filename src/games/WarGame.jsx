@@ -267,14 +267,14 @@ export default function WarGame() {
               disabled={playing || bet > state.balance}
               className="px-8 py-3 bg-gradient-to-r from-red-500 to-orange-600 rounded-xl font-bold text-white hover:scale-105 transition-all disabled:opacity-50"
             >
-              ⚔️ GO TO WAR (${bet})
+              GO TO WAR (${bet})
             </button>
             <button
               onClick={surrender}
               disabled={playing}
               className="px-8 py-3 bg-gray-700 rounded-xl font-bold text-gray-300 hover:bg-gray-600 transition-all disabled:opacity-50"
             >
-              🏳️ Surrender (Get ${(bet * 0.5).toFixed(0)} back)
+              Surrender (Get ${(bet * 0.5).toFixed(0)} back)
             </button>
           </div>
         )}
@@ -299,39 +299,41 @@ export default function WarGame() {
       </div>
 
       {/* Controls */}
-      <div className="w-80 bg-gradient-to-b from-[#12121a] to-[#0a0a10] rounded-2xl p-6 flex flex-col">
-        <h2 className="text-xl font-black text-white mb-6">WAR</h2>
+      <div className="w-80 bg-gradient-to-b from-[#12121a] to-[#0a0a10] rounded-2xl p-6 flex flex-col gap-6">
+        <h2 className="text-xl font-black text-white">WAR</h2>
 
-        {/* Bet Amount */}
-        <div className="mb-6">
-          <label className="text-gray-400 text-sm mb-2 block">Bet Amount</label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold">$</span>
-            <input
-              type="number"
-              value={bet}
-              onChange={(e) => handleBetChange(Number(e.target.value))}
-              min="1"
-              max={state.balance}
-              disabled={warMode}
-              className="w-full bg-black/40 border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-bold focus:border-cyan-500 outline-none disabled:opacity-50"
-            />
-          </div>
-          <div className="flex gap-2 mt-2">
-            {[10, 25, 50, 100].map(amount => (
-              <button
-                key={amount}
-                onClick={() => handleBetChange(amount)}
+        <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
+          {/* Bet Amount */}
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">Bet Amount</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold">$</span>
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => handleBetChange(Number(e.target.value))}
+                min="1"
+                max={state.balance}
                 disabled={warMode}
-                className="flex-1 py-1 text-xs bg-gray-800 hover:bg-gray-700 rounded text-gray-300 disabled:opacity-50"
-              >
-                ${amount}
-              </button>
-            ))}
+                className="w-full bg-black/40 border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-bold focus:border-cyan-500 outline-none disabled:opacity-50"
+              />
+            </div>
+            <div className="flex gap-2 mt-2">
+              {[10, 25, 50, 100].map(amount => (
+                <button
+                  key={amount}
+                  onClick={() => handleBetChange(amount)}
+                  disabled={warMode}
+                  className="flex-1 py-1 text-xs bg-gray-800 hover:bg-gray-700 rounded text-gray-300 disabled:opacity-50"
+                >
+                  ${amount}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Play Button */}
+        {/* Play Button - AT BOTTOM */}
         <button
           onClick={play}
           disabled={playing || bet > state.balance || bet <= 0 || warMode}
@@ -343,31 +345,6 @@ export default function WarGame() {
         >
           {playing ? 'DEALING...' : 'DRAW CARD'}
         </button>
-
-        {/* Rules */}
-        <div className="mt-6 space-y-2 text-sm">
-          <div className="flex justify-between text-gray-400">
-            <span>Win Payout:</span>
-            <span className="text-green-400 font-bold">{WIN_MULTIPLIER}x</span>
-          </div>
-          <div className="flex justify-between text-gray-400">
-            <span>War Win:</span>
-            <span className="text-yellow-400 font-bold">{WAR_MULTIPLIER}x</span>
-          </div>
-          <div className="flex justify-between text-gray-400">
-            <span>Surrender:</span>
-            <span className="text-gray-400 font-bold">0.5x (half back)</span>
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="mt-auto pt-4 border-t border-gray-800">
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>• Higher card wins</p>
-            <p>• Tie triggers WAR - double bet or surrender</p>
-            <p>• A is highest, 2 is lowest</p>
-          </div>
-        </div>
       </div>
     </div>
   );

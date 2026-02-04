@@ -2,50 +2,50 @@ import { useCallback, useEffect, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
 import audio from '../utils/audioEngine';
 
-// Symbol definitions with colors (no emojis - just styled text/shapes)
+// Symbol definitions with emojis
 const SYMBOL_STYLES = {
   // Classic
-  'DIA': { label: '◆', color: 'text-cyan-400', bg: 'bg-cyan-900/50' },
-  'STAR': { label: '★', color: 'text-yellow-400', bg: 'bg-yellow-900/50' },
-  'CLUB': { label: '♣', color: 'text-green-400', bg: 'bg-green-900/50' },
-  'BELL': { label: '♪', color: 'text-orange-400', bg: 'bg-orange-900/50' },
-  'TARG': { label: '◎', color: 'text-red-400', bg: 'bg-red-900/50' },
-  'CHER': { label: '●', color: 'text-pink-400', bg: 'bg-pink-900/50' },
+  'DIA': { label: '💎', color: 'text-cyan-400', bg: 'bg-cyan-900/50' },
+  'STAR': { label: '⭐', color: 'text-yellow-400', bg: 'bg-yellow-900/50' },
+  'CLUB': { label: '🍀', color: 'text-green-400', bg: 'bg-green-900/50' },
+  'BELL': { label: '🔔', color: 'text-orange-400', bg: 'bg-orange-900/50' },
+  'TARG': { label: '🎯', color: 'text-red-400', bg: 'bg-red-900/50' },
+  'CHER': { label: '🍒', color: 'text-pink-400', bg: 'bg-pink-900/50' },
   // Lucky 7
-  '7': { label: '7', color: 'text-purple-400', bg: 'bg-purple-900/50' },
-  'COIN': { label: '$', color: 'text-yellow-300', bg: 'bg-yellow-900/50' },
-  'SLOT': { label: '▣', color: 'text-red-400', bg: 'bg-red-900/50' },
-  'SUN': { label: '☀', color: 'text-amber-400', bg: 'bg-amber-900/50' },
-  'CASH': { label: '€', color: 'text-green-400', bg: 'bg-green-900/50' },
-  'DICE': { label: '⚄', color: 'text-white', bg: 'bg-gray-800' },
+  '7': { label: '7️⃣', color: 'text-purple-400', bg: 'bg-purple-900/50' },
+  'COIN': { label: '🪙', color: 'text-yellow-300', bg: 'bg-yellow-900/50' },
+  'SLOT': { label: '🎰', color: 'text-red-400', bg: 'bg-red-900/50' },
+  'SUN': { label: '☀️', color: 'text-amber-400', bg: 'bg-amber-900/50' },
+  'CASH': { label: '💵', color: 'text-green-400', bg: 'bg-green-900/50' },
+  'DICE': { label: '🎲', color: 'text-white', bg: 'bg-gray-800' },
   // Emerald
-  'EMER': { label: '◈', color: 'text-emerald-400', bg: 'bg-emerald-900/50' },
-  'TREE': { label: '▲', color: 'text-green-500', bg: 'bg-green-900/50' },
-  'LEAF': { label: '♠', color: 'text-green-300', bg: 'bg-green-800/50' },
-  'KIWI': { label: '○', color: 'text-lime-400', bg: 'bg-lime-900/50' },
-  'APPL': { label: '●', color: 'text-green-400', bg: 'bg-green-900/50' },
-  'HERB': { label: '❋', color: 'text-teal-400', bg: 'bg-teal-900/50' },
+  'EMER': { label: '💚', color: 'text-emerald-400', bg: 'bg-emerald-900/50' },
+  'TREE': { label: '🌲', color: 'text-green-500', bg: 'bg-green-900/50' },
+  'LEAF': { label: '🍃', color: 'text-green-300', bg: 'bg-green-800/50' },
+  'KIWI': { label: '🥝', color: 'text-lime-400', bg: 'bg-lime-900/50' },
+  'APPL': { label: '🍎', color: 'text-green-400', bg: 'bg-green-900/50' },
+  'HERB': { label: '🌿', color: 'text-teal-400', bg: 'bg-teal-900/50' },
   // Diamond
-  'DIAM': { label: '♦', color: 'text-blue-400', bg: 'bg-blue-900/50' },
-  'CROWN': { label: '♛', color: 'text-yellow-400', bg: 'bg-yellow-900/50' },
-  'RING': { label: '◇', color: 'text-pink-300', bg: 'bg-pink-900/50' },
-  'CUP': { label: '⚱', color: 'text-amber-400', bg: 'bg-amber-900/50' },
-  'SPARK': { label: '✦', color: 'text-cyan-300', bg: 'bg-cyan-900/50' },
-  'MOON': { label: '☽', color: 'text-indigo-300', bg: 'bg-indigo-900/50' },
+  'DIAM': { label: '💠', color: 'text-blue-400', bg: 'bg-blue-900/50' },
+  'CROWN': { label: '👑', color: 'text-yellow-400', bg: 'bg-yellow-900/50' },
+  'RING': { label: '💍', color: 'text-pink-300', bg: 'bg-pink-900/50' },
+  'CUP': { label: '🏆', color: 'text-amber-400', bg: 'bg-amber-900/50' },
+  'SPARK': { label: '✨', color: 'text-cyan-300', bg: 'bg-cyan-900/50' },
+  'MOON': { label: '🌙', color: 'text-indigo-300', bg: 'bg-indigo-900/50' },
   // Ruby
-  'HEART': { label: '♥', color: 'text-red-500', bg: 'bg-red-900/50' },
-  'ROSE': { label: '✿', color: 'text-rose-400', bg: 'bg-rose-900/50' },
-  'RUBY': { label: '◆', color: 'text-red-400', bg: 'bg-red-900/50' },
-  'BOW': { label: '✧', color: 'text-pink-400', bg: 'bg-pink-900/50' },
-  'DOT': { label: '●', color: 'text-red-600', bg: 'bg-red-950/50' },
-  'WINE': { label: '♨', color: 'text-rose-300', bg: 'bg-rose-900/50' },
+  'HEART': { label: '❤️', color: 'text-red-500', bg: 'bg-red-900/50' },
+  'ROSE': { label: '🌹', color: 'text-rose-400', bg: 'bg-rose-900/50' },
+  'RUBY': { label: '💎', color: 'text-red-400', bg: 'bg-red-900/50' },
+  'BOW': { label: '🎀', color: 'text-pink-400', bg: 'bg-pink-900/50' },
+  'DOT': { label: '🔴', color: 'text-red-600', bg: 'bg-red-950/50' },
+  'WINE': { label: '🍷', color: 'text-rose-300', bg: 'bg-rose-900/50' },
   // Jackpot - more unique casino symbols
-  'JACK': { label: '♛', color: 'text-yellow-400', bg: 'bg-gradient-to-br from-yellow-900/50 to-amber-900/50' },
-  'MEGA': { label: '777', color: 'text-red-400', bg: 'bg-red-900/50' },
-  'KING': { label: '♔', color: 'text-purple-400', bg: 'bg-purple-900/50' },
-  'FIRE': { label: '▼', color: 'text-orange-500', bg: 'bg-orange-900/50' },
-  'BOLT': { label: '★', color: 'text-yellow-300', bg: 'bg-yellow-900/50' },
-  'NOVA': { label: '◈', color: 'text-pink-400', bg: 'bg-pink-900/50' },
+  'JACK': { label: '🤴', color: 'text-yellow-400', bg: 'bg-gradient-to-br from-yellow-900/50 to-amber-900/50' },
+  'MEGA': { label: '💰', color: 'text-red-400', bg: 'bg-red-900/50' },
+  'KING': { label: '🏆', color: 'text-purple-400', bg: 'bg-purple-900/50' },
+  'FIRE': { label: '🔥', color: 'text-orange-500', bg: 'bg-orange-900/50' },
+  'BOLT': { label: '⚡', color: 'text-yellow-300', bg: 'bg-yellow-900/50' },
+  'NOVA': { label: '💫', color: 'text-pink-400', bg: 'bg-pink-900/50' },
 };
 
 // Card types - REALISTIC win chances (much lower!)
@@ -455,7 +455,7 @@ export default function ScratchCardsGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-72 flex flex-col gap-3">
+      <div className="w-80 flex flex-col gap-3">
         <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-4">
           {/* Card Type Selection */}
           <div>

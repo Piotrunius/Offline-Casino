@@ -172,7 +172,7 @@ export default function DragonTigerGame() {
       </div>
 
       {/* Controls - RIGHT */}
-      <div className="w-72 flex flex-col gap-3">
+      <div className="w-80 flex flex-col gap-3">
         <div className="bg-[#0a0a12] rounded-2xl p-4 flex-1 flex flex-col gap-4">
           {/* Bet Type */}
           <div>

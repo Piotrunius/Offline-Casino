@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useCasino } from './context/CasinoContext';
 import audio from './utils/audioEngine';
 import trackingEngine from './utils/trackingEngine';
+import { 
+  Home, Dices, Dice3, Bomb, Rocket, Target, Coins, Building2, LayoutGrid, 
+  Spade, Gem, Flame, Gamepad2, Files, Cherry, ArrowUpDown, RectangleVertical, 
+  Grip, Menu, X, Settings, Volume2, VolumeX, Plus, Save, BarChart3, Trophy, 
+  Gift, Info, Sparkles, CircleDashed, Flag, Eraser, Hash, TrendingUp, Bell, Wallet,
+  Dice5
+} from 'lucide-react';
 
 // Game imports
 import AdminPanel from './components/AdminPanel';
@@ -31,321 +38,30 @@ import TowerGame from './games/TowerGame';
 import VideoPokerGame from './games/VideoPokerGame';
 import WarGame from './games/WarGame';
 
-// Icons as SVG components
-const Icons = {
-  Home: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-      <polyline points="9 22 9 12 15 12 15 22"/>
-    </svg>
-  ),
-  Dice: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" rx="3"/>
-      <circle cx="8" cy="8" r="1" fill="currentColor"/>
-      <circle cx="16" cy="8" r="1" fill="currentColor"/>
-      <circle cx="8" cy="16" r="1" fill="currentColor"/>
-      <circle cx="16" cy="16" r="1" fill="currentColor"/>
-      <circle cx="12" cy="12" r="1" fill="currentColor"/>
-    </svg>
-  ),
-  DiceThree: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="6" width="12" height="12" rx="2"/>
-      <rect x="10" y="2" width="12" height="12" rx="2"/>
-      <circle cx="16" cy="8" r="1" fill="currentColor"/>
-      <circle cx="8" cy="12" r="1" fill="currentColor"/>
-    </svg>
-  ),
-  Mine: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="6"/>
-      <line x1="12" y1="2" x2="12" y2="6"/>
-      <line x1="12" y1="18" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="6" y2="12"/>
-      <line x1="18" y1="12" x2="22" y2="12"/>
-    </svg>
-  ),
-  Rocket: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-    </svg>
-  ),
-  Target: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"/>
-      <circle cx="12" cy="12" r="6"/>
-      <circle cx="12" cy="12" r="2"/>
-    </svg>
-  ),
-  Coin: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 6v12"/>
-    </svg>
-  ),
-  Tower: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="6" y="4" width="12" height="4"/>
-      <rect x="7" y="8" width="10" height="4"/>
-      <rect x="8" y="12" width="8" height="4"/>
-      <rect x="9" y="16" width="6" height="4"/>
-    </svg>
-  ),
-  Grid: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="7"/>
-      <rect x="14" y="3" width="7" height="7"/>
-      <rect x="3" y="14" width="7" height="7"/>
-      <rect x="14" y="14" width="7" height="7"/>
-    </svg>
-  ),
-  Blackjack: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="4" width="10" height="14" rx="2"/>
-      <text x="8" y="13" fontSize="7" fill="currentColor" textAnchor="middle">21</text>
-      <rect x="11" y="6" width="10" height="14" rx="2"/>
-    </svg>
-  ),
-  Baccarat: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="5" width="8" height="12" rx="1"/>
-      <rect x="14" y="5" width="8" height="12" rx="1"/>
-      <text x="6" y="13" fontSize="5" fill="currentColor" textAnchor="middle">P</text>
-      <text x="18" y="13" fontSize="5" fill="currentColor" textAnchor="middle">B</text>
-    </svg>
-  ),
-  DragonTiger: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 8c2-4 6-4 8-2s6 0 8-2"/>
-      <path d="M4 16c2 4 6 4 8 2s6 0 8 2"/>
-      <circle cx="8" cy="12" r="2"/>
-      <circle cx="16" cy="12" r="2"/>
-    </svg>
-  ),
-  VideoPoker: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="6" width="6" height="10" rx="1"/>
-      <rect x="9" y="6" width="6" height="10" rx="1"/>
-      <rect x="16" y="6" width="6" height="10" rx="1"/>
-      <path d="M5 18v2M12 18v2M19 18v2"/>
-    </svg>
-  ),
-  ThreeCards: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="6" width="7" height="12" rx="1" transform="rotate(-5 5 12)"/>
-      <rect x="8" y="5" width="7" height="12" rx="1"/>
-      <rect x="14" y="6" width="7" height="12" rx="1" transform="rotate(5 18 12)"/>
-    </svg>
-  ),
-  Slots: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="4" width="20" height="16" rx="2"/>
-      <line x1="8" y1="4" x2="8" y2="20"/>
-      <line x1="16" y1="4" x2="16" y2="20"/>
-    </svg>
-  ),
-  HiLo: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 5l-7 7h14z"/>
-      <path d="M12 19l-7-7h14z"/>
-    </svg>
-  ),
-  Cards: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="4" y="4" width="10" height="14" rx="1"/>
-      <rect x="10" y="6" width="10" height="14" rx="1"/>
-    </svg>
-  ),
-  Plinko: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="3" r="2"/>
-      <circle cx="8" cy="8" r="1" fill="currentColor"/>
-      <circle cx="12" cy="8" r="1" fill="currentColor"/>
-      <circle cx="16" cy="8" r="1" fill="currentColor"/>
-      <circle cx="6" cy="12" r="1" fill="currentColor"/>
-      <circle cx="10" cy="12" r="1" fill="currentColor"/>
-      <circle cx="14" cy="12" r="1" fill="currentColor"/>
-      <circle cx="18" cy="12" r="1" fill="currentColor"/>
-      <circle cx="4" cy="16" r="1" fill="currentColor"/>
-      <circle cx="8" cy="16" r="1" fill="currentColor"/>
-      <circle cx="12" cy="16" r="1" fill="currentColor"/>
-      <circle cx="16" cy="16" r="1" fill="currentColor"/>
-      <circle cx="20" cy="16" r="1" fill="currentColor"/>
-      <rect x="2" y="20" width="4" height="3" rx="0.5"/>
-      <rect x="7" y="20" width="4" height="3" rx="0.5"/>
-      <rect x="12" y="20" width="4" height="3" rx="0.5"/>
-      <rect x="17" y="20" width="4" height="3" rx="0.5"/>
-    </svg>
-  ),
-  Menu: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="3" y1="6" x2="21" y2="6"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  ),
-  Close: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="18" y1="6" x2="6" y2="18"/>
-      <line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  ),
-  Settings: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-  ),
-  Volume: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-    </svg>
-  ),
-  VolumeOff: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <line x1="23" y1="9" x2="17" y2="15"/>
-      <line x1="17" y1="9" x2="23" y2="15"/>
-    </svg>
-  ),
-  Plus: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="12" y1="5" x2="12" y2="19"/>
-      <line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-  ),
-  Save: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-      <polyline points="17 21 17 13 7 13 7 21"/>
-      <polyline points="7 3 7 8 15 8"/>
-    </svg>
-  ),
-  Stats: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="18" y1="20" x2="18" y2="10"/>
-      <line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6" y1="20" x2="6" y2="14"/>
-    </svg>
-  ),
-  Trophy: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-      <path d="M4 22h16"/>
-      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-    </svg>
-  ),
-  Gift: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="20 12 20 22 4 22 4 12" />
-      <rect x="2" y="7" width="20" height="5" />
-      <line x1="12" y1="22" x2="12" y2="7" />
-      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-    </svg>
-  ),
-  Info: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="16" x2="12" y2="12"/>
-      <line x1="12" y1="8" x2="12.01" y2="8"/>
-    </svg>
-  ),
-  Sparkles: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>
-      <path d="M19 15l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>
-      <path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5z"/>
-    </svg>
-  ),
-  Roulette: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10"/>
-      <circle cx="12" cy="12" r="6"/>
-      <circle cx="12" cy="12" r="2"/>
-      <line x1="12" y1="2" x2="12" y2="4"/>
-      <line x1="12" y1="20" x2="12" y2="22"/>
-    </svg>
-  ),
-  Horse: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M22 8c-2-4-7-4-9-2s-1 5-3 7-7 2-8 5v4h3l1-3h8l1 3h3v-4"/>
-      <circle cx="19" cy="6" r="1" fill="currentColor"/>
-    </svg>
-  ),
-  ScratchCard: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" rx="2"/>
-      <path d="M7 8h2M11 8h2M15 8h2"/>
-      <path d="M7 12h2M11 12h2M15 12h2"/>
-      <path d="M7 16h2M11 16h2M15 16h2"/>
-      <path d="M3 3l18 18" strokeWidth="1.5" strokeDasharray="2 2"/>
-    </svg>
-  ),
-  TicTacToe: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="9" y1="3" x2="9" y2="21"/>
-      <line x1="15" y1="3" x2="15" y2="21"/>
-      <line x1="3" y1="9" x2="21" y2="9"/>
-      <line x1="3" y1="15" x2="21" y2="15"/>
-      <line x1="5" y1="5" x2="7" y2="7"/>
-      <line x1="7" y1="5" x2="5" y2="7"/>
-      <circle cx="18" cy="18" r="2"/>
-    </svg>
-  ),
-  Stock: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-      <polyline points="16 7 22 7 22 13"/>
-      <line x1="2" y1="21" x2="22" y2="21"/>
-    </svg>
-  ),
-  Bell: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-  ),
-  Wallet: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="1" y="6" width="22" height="14" rx="2"/>
-      <path d="M1 10h22"/>
-      <circle cx="17" cy="14" r="2"/>
-    </svg>
-  )
-};
-
 const GAMES = [
-  { id: 'dashboard', name: 'Dashboard', icon: Icons.Home, component: Dashboard, color: '#00f5ff' },
-  { id: 'dice', name: 'Dice', icon: Icons.Dice, component: DiceGame, color: '#00f5ff' },
-  { id: 'mines', name: 'Mines', icon: Icons.Mine, component: MinesGame, color: '#ff3366' },
-  { id: 'crash', name: 'Crash', icon: Icons.Rocket, component: CrashGame, color: '#ff8800' },
-  { id: 'scratchcards', name: 'Scratch Cards', icon: Icons.ScratchCard, component: ScratchCardsGame, color: '#ff9900' },
-  { id: 'limbo', name: 'Limbo', icon: Icons.Target, component: LimboGame, color: '#aa00ff' },
-  { id: 'coinflip', name: 'Coin Flip', icon: Icons.Coin, component: CoinFlipGame, color: '#ffee00' },
-  { id: 'tower', name: 'Tower', icon: Icons.Tower, component: TowerGame, color: '#00ccff' },
-  { id: 'keno', name: 'Keno', icon: Icons.Grid, component: KenoGame, color: '#ff6600' },
-  { id: 'blackjack', name: 'Blackjack', icon: Icons.Blackjack, component: BlackjackGame, color: '#ff4444' },
-  { id: 'slots', name: 'Slots', icon: Icons.Slots, component: SlotsGame, color: '#ffaa00' },
-  { id: 'war', name: 'War', icon: Icons.Cards, component: WarGame, color: '#ff6600' },
-  { id: 'hilo', name: 'HiLo', icon: Icons.HiLo, component: HiLoGame, color: '#ff00aa' },
-  { id: 'baccarat', name: 'Baccarat', icon: Icons.Baccarat, component: BaccaratGame, color: '#8844ff' },
-  { id: 'dragontiger', name: 'Dragon Tiger', icon: Icons.DragonTiger, component: DragonTigerGame, color: '#ff6633' },
-  { id: 'videopoker', name: 'Video Poker', icon: Icons.VideoPoker, component: VideoPokerGame, color: '#00ccaa' },
-  { id: 'tictactoe', name: 'Tic Tac Toe', icon: Icons.TicTacToe, component: TicTacToeGame, color: '#4488ff' },
-  { id: 'sicbo', name: 'Sicbo', icon: Icons.DiceThree, component: SicboGame, color: '#ff9933' },
-  { id: 'threecardpoker', name: '3 Card Poker', icon: Icons.ThreeCards, component: ThreeCardPokerGame, color: '#cc33ff' }
+  { id: 'dashboard', name: 'Dashboard', icon: Home, component: Dashboard, color: '#00f5ff' },
+  { id: 'dice', name: 'Dice', icon: Dices, component: DiceGame, color: '#00f5ff' },
+  { id: 'mines', name: 'Mines', icon: Bomb, component: MinesGame, color: '#ff3366' },
+  { id: 'crash', name: 'Crash', icon: Rocket, component: CrashGame, color: '#ff8800' },
+  { id: 'scratchcards', name: 'Scratch Cards', icon: Eraser, component: ScratchCardsGame, color: '#ff9900' },
+  { id: 'limbo', name: 'Limbo', icon: Target, component: LimboGame, color: '#aa00ff' },
+  { id: 'coinflip', name: 'Coin Flip', icon: Coins, component: CoinFlipGame, color: '#ffee00' },
+  { id: 'tower', name: 'Tower', icon: Building2, component: TowerGame, color: '#00ccff' },
+  { id: 'keno', name: 'Keno', icon: LayoutGrid, component: KenoGame, color: '#ff6600' },
+  { id: 'blackjack', name: 'Blackjack', icon: Spade, component: BlackjackGame, color: '#ff4444' },
+  { id: 'slots', name: 'Slots', icon: Cherry, component: SlotsGame, color: '#ffaa00' },
+  { id: 'war', name: 'War', icon: RectangleVertical, component: WarGame, color: '#ff6600' },
+  { id: 'hilo', name: 'HiLo', icon: ArrowUpDown, component: HiLoGame, color: '#ff00aa' },
+  { id: 'baccarat', name: 'Baccarat', icon: Gem, component: BaccaratGame, color: '#8844ff' },
+  { id: 'dragontiger', name: 'Dragon Tiger', icon: Flame, component: DragonTigerGame, color: '#ff6633' },
+  { id: 'videopoker', name: 'Video Poker', icon: Gamepad2, component: VideoPokerGame, color: '#00ccaa' },
+  { id: 'tictactoe', name: 'Tic Tac Toe', icon: Hash, component: TicTacToeGame, color: '#4488ff' },
+  { id: 'sicbo', name: 'Sicbo', icon: Dice5, component: SicboGame, color: '#ff9933' },
+  { id: 'threecardpoker', name: '3 Card Poker', icon: Files, component: ThreeCardPokerGame, color: '#cc33ff' }
 ];
 
 // Stock Exchange is separate - not in GAMES array
-const STOCK_EXCHANGE = { id: 'stockexchange', name: 'Stock Exchange', icon: Icons.Stock, component: StockExchange, color: '#00ff88' };
+const STOCK_EXCHANGE = { id: 'stockexchange', name: 'Stock Exchange', icon: TrendingUp, component: StockExchange, color: '#00ff88' };
 
 export default function App() {
   const {
@@ -450,7 +166,7 @@ export default function App() {
                   }}
                 >
                   <div className="w-5 h-5">
-                    <game.icon />
+                    <game.icon size={20} />
                   </div>
                   {sidebarOpen && (
                     <span className={`font-medium text-sm ${activeGame === game.id ? 'text-white' : ''}`}>
@@ -474,13 +190,13 @@ export default function App() {
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
               >
-                <div className="w-5 h-5">
-                  {sidebarOpen ? <Icons.Close /> : <Icons.Menu />}
+                <div className="w-5 h-5 flex items-center justify-center">
+                  {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
                 </div>
               </button>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8" style={{ color: activeGameData?.color }}>
-                  {activeGameData && <activeGameData.icon />}
+                <div className="w-8 h-8 flex items-center justify-center" style={{ color: activeGameData?.color }}>
+                  {activeGameData && <activeGameData.icon size={24} />}
                 </div>
                 <h2 className="font-bold text-xl text-white">{activeGameData?.name}</h2>
               </div>
@@ -497,7 +213,7 @@ export default function App() {
                   <>
                     <div className="w-px h-4 bg-white/10 hidden sm:block" />
                     <div className="hidden sm:flex items-center gap-1">
-                      <div className="w-4 h-4 text-green-400"><Icons.Stock /></div>
+                      <div className="w-4 h-4 text-green-400"><TrendingUp size={16} /></div>
                       <span className="text-green-400 font-bold number-mono text-sm">
                         ${(() => {
                           const stocks = state.stockExchange?.stocks || [];
@@ -526,7 +242,7 @@ export default function App() {
                   }}
                   className="flex items-center gap-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white px-3 py-2 rounded-xl font-semibold transition-all animate-pulse"
                 >
-                  <div className="w-4 h-4"><Icons.Plus /></div>
+                  <div className="w-4 h-4 flex items-center justify-center"><Plus size={16} /></div>
                   <span className="hidden sm:inline">+$1000</span>
                 </button>
               )}
@@ -538,7 +254,7 @@ export default function App() {
                   className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
                   title="Game Info"
                 >
-                  <div className="w-5 h-5"><Icons.Info /></div>
+                  <div className="w-5 h-5 flex items-center justify-center"><Info size={20} /></div>
                 </button>
               )}
 
@@ -551,7 +267,7 @@ export default function App() {
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 transition-all relative"
                 title="Daily Bonus"
               >
-                <div className="w-5 h-5"><Icons.Gift /></div>
+                <div className="w-5 h-5 flex items-center justify-center"><Gift size={20} /></div>
                 {Date.now() - (state.dailyBonus?.lastClaimed || 0) > 86400000 && (
                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
                 )}
@@ -566,7 +282,7 @@ export default function App() {
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
                 title="Achievements"
               >
-                <div className="w-5 h-5"><Icons.Trophy /></div>
+                <div className="w-5 h-5 flex items-center justify-center"><Trophy size={20} /></div>
               </button>
 
               {/* Statistics Button */}
@@ -578,7 +294,7 @@ export default function App() {
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
                 title="Statistics"
               >
-                <div className="w-5 h-5"><Icons.Stats /></div>
+                <div className="w-5 h-5 flex items-center justify-center"><BarChart3 size={20} /></div>
               </button>
 
               {/* Stock Exchange Button */}
@@ -591,7 +307,7 @@ export default function App() {
                 }`}
                 title="Stock Exchange"
               >
-                <div className="w-5 h-5"><Icons.Stock /></div>
+                <div className="w-5 h-5 flex items-center justify-center"><TrendingUp size={20} /></div>
               </button>
 
               {/* Save/Load Button */}
@@ -604,7 +320,7 @@ export default function App() {
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
                 title="Save/Load"
               >
-                <div className="w-5 h-5"><Icons.Save /></div>
+                <div className="w-5 h-5 flex items-center justify-center"><Save size={20} /></div>
               </button>
 
               {/* Settings Button */}
@@ -616,7 +332,7 @@ export default function App() {
                 className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-all"
                 title="Settings"
               >
-                <div className="w-5 h-5"><Icons.Settings /></div>
+                <div className="w-5 h-5 flex items-center justify-center"><Settings size={20} /></div>
               </button>
 
               {/* Sound Toggle */}
@@ -631,8 +347,8 @@ export default function App() {
                   state.settings.soundEnabled ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-gray-500'
                 }`}
               >
-                <div className="w-5 h-5">
-                  {state.settings.soundEnabled ? <Icons.Volume /> : <Icons.VolumeOff />}
+                <div className="w-5 h-5 flex items-center justify-center">
+                  {state.settings.soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
                 </div>
               </button>
             </div>
@@ -675,9 +391,7 @@ export default function App() {
           <div className="relative bg-[#0a0a10] border border-yellow-500/50 rounded-2xl p-6 w-full max-w-sm animate-bounce-in">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-                  <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+                <Info size={32} />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Large Bet Warning</h3>
               <p className="text-gray-400 mb-4">
@@ -711,7 +425,7 @@ export default function App() {
           <div className="relative bg-[#0a0a10] border border-green-500/50 rounded-2xl p-6 w-full max-w-sm animate-bounce-in">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
-                <Icons.Trophy />
+                <Trophy size={32} />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Balance Increased!</h3>
               <p className="text-gray-400 mb-4">
@@ -745,8 +459,8 @@ export default function App() {
           <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-md animate-bounce-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Settings</h3>
-              <button onClick={() => setShowSettings(false)} className="w-8 h-8 text-gray-400 hover:text-white">
-                <Icons.Close />
+              <button onClick={() => setShowSettings(false)} className="w-8 h-8 text-gray-400 hover:text-white flex items-center justify-center">
+                <X size={20} />
               </button>
             </div>
 
@@ -891,8 +605,8 @@ export default function App() {
           <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-lg animate-bounce-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Statistics</h3>
-              <button onClick={() => setShowStats(false)} className="w-8 h-8 text-gray-400 hover:text-white">
-                <Icons.Close />
+              <button onClick={() => setShowStats(false)} className="w-8 h-8 text-gray-400 hover:text-white flex items-center justify-center">
+                <X size={20} />
               </button>
             </div>
 
@@ -974,8 +688,8 @@ export default function App() {
           <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-lg animate-bounce-in">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Save / Load Progress</h3>
-              <button onClick={() => setShowExportImport(false)} className="w-8 h-8 text-gray-400 hover:text-white">
-                <Icons.Close />
+              <button onClick={() => setShowExportImport(false)} className="w-8 h-8 text-gray-400 hover:text-white flex items-center justify-center">
+                <X size={20} />
               </button>
             </div>
 

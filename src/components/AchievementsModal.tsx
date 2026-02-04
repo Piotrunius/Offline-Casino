@@ -1,13 +1,17 @@
 import React from 'react';
 import { useCasino } from '../context/CasinoContext';
+import { Trophy, Banknote, Coins, Flame, Shield, Gem, Zap, CloudRain, Heart, X } from 'lucide-react';
 
 const ACHIEVEMENTS_LIST = [
-  { id: 'first_win', name: 'First Blood', description: 'Win your first game', icon: '🏆', reward: 100 },
-  { id: 'high_roller', name: 'High Roller', description: 'Bet over $1,000 in a single game', icon: '💸', reward: 500 },
-  { id: 'millionaire', name: 'Millionaire', description: 'Reach a balance of $1,000,000', icon: '💰', reward: 10000 },
-  { id: 'streak_master', name: 'Streak Master', description: 'Win 10 games in a row', icon: '🔥', reward: 2000 },
-  { id: 'survivor', name: 'Survivor', description: 'Play 100 games', icon: '🛡️', reward: 1000 },
-  { id: 'big_win', name: 'Big Win', description: 'Win over $10,000 in a single game', icon: '💎', reward: 2500 }
+  { id: 'first_win', name: 'First Blood', description: 'Win your first game', icon: Trophy, reward: 100 },
+  { id: 'high_roller', name: 'High Roller', description: 'Bet over $1,000 in a single game', icon: Banknote, reward: 500 },
+  { id: 'millionaire', name: 'Millionaire', description: 'Reach a balance of $1,000,000', icon: Coins, reward: 10000 },
+  { id: 'streak_master', name: 'Streak Master', description: 'Win 10 games in a row', icon: Flame, reward: 2000 },
+  { id: 'survivor', name: 'Survivor', description: 'Play 100 games', icon: Shield, reward: 1000 },
+  { id: 'big_win', name: 'Big Win', description: 'Win over $10,000 in a single game', icon: Gem, reward: 2500 },
+  { id: 'jackpot_hunter', name: 'Jackpot Hunter', description: 'Win with > 100x multiplier', icon: Zap, reward: 5000 },
+  { id: 'bad_luck_brian', name: 'Unlucky', description: 'Lose 10 games in a row', icon: CloudRain, reward: 500 },
+  { id: 'loyal_player', name: 'Loyal Player', description: 'Play 500 games', icon: Heart, reward: 2000 }
 ];
 
 interface AchievementsModalProps {
@@ -23,11 +27,11 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
       <div className="relative bg-[#0a0a10] border border-yellow-500/20 rounded-2xl p-6 w-full max-w-2xl animate-bounce-in max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🏆</span>
+            <div className="text-yellow-500"><Trophy size={32} /></div>
             <h3 className="text-2xl font-bold text-white">Achievements</h3>
           </div>
-          <button onClick={onClose} className="w-8 h-8 text-gray-400 hover:text-white">
-            ✕
+          <button onClick={onClose} className="w-8 h-8 text-gray-400 hover:text-white flex items-center justify-center">
+            <X size={20} />
           </button>
         </div>
 
@@ -35,6 +39,7 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
           {ACHIEVEMENTS_LIST.map((achievement) => {
             const isUnlocked = state.achievements?.unlocked?.includes(achievement.id);
             const isClaimed = state.achievements?.claimed?.includes(achievement.id);
+            const Icon = achievement.icon;
 
             return (
               <div 
@@ -46,10 +51,10 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
-                    isUnlocked ? 'bg-yellow-500/20' : 'bg-black/40 grayscale'
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    isUnlocked ? 'bg-yellow-500/20 text-yellow-500' : 'bg-black/40 text-gray-600'
                   }`}>
-                    {achievement.icon}
+                    <Icon size={24} />
                   </div>
                   <div>
                     <h4 className={`font-bold ${isUnlocked ? 'text-yellow-400' : 'text-gray-400'}`}>

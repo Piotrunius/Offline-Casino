@@ -473,7 +473,7 @@ export default function BlackjackGame() {
           </div>
 
           {/* Payouts */}
-          <div className="bg-black/40 rounded-xl p-4 space-y-2">
+          <div className="bg-black/30 rounded-xl p-3 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Blackjack</span>
               <span className="text-yellow-400 font-bold">3:2</span>
@@ -489,7 +489,7 @@ export default function BlackjackGame() {
             <button
               onClick={deal}
               disabled={bet <= 0 || bet > state.balance}
-              className="w-full py-5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-2xl disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl disabled:opacity-50 mt-auto shadow-lg shadow-green-500/30"
             >
               DEAL
             </button>
@@ -517,11 +517,11 @@ export default function BlackjackGame() {
               </div>
             </div>
           ) : gamePhase === 'dealer' ? (
-            <button disabled className="w-full py-5 rounded-xl bg-gray-700 text-gray-400 font-black text-xl mt-auto">
+            <button disabled className="w-full py-4 rounded-xl bg-gray-700 text-gray-400 font-black text-xl mt-auto">
               DEALER DRAWING...
             </button>
           ) : (
-            <button onClick={newGame} className="w-full py-5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white font-black text-2xl mt-auto shadow-lg shadow-pink-500/30">
+            <button onClick={newGame} className="w-full py-4 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white font-black text-xl mt-auto shadow-lg shadow-pink-500/30">
               NEW GAME
             </button>
           )}

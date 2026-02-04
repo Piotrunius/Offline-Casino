@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Cherry, PartyPopper, Coins, Sparkles as SparklesIcon } from 'lucide-react';
 
 const Confetti = ({ count = 50 }) => {
   const colors = ['#ff0', '#f0f', '#0ff', '#f00', '#0f0', '#00f', '#ff8800'];
@@ -46,7 +47,7 @@ const GoldCoins = ({ count = 20 }) => {
         return (
           <div
             key={i}
-            className="absolute text-4xl animate-coins"
+            className="absolute animate-coins"
             style={{
               left: `${left}%`,
               top: '-40px',
@@ -54,7 +55,7 @@ const GoldCoins = ({ count = 20 }) => {
               animationDuration: `${duration}s`
             }}
           >
-            🪙
+            <Coins size={32} className="text-yellow-500" />
           </div>
         );
       })}
@@ -74,7 +75,7 @@ const Sparkles = ({ count = 30 }) => {
         return (
           <div
             key={i}
-            className="absolute text-3xl animate-sparkle"
+            className="absolute animate-sparkle"
             style={{
               left: `${left}%`,
               top: `${top}%`,
@@ -82,7 +83,7 @@ const Sparkles = ({ count = 30 }) => {
               transform: `scale(${scale})`
             }}
           >
-            ✨
+            <SparklesIcon size={24} className="text-yellow-200" />
           </div>
         );
       })}
@@ -116,7 +117,7 @@ const JackpotOverlay = ({ multiplier, profit, onComplete }) => {
       {stage >= 1 && <GoldCoins count={30} />}
 
       <div className={`relative text-center transform transition-all duration-500 ${stage >= 2 ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}>
-        <div className="text-6xl mb-4 animate-bounce">🎰</div>
+        <Cherry size={80} className="mx-auto mb-4 animate-bounce text-yellow-500" />
         <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400 animate-pulse mb-2">
           JACKPOT!
         </div>
@@ -141,7 +142,7 @@ const BigWinOverlay = ({ multiplier, profit, onComplete }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
       <Sparkles count={20} />
       <div className="text-center animate-bounce-in">
-        <div className="text-4xl mb-2">🎉</div>
+        <PartyPopper size={64} className="mx-auto mb-4 text-yellow-400" />
         <div className="text-3xl font-black text-green-400">
           BIG WIN!
         </div>

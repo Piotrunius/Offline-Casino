@@ -395,10 +395,10 @@ export default function SlotsGame() {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
-              <button onClick={() => handleBetChange(1)} disabled={spinning} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MIN</button>
-              <button onClick={() => handleBetChange(bet / 2)} disabled={spinning} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">½</button>
-              <button onClick={() => handleBetChange(bet * 2)} disabled={spinning} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">2x</button>
-              <button onClick={() => handleBetChange(state.balance)} disabled={spinning} className="btn-secondary py-2.5 text-sm font-bold rounded-xl">MAX</button>
+              <button onClick={() => handleBetChange(1)} disabled={spinning} className="btn-secondary py-2 text-sm font-bold rounded-lg">MIN</button>
+              <button onClick={() => handleBetChange(bet / 2)} disabled={spinning} className="btn-secondary py-2 text-sm font-bold rounded-lg">½</button>
+              <button onClick={() => handleBetChange(bet * 2)} disabled={spinning} className="btn-secondary py-2 text-sm font-bold rounded-lg">2x</button>
+              <button onClick={() => handleBetChange(state.balance)} disabled={spinning} className="btn-secondary py-2 text-sm font-bold rounded-lg">MAX</button>
             </div>
           </div>
 
@@ -427,7 +427,7 @@ export default function SlotsGame() {
           <button
             onClick={spin}
             disabled={spinning || bet <= 0 || bet > state.balance}
-            className={`w-full py-5 rounded-xl text-2xl font-black transition-all mt-auto shadow-lg ${
+            className={`w-full py-4 rounded-xl text-xl font-black transition-all mt-auto shadow-lg ${
               spinning
                 ? 'bg-gray-700 text-gray-400'
                 : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black shadow-yellow-500/30'
