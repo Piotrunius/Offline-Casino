@@ -1,15 +1,16 @@
+import { formatDistanceToNow } from 'date-fns';
+import { motion } from 'framer-motion';
+import { Clock, Gift, X, Zap } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useCasino } from '../context/CasinoContext';
-import { formatDistanceToNow } from 'date-fns';
-import { Gift, X, Clock, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface DailyBonusModalProps {
   onClose: () => void;
 }
 
 const DailyBonusModal: React.FC<DailyBonusModalProps> = ({ onClose }) => {
-  const { state, claimDailyBonus } = useCasino();
+  const { state: rawState, claimDailyBonus } = useCasino() as any;
+  const state = rawState as any;
   const [canClaim, setCanClaim] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
 
@@ -48,7 +49,7 @@ const DailyBonusModal: React.FC<DailyBonusModalProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -57,18 +58,18 @@ const DailyBonusModal: React.FC<DailyBonusModalProps> = ({ onClose }) => {
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
           <X size={20} />
         </button>
-        
+
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 animate-float relative">
           <Gift size={48} />
           {canClaim && (
-             <motion.div 
+             <motion.div
                animate={{ rotate: 360 }}
                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                className="absolute inset-0 border-2 border-dashed border-cyan-500/30 rounded-full"
              />
           )}
         </div>
-        
+
         <h3 className="text-2xl font-bold text-white mb-2">Daily Bonus</h3>
         <p className="text-gray-400 mb-6">Come back every 24 hours for free credits!</p>
 

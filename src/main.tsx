@@ -4,7 +4,10 @@ import App from './App';
 import { CasinoProvider } from './context/CasinoContext';
 import './styles/index.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('Root element not found');
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <CasinoProvider>
       <App />
