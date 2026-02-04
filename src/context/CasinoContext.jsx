@@ -437,7 +437,9 @@ export function CasinoProvider({ children }) {
       history: state.history.slice(0, 50),
       stockExchange: state.stockExchange,
       settings: state.settings,
-      adminSettings: state.adminSettings
+      adminSettings: state.adminSettings,
+      dailyBonus: state.dailyBonus,
+      achievements: state.achievements
     }));
   }, [state]);
 
