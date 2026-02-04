@@ -75,7 +75,7 @@ export default function CrashGame() {
         betPlacedRef.current = false;
         setCurrentMult(crashPoint);
         setResult({ crashed: true, mult: crashPoint, won: false, profit: -betRef.current });
-        setHistory(h => [{ mult: crashPoint, won: false }, ...h.slice(0, 4)]);
+        setHistory(h => [{ mult: crashPoint, won: false }, ...h.slice(0, 3)]);
         addWin(0, betRef.current, 'crash', 0);
         audio.playLose();
       } else if (autoCashoutRef.current > 0 && mult >= autoCashoutRef.current && betPlacedRef.current) {
@@ -88,7 +88,7 @@ export default function CrashGame() {
         betPlacedRef.current = false;
         setCurrentMult(mult);
         setResult({ crashed: false, mult, won: true, profit: winAmount - betRef.current });
-        setHistory(h => [{ mult, won: true }, ...h.slice(0, 4)]);
+        setHistory(h => [{ mult, won: true }, ...h.slice(0, 3)]);
         addWin(winAmount, betRef.current, 'crash', mult);
         audio.playWin();
       } else {
@@ -109,7 +109,7 @@ export default function CrashGame() {
     setPlaying(false);
     setBetPlaced(false);
     setResult({ crashed: false, mult, won: true, profit: winAmount - bet });
-    setHistory(h => [{ mult, won: true }, ...h.slice(0, 4)]);
+    setHistory(h => [{ mult, won: true }, ...h.slice(0, 3)]);
     addWin(winAmount, bet, 'crash', mult);
     audio.playWin();
   }, [playing, crashed, betPlaced, currentMult, bet, addWin]);
@@ -204,16 +204,6 @@ export default function CrashGame() {
           />
         </div>
 
-        {/* Crashed indicator */}
-        {crashed && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="bg-black/80 px-8 py-6 rounded-2xl border-2 border-red-500">
-              <div className="text-red-500 font-black text-6xl animate-pulse">
-                💥 CRASHED!
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Result */}
         {result && (

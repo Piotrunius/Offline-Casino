@@ -99,23 +99,23 @@ export default function Dashboard({ onSelectGame }) {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Welcome Banner */}
-      <div className="game-card p-8 bg-gradient-to-r from-cyan-900/50 to-purple-900/50">
-        <h1 className="text-4xl font-black text-white mb-2">
-          Welcome to <span className="text-cyan-400">Offline Casino</span>
+      <div className="game-card p-8 bg-gradient-to-r from-cyan-900/50 to-purple-900/50 animate-fade-in-up hover-lift">
+        <h1 className="text-4xl font-black text-white mb-2 animate-slide-in-left">
+          Welcome to <span className="text-cyan-400 animate-pulse-slow">Offline Casino</span>
         </h1>
-        <p className="text-gray-300 text-lg">
+        <p className="text-gray-300 text-lg animate-slide-in-left" style={{ animationDelay: '0.1s' }}>
           19 casino games with virtual currency. No real money, just fun!
         </p>
         <div className="flex flex-wrap gap-4 mt-4">
-          <div className="bg-black/30 rounded-xl px-6 py-3">
+          <div className="bg-black/30 rounded-xl px-6 py-3 hover-scale transition-smooth stagger-item animate-scale-in">
             <div className="text-gray-400 text-xs uppercase">Balance</div>
-            <div className="text-3xl font-black text-green-400">${state.balance.toLocaleString()}</div>
+            <div className="text-3xl font-black text-green-400 animate-bounce-gentle">${state.balance.toLocaleString()}</div>
           </div>
-          <div className="bg-black/30 rounded-xl px-6 py-3">
+          <div className="bg-black/30 rounded-xl px-6 py-3 hover-scale transition-smooth stagger-item animate-scale-in">
             <div className="text-gray-400 text-xs uppercase">Games Played</div>
             <div className="text-3xl font-black text-cyan-400">{stats.gamesPlayed}</div>
           </div>
-          <div className="bg-black/30 rounded-xl px-6 py-3">
+          <div className="bg-black/30 rounded-xl px-6 py-3 hover-scale transition-smooth stagger-item animate-scale-in">
             <div className="text-gray-400 text-xs uppercase">Win Rate</div>
             <div className="text-3xl font-black text-yellow-400">{winRate}%</div>
           </div>
@@ -124,37 +124,37 @@ export default function Dashboard({ onSelectGame }) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">Total Wins</div>
           <div className="text-2xl font-bold text-green-400">{stats.totalWins}</div>
         </div>
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">Total Losses</div>
           <div className="text-2xl font-bold text-red-400">{stats.totalLosses}</div>
         </div>
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">Net Profit</div>
           <div className={`text-2xl font-bold ${stats.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             ${stats.totalProfit.toFixed(2)}
           </div>
         </div>
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">Biggest Win</div>
           <div className="text-2xl font-bold text-yellow-400">${stats.biggestWin.toFixed(2)}</div>
         </div>
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">Biggest Loss</div>
           <div className="text-2xl font-bold text-red-400">${Math.abs(stats.biggestLoss).toFixed(2)}</div>
         </div>
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">Total Wagered</div>
           <div className="text-2xl font-bold text-cyan-400">${stats.totalWagered.toFixed(2)}</div>
         </div>
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">Average Bet</div>
           <div className="text-2xl font-bold text-purple-400">${stats.avgBet.toFixed(2)}</div>
         </div>
-        <div className="game-card p-4 text-center">
+        <div className="game-card p-4 text-center card-hover stagger-item animate-fade-in-up">
           <div className="text-gray-400 text-xs uppercase">ROI</div>
           <div className={`text-2xl font-bold ${stats.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {stats.totalWagered > 0 ? ((stats.totalProfit / stats.totalWagered) * 100).toFixed(1) : 0}%
@@ -163,23 +163,26 @@ export default function Dashboard({ onSelectGame }) {
       </div>
 
       {/* Games Grid */}
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-4">Choose a Game</h2>
+      <div className="animate-fade-in">
+        <h2 className="text-2xl font-bold text-white mb-4 animate-slide-in-left">Choose a Game</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {GAMES_INFO.map(game => (
+          {GAMES_INFO.map((game, index) => (
             <button
               key={game.id}
               onClick={() => onSelectGame && onSelectGame(game.id)}
-              className="game-card p-4 text-left hover:border-cyan-500/50 transition-all group"
+              className="game-card p-4 text-left hover:border-cyan-500/50 transition-smooth card-hover group stagger-item animate-scale-in"
+              style={{ animationDelay: `${index * 30}ms` }}
             >
-              <div className="text-cyan-400 mb-2">{Icons[game.icon]}</div>
+              <div className="text-cyan-400 mb-2 group-hover:animate-bounce-gentle transition-transform duration-300">
+                {Icons[game.icon]}
+              </div>
               <div className="font-bold text-white group-hover:text-cyan-400 transition-colors">
                 {game.name}
               </div>
               <div className="text-sm text-gray-400 mt-1">{game.description}</div>
               <div className="text-xs text-gray-500 mt-2">House Edge: {game.edge}</div>
               {gameStats[game.id] && (
-                <div className="mt-2 pt-2 border-t border-gray-700 text-xs">
+                <div className="mt-2 pt-2 border-t border-gray-700 text-xs animate-fade-in">
                   <span className="text-gray-500">{gameStats[game.id].played} plays</span>
                   <span className={`ml-2 ${gameStats[game.id].profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {gameStats[game.id].profit >= 0 ? '+' : ''}${gameStats[game.id].profit.toFixed(0)}
@@ -193,7 +196,7 @@ export default function Dashboard({ onSelectGame }) {
 
       {/* Recent History */}
       {recentGames.length > 0 && (
-        <div className="game-card p-6">
+        <div className="game-card p-6 animate-fade-in-up hover-lift">
           <h2 className="text-xl font-bold text-white mb-4">Recent Games</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -208,7 +211,7 @@ export default function Dashboard({ onSelectGame }) {
               </thead>
               <tbody>
                 {recentGames.map((game, i) => (
-                  <tr key={i} className="border-b border-gray-800">
+                  <tr key={i} className="border-b border-gray-800 hover:bg-white/5 transition-smooth stagger-item animate-fade-in">
                     <td className="py-2 capitalize">{game.game}</td>
                     <td className="py-2">${game.bet.toFixed(2)}</td>
                     <td className="py-2">{game.multiplier.toFixed(2)}x</td>
@@ -227,21 +230,21 @@ export default function Dashboard({ onSelectGame }) {
       )}
 
       {/* About Section */}
-      <div className="game-card p-6 bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="game-card p-6 bg-gradient-to-br from-gray-900 to-gray-800 animate-fade-in-up hover-lift">
         <h2 className="text-xl font-bold text-white mb-4">About Offline Casino</h2>
         <div className="grid md:grid-cols-2 gap-6 text-gray-300">
-          <div>
+          <div className="animate-slide-in-left">
             <h3 className="font-bold text-cyan-400 mb-2">Features</h3>
             <ul className="space-y-1 text-sm">
-              <li>- 19 unique casino games</li>
-              <li>- Play with virtual currency</li>
-              <li>- No registration required</li>
-              <li>- Works offline</li>
-              <li>- Progress saves locally</li>
-              <li>- Provably fair games</li>
+              <li className="stagger-item animate-fade-in-up">- 19 unique casino games</li>
+              <li className="stagger-item animate-fade-in-up">- Play with virtual currency</li>
+              <li className="stagger-item animate-fade-in-up">- No registration required</li>
+              <li className="stagger-item animate-fade-in-up">- Works offline</li>
+              <li className="stagger-item animate-fade-in-up">- Progress saves locally</li>
+              <li className="stagger-item animate-fade-in-up">- Provably fair games</li>
             </ul>
           </div>
-          <div>
+          <div className="animate-slide-in-right">
             <h3 className="font-bold text-cyan-400 mb-2">Disclaimer</h3>
             <p className="text-sm">
               This is a free entertainment app. No real money is involved.
@@ -252,10 +255,10 @@ export default function Dashboard({ onSelectGame }) {
         </div>
 
         {/* License & Copyright */}
-        <div className="mt-6 pt-4 border-t border-gray-700">
+        <div className="mt-6 pt-4 border-t border-gray-700 animate-fade-in">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm text-gray-500">
             <div>
-              © 2025-{new Date().getFullYear()} <a href="https://piotrunius.github.io/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300">Piotrunius</a>. All rights reserved.
+              © 2025-{new Date().getFullYear()} <a href="https://piotrunius.github.io/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 transition-colors">Piotrunius</a>. All rights reserved.
             </div>
             <div className="flex items-center gap-2">
               <span>Licensed under</span>
@@ -263,7 +266,7 @@ export default function Dashboard({ onSelectGame }) {
                 href="https://github.com/Piotrunius/OfflineCasino/blob/main/LICENSE"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs font-bold hover:bg-cyan-500/30"
+                className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs font-bold hover:bg-cyan-500/30 transition-smooth hover-scale"
               >
                 MIT License
               </a>
