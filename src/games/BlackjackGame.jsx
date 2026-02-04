@@ -238,9 +238,6 @@ export default function BlackjackGame() {
     const pVal = calcValue(playerCards);
     let hand1Result = { outcome: 'lose', mult: 0 };
 
-    // Debug logging
-    console.log('Evaluating blackjack:', { pVal, dVal, playerCards: playerCards.map(c => c?.value), dealerCards: dCards.map(c => c?.value) });
-
     if (pVal > 21) {
       hand1Result = { outcome: 'lose', mult: 0 };
     } else if (dVal > 21) {
