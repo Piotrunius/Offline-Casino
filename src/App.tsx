@@ -1,22 +1,45 @@
+import {
+  ArrowUpDown,
+  Bomb,
+  Building2,
+  Cherry,
+  Coins,
+  Dice5,
+  Dices,
+  Eraser,
+  Files,
+  Flame, Gamepad2,
+  Gem,
+  Gift,
+  Hash,
+  Home,
+  Info,
+  LayoutGrid,
+  Menu,
+  Plus,
+  RectangleVertical,
+  Rocket,
+  Save,
+  Settings,
+  Spade,
+  Target,
+  TrendingUp,
+  Trophy,
+  Volume2, VolumeX,
+  X
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useCasino } from './context/CasinoContext';
 import audio from './utils/audioEngine';
 import trackingEngine from './utils/trackingEngine';
-import { 
-  Home, Dices, Dice3, Bomb, Rocket, Target, Coins, Building2, LayoutGrid, 
-  Spade, Gem, Flame, Gamepad2, Files, Cherry, ArrowUpDown, RectangleVertical, 
-  Grip, Menu, X, Settings, Volume2, VolumeX, Plus, Save, BarChart3, Trophy, 
-  Gift, Info, Sparkles, CircleDashed, Flag, Eraser, Hash, TrendingUp, Bell, Wallet,
-  Dice5
-} from 'lucide-react';
 
 // Game imports
+import AchievementsModal from './components/AchievementsModal';
 import AdminPanel from './components/AdminPanel';
+import DailyBonusModal from './components/DailyBonusModal';
 import Dashboard from './components/Dashboard';
 import GameInfoModal from './components/GameInfoModal';
 import WinEffects from './components/WinEffects';
-import AchievementsModal from './components/AchievementsModal';
-import DailyBonusModal from './components/DailyBonusModal';
 
 import BaccaratGame from './games/BaccaratGame';
 import BlackjackGame from './games/BlackjackGame';
@@ -69,18 +92,17 @@ export default function App() {
     showLargeBetConfirm, confirmLargeBet, cancelLargeBet,
     winEffect, clearWinEffect, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance,
     setBalance, updateAdminSettings, resetStats
-  } = useCasino();
-  
+  } = useCasino() as any;
+
   const [activeGame, setActiveGame] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [showExportImport, setShowExportImport] = useState(false);
   const [showGameInfo, setShowGameInfo] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showDailyBonus, setShowDailyBonus] = useState(false);
-  
+
   const [exportCode, setExportCode] = useState('');
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
@@ -109,7 +131,7 @@ export default function App() {
   const ActiveGameComponent = activeGame === 'stockexchange'
     ? STOCK_EXCHANGE.component
     : GAMES.find(g => g.id === activeGame)?.component || DiceGame;
-    
+
   const activeGameData = activeGame === 'stockexchange'
     ? STOCK_EXCHANGE
     : GAMES.find(g => g.id === activeGame);
@@ -203,33 +225,33 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Wallet - Balance + Portfolio */}
+              {/* Wallet - Balance */}
               <div className="flex items-center gap-3 bg-[#0a0a10] border border-white/10 rounded-xl px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm hidden sm:inline">Cash:</span>
-                  <span className="font-bold text-white number-mono">${state.balance.toFixed(2)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-sm hidden sm:inline">Cash:</span>
+                    <span className="font-bold text-white number-mono">${state.balance.toFixed(2)}</span>
+                  </div>
+                  {state.stockExchange?.portfolio && Object.keys(state.stockExchange.portfolio).length > 0 && (
+                    <>
+                      <div className="w-px h-4 bg-white/10 hidden sm:block" />
+                      <div className="hidden sm:flex items-center gap-1">
+                        <div className="w-4 h-4 text-green-400"><TrendingUp size={16} /></div>
+                        <span className="text-green-400 font-bold number-mono text-sm">
+                          ${(() => {
+                            const stocks = state.stockExchange?.stocks || [];
+                            const portfolio = state.stockExchange?.portfolio || {};
+                            let total = 0;
+                            Object.entries(portfolio).forEach(([symbol, shares]) => {
+                              const stock = stocks.find((s: any) => s.symbol === symbol);
+                              if (stock) total += stock.price * (shares as number);
+                            });
+                            return total.toFixed(0);
+                          })()}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                {state.stockExchange?.portfolio && Object.keys(state.stockExchange.portfolio).length > 0 && (
-                  <>
-                    <div className="w-px h-4 bg-white/10 hidden sm:block" />
-                    <div className="hidden sm:flex items-center gap-1">
-                      <div className="w-4 h-4 text-green-400"><TrendingUp size={16} /></div>
-                      <span className="text-green-400 font-bold number-mono text-sm">
-                        ${(() => {
-                          const stocks = state.stockExchange?.stocks || [];
-                          const portfolio = state.stockExchange?.portfolio || {};
-                          let total = 0;
-                          Object.entries(portfolio).forEach(([symbol, shares]) => {
-                            const stock = stocks.find((s: any) => s.symbol === symbol);
-                            if (stock) total += stock.price * (shares as number);
-                          });
-                          return total.toFixed(0);
-                        })()}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
 
               {/* Add Credits */}
               {state.balance <= 10 && (state.freeCreditsUsed || 0) < 3 && (
@@ -243,14 +265,14 @@ export default function App() {
                   className="flex items-center gap-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white px-3 py-2 rounded-xl font-semibold transition-all animate-pulse"
                 >
                   <div className="w-4 h-4 flex items-center justify-center"><Plus size={16} /></div>
-                  <span className="hidden sm:inline">+$1000</span>
+                  <span className="hidden sm:inline">$1000</span>
                 </button>
               )}
 
               {/* Game Info Button */}
               {activeGame !== 'dashboard' && (
                 <button
-                  onClick={() => setShowGameInfo(activeGame)}
+                  onClick={() => setShowGameInfo(activeGame as any)}
                   className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
                   title="Game Info"
                 >
@@ -283,18 +305,6 @@ export default function App() {
                 title="Achievements"
               >
                 <div className="w-5 h-5 flex items-center justify-center"><Trophy size={20} /></div>
-              </button>
-
-              {/* Statistics Button */}
-              <button
-                onClick={() => {
-                  trackingEngine.trackOpenModal('statistics');
-                  setShowStats(true);
-                }}
-                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
-                title="Statistics"
-              >
-                <div className="w-5 h-5 flex items-center justify-center"><BarChart3 size={20} /></div>
               </button>
 
               {/* Stock Exchange Button */}
@@ -360,7 +370,7 @@ export default function App() {
           {activeGame === 'dashboard' ? (
             <ActiveGameComponent onSelectGame={handleGameChange} />
           ) : (
-            <ActiveGameComponent />
+            <ActiveGameComponent onSelectGame={handleGameChange} />
           )}
         </div>
       </main>
@@ -594,89 +604,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stats Modal */}
-      {showStats && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80" onClick={() => setShowStats(false)} />
-          <div className="relative bg-[#0a0a10] border border-white/10 rounded-2xl p-6 w-full max-w-lg animate-bounce-in max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">Statistics</h3>
-              <button onClick={() => setShowStats(false)} className="w-8 h-8 text-gray-400 hover:text-white flex items-center justify-center">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Main Stats */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Games Played</div>
-                <div className="text-2xl font-bold text-white">{state.gamesPlayed}</div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Total Wagered</div>
-                <div className="text-2xl font-bold text-white">${state.totalBets.toFixed(0)}</div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Net Profit</div>
-                <div className={`text-2xl font-bold ${state.totalWins - state.totalLosses >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ${(state.totalWins - state.totalLosses).toFixed(0)}
-                </div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Win Rate</div>
-                <div className="text-2xl font-bold text-cyan-400">
-                  {state.gamesPlayed > 0 ? ((state.history?.filter((h: any) => h.profit > 0).length || 0) / state.gamesPlayed * 100).toFixed(1) : 0}%
-                </div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Biggest Win</div>
-                <div className="text-2xl font-bold text-yellow-400">${state.biggestWin.toFixed(0)}</div>
-              </div>
-              <div className="bg-black/30 rounded-xl p-4">
-                <div className="text-gray-500 text-xs uppercase">Best Streak</div>
-                <div className="text-2xl font-bold text-purple-400">{state.bestStreak}</div>
-              </div>
-            </div>
-
-            {/* Per-Game Stats */}
-            {state.history && state.history.length > 0 && (
-              <div>
-                <div className="text-xs uppercase text-gray-500 mb-3">Performance by Game</div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {(() => {
-                    const gameData: any = {};
-                    state.history.forEach((h: any) => {
-                      if (!gameData[h.game]) gameData[h.game] = { profit: 0, count: 0, wins: 0 };
-                      gameData[h.game].profit += h.profit;
-                      gameData[h.game].count++;
-                      if (h.profit > 0) gameData[h.game].wins++;
-                    });
-                    return Object.entries(gameData)
-                      .sort((a: any, b: any) => b[1].count - a[1].count)
-                      .map(([game, data]: [string, any]) => (
-                        <div key={game} className="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-3">
-                            <span className="capitalize text-white font-medium">{game}</span>
-                            <span className="text-xs text-gray-500">{data.count} games</span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-xs text-gray-400">
-                              {((data.wins / data.count) * 100).toFixed(0)}% WR
-                            </span>
-                            <span className={`font-bold ${data.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {data.profit >= 0 ? '+' : ''}${data.profit.toFixed(0)}
-                            </span>
-                          </div>
-                        </div>
-                      ));
-                  })()}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

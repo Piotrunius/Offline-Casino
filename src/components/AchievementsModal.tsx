@@ -1,6 +1,6 @@
+import { Banknote, CloudRain, Coins, Flame, Gem, Heart, Shield, Trophy, X, Zap } from 'lucide-react';
 import React from 'react';
 import { useCasino } from '../context/CasinoContext';
-import { Trophy, Banknote, Coins, Flame, Shield, Gem, Zap, CloudRain, Heart, X } from 'lucide-react';
 
 const ACHIEVEMENTS_LIST = [
   { id: 'first_win', name: 'First Blood', description: 'Win your first game', icon: Trophy, reward: 100 },
@@ -19,7 +19,7 @@ interface AchievementsModalProps {
 }
 
 const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
-  const { state, claimAchievement } = useCasino();
+  const { state, claimAchievement } = useCasino() as any;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -42,11 +42,11 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
             const Icon = achievement.icon;
 
             return (
-              <div 
+              <div
                 key={achievement.id}
                 className={`flex items-center justify-between p-4 rounded-xl border ${
-                  isUnlocked 
-                    ? 'bg-yellow-900/10 border-yellow-500/30' 
+                  isUnlocked
+                    ? 'bg-yellow-900/10 border-yellow-500/30'
                     : 'bg-white/5 border-white/5 opacity-70'
                 }`}
               >
@@ -69,13 +69,13 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
                       <span className="text-xs text-gray-500 block uppercase">Reward</span>
                       <span className="font-bold text-green-400">${achievement.reward}</span>
                    </div>
-                   
+
                    {isClaimed ? (
                      <button disabled className="px-4 py-2 bg-white/5 text-gray-500 rounded-lg font-bold text-sm">
                        Claimed
                      </button>
                    ) : isUnlocked ? (
-                     <button 
+                     <button
                         onClick={() => claimAchievement(achievement.id, achievement.reward)}
                         className="px-4 py-2 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-bold rounded-lg text-sm transition-all animate-pulse"
                      >

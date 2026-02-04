@@ -1,134 +1,43 @@
+import {
+    ArrowUpDown,
+    Bomb,
+    Building2,
+    Cherry,
+    Coins,
+    Dice5,
+    Dices,
+    Eraser,
+    Files,
+    Flame, Gamepad2,
+    Gem,
+    Hash,
+    LayoutGrid,
+    Rocket,
+    Spade,
+    Target
+} from 'lucide-react';
 import { useCasino } from '../context/CasinoContext';
 
-// SVG Icons as components
+// Lucide Icons mapping - matches App.tsx sidebar icons
 const Icons = {
-  blackjack: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M12 8v8M8 12h8" />
-    </svg>
-  ),
-  roulette: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-    </svg>
-  ),
-  slots: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <path d="M7 4v16M12 4v16M17 4v16" />
-    </svg>
-  ),
-  crash: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <path d="M3 17l6-6 4 4 8-10" />
-      <path d="M17 7h4v4" />
-    </svg>
-  ),
-  mines: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <circle cx="12" cy="12" r="6" />
-      <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-    </svg>
-  ),
-  dice: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-      <circle cx="8" cy="8" r="1" fill="currentColor" />
-      <circle cx="16" cy="8" r="1" fill="currentColor" />
-      <circle cx="12" cy="12" r="1" fill="currentColor" />
-      <circle cx="8" cy="16" r="1" fill="currentColor" />
-      <circle cx="16" cy="16" r="1" fill="currentColor" />
-    </svg>
-  ),
-  hilo: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <path d="M12 4l-6 8h12l-6-8z" />
-      <path d="M12 20l6-8H6l6 8z" />
-    </svg>
-  ),
-  tower: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <path d="M4 20h16M7 20v-8h10v8M9 12V8h6v4M11 8V4h2v4" />
-    </svg>
-  ),
-  wheel: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2v10l7 7" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" />
-    </svg>
-  ),
-  limbo: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <path d="M3 20l7-14 4 6 7-10" />
-    </svg>
-  ),
-  coinflip: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v12M8 12h8" />
-    </svg>
-  ),
-  keno: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-    </svg>
-  ),
-  baccarat: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="2" y="4" width="14" height="18" rx="2" />
-      <rect x="8" y="2" width="14" height="18" rx="2" />
-      <path d="M12 8v8M9 12h6" />
-    </svg>
-  ),
-  dragontiger: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <path d="M4 8c2-4 6-4 8-2s6 0 8-2"/>
-      <path d="M4 16c2 4 6 4 8 2s6 0 8 2"/>
-      <circle cx="8" cy="12" r="2"/>
-      <circle cx="16" cy="12" r="2"/>
-    </svg>
-  ),
-  videopoker: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="2" y="6" width="6" height="10" rx="1"/>
-      <rect x="9" y="6" width="6" height="10" rx="1"/>
-      <rect x="16" y="6" width="6" height="10" rx="1"/>
-      <path d="M5 18v2M12 18v2M19 18v2"/>
-    </svg>
-  ),
-  sicbo: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="2" y="6" width="12" height="12" rx="2"/>
-      <rect x="10" y="2" width="12" height="12" rx="2"/>
-      <circle cx="16" cy="8" r="1" fill="currentColor"/>
-      <circle cx="8" cy="12" r="1" fill="currentColor"/>
-    </svg>
-  ),
-  threecardpoker: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="2" y="6" width="7" height="12" rx="1" transform="rotate(-5 5 12)"/>
-      <rect x="8" y="5" width="7" height="12" rx="1"/>
-      <rect x="14" y="6" width="7" height="12" rx="1" transform="rotate(5 18 12)"/>
-    </svg>
-  ),
-  scratchcard: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M8 8h2M14 8h2M8 14h2M14 14h2M11 11h2v2h-2z" />
-    </svg>
-  ),
-  war: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8">
-      <rect x="3" y="4" width="8" height="11" rx="1"/>
-      <rect x="13" y="9" width="8" height="11" rx="1"/>
-      <path d="M7 7v5M17 12v5"/>
-    </svg>
-  ),
+  blackjack: <Spade className="w-8 h-8" />,
+  slots: <Cherry className="w-8 h-8" />,
+  dice: <Dices className="w-8 h-8" />,
+  mines: <Bomb className="w-8 h-8" />,
+  crash: <Rocket className="w-8 h-8" />,
+  scratchcard: <Eraser className="w-8 h-8" />,
+  hilo: <ArrowUpDown className="w-8 h-8" />,
+  tower: <Building2 className="w-8 h-8" />,
+  limbo: <Target className="w-8 h-8" />,
+  coinflip: <Coins className="w-8 h-8" />,
+  keno: <LayoutGrid className="w-8 h-8" />,
+  baccarat: <Gem className="w-8 h-8" />,
+  dragontiger: <Flame className="w-8 h-8" />,
+  videopoker: <Gamepad2 className="w-8 h-8" />,
+  sicbo: <Dice5 className="w-8 h-8" />,
+  threecardpoker: <Files className="w-8 h-8" />,
+  war: <ArrowUpDown className="w-8 h-8" />,
+  tictactoe: <Hash className="w-8 h-8" />,
 };
 
 const GAMES_INFO = [
@@ -144,7 +53,7 @@ const GAMES_INFO = [
   { id: 'coinflip', name: 'Coin Flip', description: 'Simple 50/50 heads or tails', edge: '2%', icon: 'coinflip' },
   { id: 'keno', name: 'Keno', description: 'Pick numbers and match the draw', edge: '2%', icon: 'keno' },
   { id: 'war', name: 'War', description: 'Higher card wins in this classic game', edge: '2.5%', icon: 'war' },
-  { id: 'tictactoe', name: 'Tic Tac Toe', description: 'Beat the AI in classic game', edge: '5%', icon: 'keno' },
+  { id: 'tictactoe', name: 'Tic Tac Toe', description: 'Beat the AI in classic game', edge: '5%', icon: 'tictactoe' },
   { id: 'baccarat', name: 'Baccarat', description: 'Bet on player, banker or tie', edge: '1.06%', icon: 'baccarat' },
   { id: 'dragontiger', name: 'Dragon Tiger', description: 'Bet on dragon or tiger to win', edge: '2.5%', icon: 'dragontiger' },
   { id: 'videopoker', name: 'Video Poker', description: 'Hold cards to make winning hands', edge: '2%', icon: 'videopoker' },

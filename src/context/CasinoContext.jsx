@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState, useMemo } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import trackingEngine from '../utils/trackingEngine';
 
 const CasinoContext = createContext(null);
@@ -88,7 +88,7 @@ function reducer(state, action) {
       if (action.amount > state.balance * 0.5) {
         trackingEngine.trackLargeBet(action.amount, (action.amount / state.balance) * 100);
       }
-      
+
       const newUnlocked = [...state.achievements.unlocked];
       if (action.amount >= 1000 && !newUnlocked.includes('high_roller')) {
         newUnlocked.push('high_roller');
@@ -100,9 +100,11 @@ function reducer(state, action) {
         newUnlocked.push('loyal_player');
       }
 
+      let newBalance = state.balance - action.amount;
+
       return {
         ...state,
-        balance: state.balance - action.amount,
+        balance: newBalance,
         totalBets: state.totalBets + action.amount,
         gamesPlayed: state.gamesPlayed + 1,
         achievements: {
@@ -177,19 +179,49 @@ function reducer(state, action) {
     case 'ADD_LOSS': {
       trackingEngine.trackLoss(action.game, action.amount);
       trackingEngine.trackGameEnd(action.game, action.amount, 0, -action.amount);
-      
+
       const newLossStreak = (state.lossStreak || 0) + 1;
       const newUnlocked = [...state.achievements.unlocked];
-      
+
       if (newLossStreak >= 10 && !newUnlocked.includes('bad_luck_brian')) {
         newUnlocked.push('bad_luck_brian');
       }
 
+      // Check if insurance should be applied
+      let insuranceRecovery = 0;
+      let insuranceActive = state.insurance?.active || false;
+      let insuranceUsesRemaining = state.insurance?.usesRemaining || 0;
+      let insuranceTotalUsed = state.insurance?.totalUsed || 0;
+
+      if (state.insurance?.active && state.insurance.usesRemaining > 0 && action.amount >= state.insurance.minLossRequired) {
+        insuranceRecovery = Math.floor(action.amount * state.insurance.recoveryPercentage);
+        // Cap recovery at maxRecovery limit
+        insuranceRecovery = Math.min(insuranceRecovery, state.insurance.maxRecovery);
+        insuranceActive = true;
+        insuranceUsesRemaining = state.insurance.usesRemaining - 1;
+        insuranceTotalUsed = state.insurance.totalUsed + 1;
+
+        // Deactivate insurance if no more uses left
+        if (insuranceUsesRemaining === 0) {
+          insuranceActive = false;
+        }
+      }
+
       return {
         ...state,
+        balance: state.balance - action.amount + insuranceRecovery,
         totalLosses: state.totalLosses + action.amount,
         currentStreak: 0,
         lossStreak: newLossStreak,
+        insurance: {
+          ...state.insurance,
+          active: insuranceActive,
+          usesRemaining: insuranceUsesRemaining,
+          totalUsed: insuranceTotalUsed,
+          lastLosses: insuranceRecovery > 0
+            ? [{ amount: action.amount, recovery: insuranceRecovery, timestamp: Date.now() }, ...(state.insurance?.lastLosses || []).slice(0, 4)]
+            : (state.insurance?.lastLosses || [])
+        },
         achievements: {
           ...state.achievements,
           unlocked: newUnlocked
@@ -199,9 +231,10 @@ function reducer(state, action) {
             game: action.game,
             bet: action.amount,
             win: 0,
-            profit: -action.amount,
+            profit: -action.amount + insuranceRecovery,
             multiplier: 0,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            insuranceRecovery: insuranceRecovery > 0 ? insuranceRecovery : undefined
           },
           ...state.history.slice(0, 99)
         ]
@@ -292,7 +325,7 @@ function reducer(state, action) {
       const baseReward = 1000;
       const streakBonus = (state.dailyBonus.streak || 0) * 100;
       const totalReward = Math.min(baseReward + streakBonus, 5000);
-      
+
       return {
         ...state,
         balance: state.balance + totalReward,
@@ -300,6 +333,56 @@ function reducer(state, action) {
           ...state.dailyBonus,
           lastClaimed: Date.now(),
           streak: (state.dailyBonus.streak || 0) + 1
+        }
+      };
+    }
+    case 'PURCHASE_INSURANCE': {
+      const insuranceTypes = {
+        basic: { cost: 100, recovery: 0.5, minLoss: 50, uses: 1, maxRecovery: 500 },
+        premium: { cost: 250, recovery: 0.65, minLoss: 50, uses: 3, maxRecovery: 2000 },
+        elite: { cost: 500, recovery: 0.8, minLoss: 50, uses: 5, maxRecovery: 10000 }
+      };
+      const type = insuranceTypes[action.insuranceType];
+      if (!type || state.balance < type.cost) return state;
+
+      const newUnlocked = [...state.achievements.unlocked];
+      if (!newUnlocked.includes('insured_player')) {
+        newUnlocked.push('insured_player');
+      }
+      if (action.insuranceType === 'elite' && !newUnlocked.includes('big_spender')) {
+        newUnlocked.push('big_spender');
+      }
+
+      return {
+        ...state,
+        balance: state.balance - type.cost,
+        insurance: {
+          ...state.insurance,
+          active: true,
+          type: action.insuranceType,
+          cost: type.cost,
+          recoveryPercentage: type.recovery,
+          minLossRequired: type.minLoss,
+          maxRecovery: type.maxRecovery,
+          usesRemaining: type.uses,
+          lastLosses: []
+        },
+        achievements: {
+          ...state.achievements,
+          unlocked: newUnlocked
+        }
+      };
+    }
+    case 'APPLY_INSURANCE_RECOVERY': {
+      if (!state.insurance.active || action.lossAmount < state.insurance.minLossRequired) return state;
+      const recovery = Math.floor(action.lossAmount * state.insurance.recoveryPercentage);
+      return {
+        ...state,
+        balance: state.balance + recovery,
+        insurance: {
+          ...state.insurance,
+          active: false,
+          lastLosses: [action.lossAmount, ...state.insurance.lastLosses.slice(0, 4)]
         }
       };
     }
@@ -498,6 +581,8 @@ export function CasinoProvider({ children }) {
     dispatch({ type: 'CLAIM_DAILY_BONUS' });
   };
 
+
+
   const exportProgress = () => {
     const exportData = {
       balance: state.balance,
@@ -513,6 +598,7 @@ export function CasinoProvider({ children }) {
       history: state.history.slice(0, 50),
       stockExchange: state.stockExchange,
       settings: state.settings,
+      achievements: state.achievements,
       exportedAt: Date.now()
     };
     trackingEngine.trackExportProgress();
@@ -558,21 +644,7 @@ export function CasinoProvider({ children }) {
       state,
       placeBet,
       addWin,
-      addLoss, // This wasn't memoized in original but it's fine
-      // addFreeCredits, // updateSettings, etc. are not memoized in original file, 
-      // but putting them in dependency array is safer than omitting if they were memoized.
-      // However, addLoss and others are defined inside component without useCallback in the original file I read?
-      // Wait, let me check the file content again.
-      // addLoss IS NOT wrapped in useCallback in the file content I read.
-      // addFreeCredits IS NOT wrapped.
-      // updateSettings IS NOT wrapped.
-      // To strictly use useMemo effectively, these should be wrapped in useCallback too.
-      // But user asked for optimization. I should wrap them.
-      // BUT `replace` tool is hard for wrapping multiple functions scattered around.
-      // I will just wrap the object construction for now to satisfy the "optimization" request on the context value.
-      // Even if functions are recreated, the value object identity will be stable if state and functions are stable.
-      // Since functions aren't stable (re-created on render), useMemo won't help much unless I wrap functions too.
-      // I will just use the value object as is for now but formatted for the tool.
+      addLoss,
       showLargeBetConfirm,
       winEffect,
       showBetUpdateSuggestion
