@@ -3,6 +3,34 @@ import { useCasino } from './context/CasinoContext';
 import audio from './utils/audioEngine';
 import trackingEngine from './utils/trackingEngine';
 
+// Game imports
+import AdminPanel from './components/AdminPanel';
+import Dashboard from './components/Dashboard';
+import GameInfoModal from './components/GameInfoModal';
+import WinEffects from './components/WinEffects';
+import AchievementsModal from './components/AchievementsModal';
+import DailyBonusModal from './components/DailyBonusModal';
+
+import BaccaratGame from './games/BaccaratGame';
+import BlackjackGame from './games/BlackjackGame';
+import CoinFlipGame from './games/CoinFlipGame';
+import CrashGame from './games/CrashGame';
+import DiceGame from './games/DiceGame';
+import DragonTigerGame from './games/DragonTigerGame';
+import HiLoGame from './games/HiLoGame';
+import KenoGame from './games/KenoGame';
+import LimboGame from './games/LimboGame';
+import MinesGame from './games/MinesGame';
+import ScratchCardsGame from './games/ScratchCardsGame';
+import SicboGame from './games/SicboGame';
+import SlotsGame from './games/SlotsGame';
+import StockExchange from './games/StockExchange';
+import ThreeCardPokerGame from './games/ThreeCardPokerGame';
+import TicTacToeGame from './games/TicTacToeGame';
+import TowerGame from './games/TowerGame';
+import VideoPokerGame from './games/VideoPokerGame';
+import WarGame from './games/WarGame';
+
 // Icons as SVG components
 const Icons = {
   Home: () => (
@@ -214,6 +242,15 @@ const Icons = {
       <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
     </svg>
   ),
+  Gift: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="20 12 20 22 4 22 4 12" />
+      <rect x="2" y="7" width="20" height="5" />
+      <line x1="12" y1="22" x2="12" y2="7" />
+      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+    </svg>
+  ),
   Info: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10"/>
@@ -285,31 +322,6 @@ const Icons = {
   )
 };
 
-// Game imports
-import AdminPanel from './components/AdminPanel';
-import Dashboard from './components/Dashboard';
-import GameInfoModal from './components/GameInfoModal';
-import WinEffects from './components/WinEffects';
-import BaccaratGame from './games/BaccaratGame';
-import BlackjackGame from './games/BlackjackGame';
-import CoinFlipGame from './games/CoinFlipGame';
-import CrashGame from './games/CrashGame';
-import DiceGame from './games/DiceGame';
-import DragonTigerGame from './games/DragonTigerGame';
-import HiLoGame from './games/HiLoGame';
-import KenoGame from './games/KenoGame';
-import LimboGame from './games/LimboGame';
-import MinesGame from './games/MinesGame';
-import ScratchCardsGame from './games/ScratchCardsGame';
-import SicboGame from './games/SicboGame';
-import SlotsGame from './games/SlotsGame';
-import StockExchange from './games/StockExchange';
-import ThreeCardPokerGame from './games/ThreeCardPokerGame';
-import TicTacToeGame from './games/TicTacToeGame';
-import TowerGame from './games/TowerGame';
-import VideoPokerGame from './games/VideoPokerGame';
-import WarGame from './games/WarGame';
-
 const GAMES = [
   { id: 'dashboard', name: 'Dashboard', icon: Icons.Home, component: Dashboard, color: '#00f5ff' },
   { id: 'dice', name: 'Dice', icon: Icons.Dice, component: DiceGame, color: '#00f5ff' },
@@ -342,6 +354,7 @@ export default function App() {
     winEffect, clearWinEffect, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance,
     setBalance, updateAdminSettings, resetStats
   } = useCasino();
+  
   const [activeGame, setActiveGame] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -349,6 +362,9 @@ export default function App() {
   const [showExportImport, setShowExportImport] = useState(false);
   const [showGameInfo, setShowGameInfo] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showDailyBonus, setShowDailyBonus] = useState(false);
+  
   const [exportCode, setExportCode] = useState('');
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
@@ -356,10 +372,9 @@ export default function App() {
   // Konami Code detection
   const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
   const konamiIndex = useRef(0);
-  const prevBalanceRef = useRef(state.balance);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === konamiCode[konamiIndex.current]) {
         konamiIndex.current++;
         if (konamiIndex.current === konamiCode.length) {
@@ -378,6 +393,7 @@ export default function App() {
   const ActiveGameComponent = activeGame === 'stockexchange'
     ? STOCK_EXCHANGE.component
     : GAMES.find(g => g.id === activeGame)?.component || DiceGame;
+    
   const activeGameData = activeGame === 'stockexchange'
     ? STOCK_EXCHANGE
     : GAMES.find(g => g.id === activeGame);
@@ -387,7 +403,7 @@ export default function App() {
     audio.setVolume(state.settings.soundVolume);
   }, [state.settings.soundEnabled, state.settings.soundVolume]);
 
-  const handleGameChange = (gameId) => {
+  const handleGameChange = (gameId: string) => {
     audio.playClick();
     trackingEngine.trackGameChange(activeGame, gameId);
     setActiveGame(gameId);
@@ -488,8 +504,8 @@ export default function App() {
                           const portfolio = state.stockExchange?.portfolio || {};
                           let total = 0;
                           Object.entries(portfolio).forEach(([symbol, shares]) => {
-                            const stock = stocks.find(s => s.symbol === symbol);
-                            if (stock) total += stock.price * shares;
+                            const stock = stocks.find((s: any) => s.symbol === symbol);
+                            if (stock) total += stock.price * (shares as number);
                           });
                           return total.toFixed(0);
                         })()}
@@ -525,6 +541,33 @@ export default function App() {
                   <div className="w-5 h-5"><Icons.Info /></div>
                 </button>
               )}
+
+              {/* Daily Bonus Button */}
+               <button
+                onClick={() => {
+                  trackingEngine.trackOpenModal('daily_bonus');
+                  setShowDailyBonus(true);
+                }}
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 transition-all relative"
+                title="Daily Bonus"
+              >
+                <div className="w-5 h-5"><Icons.Gift /></div>
+                {Date.now() - (state.dailyBonus?.lastClaimed || 0) > 86400000 && (
+                   <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                )}
+              </button>
+
+              {/* Achievements Button */}
+              <button
+                onClick={() => {
+                  trackingEngine.trackOpenModal('achievements');
+                  setShowAchievements(true);
+                }}
+                className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                title="Achievements"
+              >
+                <div className="w-5 h-5"><Icons.Trophy /></div>
+              </button>
 
               {/* Statistics Button */}
               <button
@@ -620,6 +663,10 @@ export default function App() {
         onComplete={clearWinEffect}
         enabled={state.settings.winEffectsEnabled}
       />
+
+      {/* MODALS */}
+      {showAchievements && <AchievementsModal onClose={() => setShowAchievements(false)} />}
+      {showDailyBonus && <DailyBonusModal onClose={() => setShowDailyBonus(false)} />}
 
       {/* LARGE BET CONFIRMATION MODAL */}
       {showLargeBetConfirm && (
@@ -868,7 +915,7 @@ export default function App() {
               <div className="bg-black/30 rounded-xl p-4">
                 <div className="text-gray-500 text-xs uppercase">Win Rate</div>
                 <div className="text-2xl font-bold text-cyan-400">
-                  {state.gamesPlayed > 0 ? ((state.history?.filter(h => h.profit > 0).length || 0) / state.gamesPlayed * 100).toFixed(1) : 0}%
+                  {state.gamesPlayed > 0 ? ((state.history?.filter((h: any) => h.profit > 0).length || 0) / state.gamesPlayed * 100).toFixed(1) : 0}%
                 </div>
               </div>
               <div className="bg-black/30 rounded-xl p-4">
@@ -887,16 +934,16 @@ export default function App() {
                 <div className="text-xs uppercase text-gray-500 mb-3">Performance by Game</div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {(() => {
-                    const gameData = {};
-                    state.history.forEach(h => {
+                    const gameData: any = {};
+                    state.history.forEach((h: any) => {
                       if (!gameData[h.game]) gameData[h.game] = { profit: 0, count: 0, wins: 0 };
                       gameData[h.game].profit += h.profit;
                       gameData[h.game].count++;
                       if (h.profit > 0) gameData[h.game].wins++;
                     });
                     return Object.entries(gameData)
-                      .sort((a, b) => b[1].count - a[1].count)
-                      .map(([game, data]) => (
+                      .sort((a: any, b: any) => b[1].count - a[1].count)
+                      .map(([game, data]: [string, any]) => (
                         <div key={game} className="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
                           <div className="flex items-center gap-3">
                             <span className="capitalize text-white font-medium">{game}</span>
@@ -940,7 +987,7 @@ export default function App() {
                   readOnly
                   value={exportCode}
                   className="w-full h-24 bg-black/50 border border-white/10 rounded-lg p-3 text-xs text-gray-300 font-mono resize-none"
-                  onClick={(e) => e.target.select()}
+                  onClick={(e) => e.currentTarget.select()}
                 />
                 <button
                   onClick={() => {

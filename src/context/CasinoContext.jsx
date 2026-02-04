@@ -69,6 +69,14 @@ const initialState = {
     godMode: false,
     infiniteMoney: false,
     gameSettings: {}
+  },
+  achievements: {
+    unlocked: [],
+    claimed: []
+  },
+  dailyBonus: {
+    lastClaimed: 0,
+    streak: 0
   }
 };
 
@@ -80,11 +88,24 @@ function reducer(state, action) {
       if (action.amount > state.balance * 0.5) {
         trackingEngine.trackLargeBet(action.amount, (action.amount / state.balance) * 100);
       }
+      
+      const newUnlocked = [...state.achievements.unlocked];
+      if (action.amount >= 1000 && !newUnlocked.includes('high_roller')) {
+        newUnlocked.push('high_roller');
+      }
+      if (state.gamesPlayed + 1 >= 100 && !newUnlocked.includes('survivor')) {
+        newUnlocked.push('survivor');
+      }
+
       return {
         ...state,
         balance: state.balance - action.amount,
         totalBets: state.totalBets + action.amount,
-        gamesPlayed: state.gamesPlayed + 1
+        gamesPlayed: state.gamesPlayed + 1,
+        achievements: {
+          ...state.achievements,
+          unlocked: newUnlocked
+        }
       };
     }
     case 'ADD_WIN': {
@@ -107,6 +128,21 @@ function reducer(state, action) {
       }
       trackingEngine.trackGameEnd(action.game, action.bet, action.amount, profit);
 
+      // Check achievements
+      const newUnlocked = [...state.achievements.unlocked];
+      if (isWin && state.totalWins === 0 && !newUnlocked.includes('first_win')) {
+        newUnlocked.push('first_win');
+      }
+      if (newStreak >= 10 && !newUnlocked.includes('streak_master')) {
+        newUnlocked.push('streak_master');
+      }
+      if (profit >= 10000 && !newUnlocked.includes('big_win')) {
+        newUnlocked.push('big_win');
+      }
+      if (newBalance >= 1000000 && !newUnlocked.includes('millionaire')) {
+        newUnlocked.push('millionaire');
+      }
+
       return {
         ...state,
         balance: newBalance,
@@ -114,6 +150,10 @@ function reducer(state, action) {
         biggestWin: Math.max(state.biggestWin, profit),
         currentStreak: newStreak,
         bestStreak: Math.max(state.bestStreak, newStreak),
+        achievements: {
+          ...state.achievements,
+          unlocked: newUnlocked
+        },
         history: [
           {
             game: action.game,
@@ -204,6 +244,39 @@ function reducer(state, action) {
       return {
         ...state,
         stockExchange: { ...state.stockExchange, ...action.data }
+      };
+    }
+    case 'UNLOCK_ACHIEVEMENT': {
+      if (state.achievements.unlocked.includes(action.id)) return state;
+      // You could trigger a notification here in a real app
+      return {
+        ...state,
+        achievements: {
+          ...state.achievements,
+          unlocked: [...state.achievements.unlocked, action.id]
+        }
+      };
+    }
+    case 'CLAIM_ACHIEVEMENT': {
+      if (state.achievements.claimed.includes(action.id)) return state;
+      return {
+        ...state,
+        balance: state.balance + action.reward,
+        achievements: {
+          ...state.achievements,
+          claimed: [...state.achievements.claimed, action.id]
+        }
+      };
+    }
+    case 'CLAIM_DAILY_BONUS': {
+      return {
+        ...state,
+        balance: state.balance + 1000,
+        dailyBonus: {
+          ...state.dailyBonus,
+          lastClaimed: Date.now(),
+          streak: state.dailyBonus.streak + 1
+        }
       };
     }
     case 'LOAD_STATE': {
@@ -393,6 +466,14 @@ export function CasinoProvider({ children }) {
     dispatch({ type: 'UPDATE_STOCK_EXCHANGE', data });
   };
 
+  const claimAchievement = (id, reward) => {
+    dispatch({ type: 'CLAIM_ACHIEVEMENT', id, reward });
+  };
+
+  const claimDailyBonus = () => {
+    dispatch({ type: 'CLAIM_DAILY_BONUS' });
+  };
+
   const exportProgress = () => {
     const exportData = {
       balance: state.balance,
@@ -438,6 +519,8 @@ export function CasinoProvider({ children }) {
       setBalance,
       updateAdminSettings,
       updateStockExchange,
+      claimAchievement,
+      claimDailyBonus,
       exportProgress,
       importProgress,
       showLargeBetConfirm,
