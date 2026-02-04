@@ -704,3 +704,118 @@ body {
     background-size: 200% 100%;
     animation: shimmer 2s linear infinite;
 }
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Big Win & Jackpot Animations */
+@keyframes big-win-bounce {
+    0% {
+        transform: scale(0) rotate(-15deg);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.15) rotate(5deg);
+    }
+
+    70% {
+        transform: scale(0.95) rotate(-2deg);
+    }
+
+    85% {
+        transform: scale(1.05) rotate(1deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes big-win-icon {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    25% {
+        transform: scale(1.1) rotate(-10deg);
+    }
+
+    50% {
+        transform: scale(1.2) rotate(10deg);
+    }
+
+    75% {
+        transform: scale(1.1) rotate(-5deg);
+    }
+}
+
+@keyframes jackpot-icon {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    20% {
+        transform: scale(1.15) rotate(-15deg);
+    }
+
+    40% {
+        transform: scale(1.25) rotate(15deg);
+    }
+
+    60% {
+        transform: scale(1.15) rotate(-10deg);
+    }
+
+    80% {
+        transform: scale(1.25) rotate(10deg);
+    }
+}
+
+@keyframes jackpot-text {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+        filter: blur(10px);
+    }
+
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+        filter: blur(0px);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0px);
+    }
+}
+
+.animate-big-win-bounce {
+    animation: big-win-bounce 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-big-win-icon {
+    animation: big-win-icon 2s ease-in-out infinite;
+}
+
+.animate-jackpot-icon {
+    animation: jackpot-icon 2.5s ease-in-out infinite;
+}
+
+.animate-jackpot-text {
+    animation: jackpot-text 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
