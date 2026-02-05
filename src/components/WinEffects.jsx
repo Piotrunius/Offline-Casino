@@ -310,7 +310,7 @@ const JackpotOverlay = ({ multiplier, profit, onComplete }) => {
 
         {/* Profit amount with scale animation and counter */}
         <div className={`text-7xl font-black text-green-400 mb-4 drop-shadow-[0_0_30px_rgba(74,222,128,1)] transition-all duration-500 ${stage >= 3 ? 'scale-110' : 'scale-100'} animate-bounce-subtle`}>
-          +$<AnimatedCounter value={profit} duration={2000} />
+          +<AnimatedCounter value={profit} duration={2000} />
         </div>
 
         {/* Multiplier badge with glow */}
@@ -404,7 +404,7 @@ const BigWinOverlay = ({ multiplier, profit, onComplete }) => {
 
         {/* Profit amount with counter */}
         <div className={`text-6xl font-black text-green-400 mb-4 drop-shadow-[0_0_20px_rgba(74,222,128,0.9)] transition-all duration-500 ${stage >= 2 ? 'scale-105' : 'scale-100'} animate-bounce-subtle`}>
-          +$<AnimatedCounter value={profit} duration={1500} />
+          +<AnimatedCounter value={profit} duration={1500} />
         </div>
 
         {/* Multiplier */}
@@ -428,16 +428,52 @@ const BigWinOverlay = ({ multiplier, profit, onComplete }) => {
 };
 
 const NiceWinOverlay = ({ profit, onComplete }) => {
+  const [stage, setStage] = useState(0);
+
   useEffect(() => {
-    const t = setTimeout(onComplete, 1000);
-    return () => clearTimeout(t);
+    audioEngine.playWin();
+
+    const t1 = setTimeout(() => setStage(1), 80);
+    const t2 = setTimeout(() => setStage(2), 400);
+    const t3 = setTimeout(() => {
+      setStage(3);
+      onComplete?.();
+    }, 1600);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [onComplete]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
-      <div className="text-center animate-bounce-in">
-        <div className="text-2xl font-bold text-green-400 animate-pulse">
-          +${profit.toFixed(2)}
+      {/* Soft overlay */}
+      <div className={`absolute inset-0 bg-gradient-to-br from-black/40 via-black/50 to-emerald-900/20 transition-opacity duration-500 pointer-events-none ${stage >= 1 ? 'opacity-100' : 'opacity-0'}`} />
+
+      {/* Glow */}
+      <div className={`absolute inset-0 transition-opacity duration-700 pointer-events-none ${stage >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full bg-green-500/20 blur-2xl animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[260px] rounded-full bg-emerald-400/20 blur-2xl animate-pulse" style={{ animationDelay: '0.2s' }} />
+      </div>
+
+      {/* Particles */}
+      {stage >= 1 && <Sparkles count={18} />}
+      {stage >= 2 && <Confetti count={30} />}
+
+      <div className={`relative text-center transition-all duration-500 ${stage >= 1 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'} animate-big-win-bounce`}>
+        <div className="text-4xl font-black mb-3 transition-transform duration-500">
+          <div className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-300 to-green-400 drop-shadow-[0_0_18px_rgba(74,222,128,0.9)] animate-text-glow" style={{
+            backgroundSize: '200% auto',
+            animation: 'shimmer 1.5s linear infinite, text-glow 1.2s ease-in-out infinite'
+          }}>
+            ✨ NICE WIN ✨
+          </div>
+        </div>
+
+        <div className={`text-4xl font-black text-green-400 drop-shadow-[0_0_16px_rgba(74,222,128,0.8)] transition-all duration-500 ${stage >= 2 ? 'scale-105' : 'scale-100'} animate-bounce-subtle`}>
+          +<AnimatedCounter value={profit} duration={900} />
         </div>
       </div>
     </div>
