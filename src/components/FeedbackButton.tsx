@@ -1,9 +1,17 @@
 import { motion } from 'framer-motion';
 import html2canvas from 'html2canvas';
-import { Bug, Camera, Lightbulb, MessageCircle, MessageSquare, Send, Sparkles, Wrench, X } from 'lucide-react';
+import { Bug, Camera, CheckCircle, Lightbulb, MessageCircle, MessageSquare, Send, Sparkles, Wrench, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import trackingEngine from '../utils/trackingEngine';
+
+// Custom styles for Turnstile captcha
+const captchaStyles = `
+  #captcha-container iframe {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+`;
 
 const FEEDBACK_TYPES = [
   { value: 'bug', label: 'Bug Report', color: '#E74C3C', icon: Bug },
@@ -37,7 +45,8 @@ const CASINO_PAGES = [
   { value: 'other', label: 'Other' }
 ];
 
-const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1458167312988246129/6xq1hrNJMnD5VR1KvyCGxUisIjnGohwB66k507sA3E0nDgBRiwaooEB6hprVTEvLxGsN';
+const FEEDBACK_WORKER_URL = 'https://webhook.piotrunius.workers.dev';
+const TURNSTILE_SITE_KEY = '0x4AAAAAACY41I_bTFCmq-xo';
 
 interface FeedbackButtonProps {
   currentPage?: string;
@@ -54,13 +63,22 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logBufferRef = useRef<string[]>([]);
+  const captchaRef = useRef<string | null>(null);
 
   useEffect(() => {
     setPage(currentPage);
   }, [currentPage]);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Auto-set captcha token (captcha ukryta, weryfikacja tylko przez worker)
+      setCaptchaToken('client-verified');
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const original = {
@@ -227,6 +245,13 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!captchaToken) {
+      setSubmitStatus('error');
+      setStatusMessage('Please complete the captcha verification');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
@@ -284,13 +309,19 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
         formData.append('files[0]', blob, 'screenshot.png');
       }
 
-      const response = await fetch(DISCORD_WEBHOOK, {
+      const response = await fetch(FEEDBACK_WORKER_URL, {
         method: 'POST',
+        headers: {
+          'X-Origin-Verify': window.location.origin,
+          'X-Captcha-Token': captchaToken
+        },
         body: formData
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error(`Discord webhook error: ${response.statusText}`);
+        throw new Error(result.error || `Request failed: ${response.statusText}`);
       }
 
       trackingEngine.track('feedback_submitted', {
@@ -299,6 +330,7 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
         hasScreenshot: !!screenshot
       });
 
+      setSubmitStatus('success');
       setStatusMessage('Feedback submitted successfully!');
 
       // Reset form after 2 seconds
@@ -307,6 +339,7 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
         setTitle('');
         setDescription('');
         setScreenshot(null);
+        setCaptchaToken(null);
         setSubmitStatus('idle');
         setStatusMessage('');
       }, 2000);
@@ -314,7 +347,7 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
     } catch (error: any) {
       console.error('Feedback submission failed:', error);
       setSubmitStatus('error');
-      setStatusMessage(error.message || 'Failed to submit feedback. Please try again.');
+      setStatusMessage(`❌ ${error.message || 'Failed to submit feedback. Please try again.'}`);
       trackingEngine.track('feedback_submission_failed', { error: error.message });
     } finally {
       setIsSubmitting(false);
@@ -437,7 +470,7 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Provide detailed information about your feedback..."
                   required
-                  rows={4}
+                  rows={3}
                   className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition-all resize-none"
                 />
               </div>
@@ -449,17 +482,17 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
                   <button
                     type="button"
                     onClick={handleScreenshotCapture}
-                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 transition-all flex items-center justify-center gap-2 text-sm"
                   >
-                    <Camera size={18} />
-                    Capture Screenshot
+                    <Camera size={16} />
+                    Capture
                   </button>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 transition-all"
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 transition-all text-sm"
                   >
-                    Upload Image
+                    Upload
                   </button>
                   <input
                     ref={fileInputRef}
@@ -471,54 +504,60 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
                 </div>
                 {screenshot && (
                   <div className="mt-2 relative">
-                    <img src={screenshot} alt="Screenshot" className="w-full max-h-32 object-contain rounded-xl border border-white/10" />
+                    <img src={screenshot} alt="Screenshot" className="w-full max-h-24 object-contain rounded-xl border border-white/10" />
                     <button
                       type="button"
                       onClick={() => setScreenshot(null)}
-                      className="absolute top-2 right-2 w-8 h-8 bg-red-500/80 hover:bg-red-500 rounded-lg flex items-center justify-center text-white transition-all"
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-lg flex items-center justify-center text-white transition-all"
                     >
-                      <X size={16} />
+                      <X size={14} />
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Status Message */}
-              {statusMessage && (
-                <div className={`p-3 rounded-xl ${
-                  submitStatus === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {statusMessage}
-                </div>
-              )}
+              {/* Bottom Section: Status and Submit */}
+              <div className="space-y-3 pt-2">
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !title || !description}
+                  className={`w-full px-6 py-3 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 ${
+                    isSubmitting || !title || !description
+                      ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                      : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} />
+                      Submit Feedback
+                    </>
+                  )}
+                </button>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting || !title || !description}
-                className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 ${
-                  isSubmitting || !title || !description
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send size={20} />
-                    Submit Feedback
-                  </>
+                {/* Status Message */}
+                {statusMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`p-3 rounded-xl flex items-center gap-2 text-sm ${
+                      submitStatus === 'success'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}
+                  >
+                    {submitStatus === 'success' && <CheckCircle size={18} />}
+                    <span className="font-medium">{statusMessage}</span>
+                  </motion.div>
                 )}
-              </button>
+              </div>
 
-              {/* Info Note */}
-              <p className="text-xs text-gray-500 text-center">
-                Your feedback will be submitted via Discord webhook to the development team.
-              </p>
             </form>
           </motion.div>
         </div>
