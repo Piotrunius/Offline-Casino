@@ -65,7 +65,7 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
 
   const logBufferRef = useRef<string[]>([]);
   const captchaRef = useRef<string | null>(null);
-  const tokenPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const tokenPollIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     setPage(currentPage);
@@ -102,7 +102,7 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
         // Polling fallback - czeka na token
         let pollCount = 0;
         const maxPolls = 30; // 30 * 300ms = 9 sekund
-        tokenPollIntervalRef.current = setInterval(() => {
+        tokenPollIntervalRef.current = window.setInterval(() => {
           pollCount++;
           const widgetId = captchaRef.current;
           if (!widgetId) {
