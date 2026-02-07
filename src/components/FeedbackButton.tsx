@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import html2canvas from 'html2canvas';
-import { Bug, Camera, CheckCircle, Lightbulb, MessageCircle, MessageSquare, Send, Sparkles, Wrench, X } from 'lucide-react';
+import { Bug, CheckCircle, Lightbulb, MessageCircle, MessageSquare, Send, Sparkles, Wrench, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import trackingEngine from '../utils/trackingEngine';
@@ -59,25 +58,84 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
   const [page, setPage] = useState(currentPage);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [screenshot, setScreenshot] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const logBufferRef = useRef<string[]>([]);
   const captchaRef = useRef<string | null>(null);
+  const tokenPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setPage(currentPage);
   }, [currentPage]);
 
+  // Turnstile rendering z polling fallback
   useEffect(() => {
-    if (isOpen) {
-      // Auto-set captcha token (captcha ukryta, weryfikacja tylko przez worker)
-      setCaptchaToken('client-verified');
+    if (isOpen && typeof (window as any).turnstile !== 'undefined') {
+      // Inject custom styles
+      const styleElement = document.createElement('style');
+      styleElement.textContent = captchaStyles;
+      styleElement.id = 'captcha-custom-styles';
+      if (!document.getElementById('captcha-custom-styles')) {
+        document.head.appendChild(styleElement);
+      }
+
+      const container = document.getElementById('captcha-container');
+      if (container && !captchaRef.current) {
+        captchaRef.current = (window as any).turnstile.render('#captcha-container', {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token: string) => {
+            setCaptchaToken(token);
+            if (tokenPollIntervalRef.current) {
+              clearInterval(tokenPollIntervalRef.current);
+            }
+          },
+          'error-callback': () => {
+            setCaptchaToken(null);
+          },
+          theme: 'dark',
+          size: 'compact',
+        });
+
+        // Polling fallback - czeka na token
+        let pollCount = 0;
+        const maxPolls = 30; // 30 * 300ms = 9 sekund
+        tokenPollIntervalRef.current = setInterval(() => {
+          pollCount++;
+          const widgetId = captchaRef.current;
+          if (!widgetId) {
+            clearInterval(tokenPollIntervalRef.current!);
+            return;
+          }
+
+          try {
+            const token = (window as any).turnstile.getResponse(widgetId);
+            if (token) {
+              setCaptchaToken(token);
+              clearInterval(tokenPollIntervalRef.current!);
+            } else if (pollCount >= maxPolls) {
+              clearInterval(tokenPollIntervalRef.current!);
+              console.warn('[Turnstile] Polling timeout, retrying...');
+            }
+          } catch (error) {
+            console.error('[Turnstile] Polling error:', error);
+          }
+        }, 300);
+      }
     }
+
+    return () => {
+      if (tokenPollIntervalRef.current) {
+        clearInterval(tokenPollIntervalRef.current);
+      }
+      if (captchaRef.current && typeof (window as any).turnstile !== 'undefined') {
+        (window as any).turnstile.remove(captchaRef.current);
+        captchaRef.current = null;
+      }
+      setCaptchaToken(null);
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -190,18 +248,6 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
     return lines.join('\n');
   };
 
-  const captureScreenshot = async () => {
-    try {
-      const canvas = await html2canvas(document.body, {
-        allowTaint: true,
-        useCORS: true
-      });
-      return canvas.toDataURL('image/png');
-    } catch (error) {
-      console.error('Screenshot failed:', error);
-      return null;
-    }
-  };
 
   const setModalOpen = (open: boolean, track = true) => {
     setIsOpen(open);
@@ -214,41 +260,12 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
     }
   };
 
-  const handleScreenshotCapture = async () => {
-    const wasOpen = isOpen;
-    if (wasOpen) {
-      setModalOpen(false, false);
-      await new Promise(resolve => setTimeout(resolve, 120));
-    }
-
-    const dataUrl = await captureScreenshot();
-    if (wasOpen) {
-      setModalOpen(true, false);
-    }
-    if (dataUrl) {
-      setScreenshot(dataUrl);
-      trackingEngine.track('feedback_screenshot_captured');
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setScreenshot(event.target?.result as string);
-        trackingEngine.track('feedback_file_uploaded');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!captchaToken) {
       setSubmitStatus('error');
-      setStatusMessage('Please complete the captcha verification');
+      setStatusMessage('Please wait for captcha verification...');
       return;
     }
 
@@ -284,50 +301,35 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
         embed.fields.push({ name: 'Console Logs', value: `\`\`\`\n${trimmedLogs}\n\`\`\``, inline: false });
       }
 
-      // Add screenshot as image if available
-      if (screenshot) {
-        embed.image = { url: 'attachment://screenshot.png' };
-      }
-
-      let exportBlob: Blob | null = null;
-      if (getExportCode) {
-        const exportCode = getExportCode();
-        if (exportCode) {
-          const exportText = exportCode.length > 20000 ? `${exportCode.slice(0, 20000)}\n...` : exportCode;
-          exportBlob = new Blob([exportText], { type: 'text/plain' });
-        }
-      }
-
-      const formData = new FormData();
-      formData.append('payload_json', JSON.stringify({
-        embeds: [embed]
-      }));
-
-      // Add screenshot as file if available
-      if (screenshot) {
-        const blob = await fetch(screenshot).then(r => r.blob());
-        formData.append('files[0]', blob, 'screenshot.png');
-      }
+      // Send as JSON to worker (not FormData)
+      const payload = {
+        embeds: [embed],
+        content: ''
+      };
 
       const response = await fetch(FEEDBACK_WORKER_URL, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'X-Origin-Verify': window.location.origin,
-          'X-Captcha-Token': captchaToken
+          'X-Captcha-Token': captchaToken || ''
         },
-        body: formData
+        body: JSON.stringify(payload)
       });
+
+      console.log('[Feedback] Response status:', response.status);
+      console.log('[Feedback] Token sent:', captchaToken ? 'YES' : 'NO (empty)');
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || `Request failed: ${response.statusText}`);
+        console.error('[Feedback] Worker error:', result);
+        throw new Error(result.error || result.message || `Request failed: ${response.statusText}`);
       }
 
       trackingEngine.track('feedback_submitted', {
         type: type,
-        page: page,
-        hasScreenshot: !!screenshot
+        page: page
       });
 
       setSubmitStatus('success');
@@ -338,7 +340,6 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
         setIsOpen(false);
         setTitle('');
         setDescription('');
-        setScreenshot(null);
         setCaptchaToken(null);
         setSubmitStatus('idle');
         setStatusMessage('');
@@ -475,46 +476,8 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
                 />
               </div>
 
-              {/* Screenshot */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Screenshot (Optional)</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleScreenshotCapture}
-                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 transition-all flex items-center justify-center gap-2 text-sm"
-                  >
-                    <Camera size={16} />
-                    Capture
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 transition-all text-sm"
-                  >
-                    Upload
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
-                {screenshot && (
-                  <div className="mt-2 relative">
-                    <img src={screenshot} alt="Screenshot" className="w-full max-h-24 object-contain rounded-xl border border-white/10" />
-                    <button
-                      type="button"
-                      onClick={() => setScreenshot(null)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-lg flex items-center justify-center text-white transition-all"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Hidden Turnstile Widget (opacity: 0, not visibility: hidden) */}
+              <div id="captcha-container" className="opacity-0 pointer-events-none absolute" style={{ height: 0, overflow: 'hidden' }}></div>
 
               {/* Bottom Section: Status and Submit */}
               <div className="space-y-3 pt-2">
