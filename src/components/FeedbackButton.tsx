@@ -312,7 +312,9 @@ export default function FeedbackButton({ currentPage = 'dashboard', getExportCod
         headers: {
           'Content-Type': 'application/json',
           'X-Origin-Verify': window.location.origin,
-          'X-Captcha-Token': captchaToken || ''
+          'X-Captcha-Token': captchaToken || '',
+          'X-Page-ID': 'casino',
+          'X-Subpage': page
         },
         body: JSON.stringify(payload)
       });
