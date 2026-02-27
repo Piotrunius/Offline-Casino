@@ -17,7 +17,6 @@ import {
     Spade,
     Swords,
     Target,
-    TrendingUp,
     X
 } from 'lucide-react';
 
@@ -88,23 +87,6 @@ export const GAME_INFO = {
     ],
     history: 'Scratch cards were first introduced in the US in 1974 by Scientific Games Corporation. They became a worldwide lottery phenomenon.',
     strategy: 'Classic cards offer frequent small wins. Jackpot cards are high risk but can pay 100x your purchase price.'
-  },
-  stockexchange: {
-    name: 'Stock Exchange',
-    icon: TrendingUp,
-    description: 'Trade virtual stocks in a simulated market! Buy low, sell high, and react to breaking news that affects stock prices.',
-    houseEdge: 'Variable (market simulation)',
-    maxMultiplier: 'Unlimited (based on gains)',
-    rules: [
-      'Each stock has a fluctuating price',
-      'Buy stocks when prices are low',
-      'Sell stocks when prices are high',
-      'News events can spike or crash prices',
-      'Green news = price increase, Red news = price drop',
-      'Build your portfolio and maximize profits'
-    ],
-    history: 'Stock market gambling games became popular in the 2000s as financial markets captured public imagination.',
-    strategy: 'Watch for news events and react quickly. Diversify your portfolio to reduce risk. Buy during red news panics.'
   },
   mines: {
     name: 'Mines',

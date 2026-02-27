@@ -40,7 +40,6 @@ const CASINO_PAGES = [
   { value: 'tictactoe', label: 'Tic Tac Toe' },
   { value: 'sicbo', label: 'Sicbo' },
   { value: 'threecardpoker', label: '3 Card Poker' },
-  { value: 'stockexchange', label: 'Stock Exchange' },
   { value: 'other', label: 'Other' }
 ];
 

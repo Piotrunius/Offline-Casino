@@ -24,7 +24,6 @@ import {
   Settings,
   Spade,
   Target,
-  TrendingUp,
   Trophy,
   Volume2, VolumeX,
   X
@@ -56,7 +55,6 @@ import MinesGame from './games/MinesGame';
 import ScratchCardsGame from './games/ScratchCardsGame';
 import SicboGame from './games/SicboGame';
 import SlotsGame from './games/SlotsGame';
-import StockExchange from './games/StockExchange';
 import ThreeCardPokerGame from './games/ThreeCardPokerGame';
 import TicTacToeGame from './games/TicTacToeGame';
 import TowerGame from './games/TowerGame';
@@ -85,8 +83,7 @@ const GAMES = [
   { id: 'threecardpoker', name: '3 Card Poker', icon: Files, component: ThreeCardPokerGame, color: '#cc33ff' }
 ];
 
-// Stock Exchange is separate - not in GAMES array
-const STOCK_EXCHANGE = { id: 'stockexchange', name: 'Stock Exchange', icon: TrendingUp, component: StockExchange, color: '#00ff88' };
+// (Stock Exchange removed)
 
 export default function App() {
   const {
@@ -95,7 +92,6 @@ export default function App() {
     winEffect, clearWinEffect, showBetUpdateSuggestion, suggestNewBet, updateLastKnownBalance,
     setBalance, updateAdminSettings, resetStats
   } = useCasino() as any;
-
   const [activeGame, setActiveGame] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -132,13 +128,8 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAdminPanel]);
 
-  const ActiveGameComponent = activeGame === 'stockexchange'
-    ? STOCK_EXCHANGE.component
-    : GAMES.find(g => g.id === activeGame)?.component || DiceGame;
-
-  const activeGameData = activeGame === 'stockexchange'
-    ? STOCK_EXCHANGE
-    : GAMES.find(g => g.id === activeGame);
+  const ActiveGameComponent = GAMES.find(g => g.id === activeGame)?.component || DiceGame;
+  const activeGameData = GAMES.find(g => g.id === activeGame);
 
   useEffect(() => {
     audio.setEnabled(state.settings.soundEnabled);
@@ -235,26 +226,7 @@ export default function App() {
                     <span className="text-gray-400 text-sm hidden sm:inline">Cash:</span>
                     <span className="font-bold text-white number-mono">${state.balance.toFixed(2)}</span>
                   </div>
-                  {state.stockExchange?.portfolio && Object.keys(state.stockExchange.portfolio).length > 0 && (
-                    <>
-                      <div className="w-px h-4 bg-white/10 hidden sm:block" />
-                      <div className="hidden sm:flex items-center gap-1">
-                        <div className="w-4 h-4 text-green-400"><TrendingUp size={16} /></div>
-                        <span className="text-green-400 font-bold number-mono text-sm">
-                          ${(() => {
-                            const stocks = state.stockExchange?.stocks || [];
-                            const portfolio = state.stockExchange?.portfolio || {};
-                            let total = 0;
-                            Object.entries(portfolio).forEach(([symbol, shares]) => {
-                              const stock = stocks.find((s: any) => s.symbol === symbol);
-                              if (stock) total += stock.price * (shares as number);
-                            });
-                            return total.toFixed(0);
-                          })()}
-                        </span>
-                      </div>
-                    </>
-                  )}
+                  {/* stock exchange removed */}
                 </div>
 
               {/* Add Credits */}
@@ -311,18 +283,7 @@ export default function App() {
                 <div className="w-5 h-5 flex items-center justify-center relative"><Trophy size={20} /></div>
               </button>
 
-              {/* Stock Exchange Button */}
-              <button
-                onClick={() => handleGameChange('stockexchange')}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  activeGame === 'stockexchange'
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-white/5 text-gray-400 hover:text-green-400 hover:bg-green-500/10'
-                }`}
-                title="Stock Exchange"
-              >
-                <div className="w-5 h-5 flex items-center justify-center"><TrendingUp size={20} /></div>
-              </button>
+              {/* Stock Exchange removed */}
 
               {/* Save/Load Button */}
               <button

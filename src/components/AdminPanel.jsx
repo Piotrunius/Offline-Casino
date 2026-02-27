@@ -1,29 +1,29 @@
 import {
-  AlertTriangle,
-  ArrowUpDown,
-  Banknote,
-  Bomb,
-  Building2,
-  Cherry,
-  Circle,
-  Coins,
-  Crown,
-  Dices,
-  Eraser,
-  Gamepad2,
-  Gem,
-  LayoutGrid,
-  Plus,
-  Rocket,
-  RotateCcw,
-  Save,
-  Skull,
-  Spade,
-  Swords,
-  Target,
-  Trash2,
-  X,
-  Zap
+    AlertTriangle,
+    ArrowUpDown,
+    Banknote,
+    Bomb,
+    Building2,
+    Cherry,
+    Circle,
+    Coins,
+    Crown,
+    Dices,
+    Eraser,
+    Gamepad2,
+    Gem,
+    LayoutGrid,
+    Plus,
+    Rocket,
+    RotateCcw,
+    Save,
+    Skull,
+    Spade,
+    Swords,
+    Target,
+    Trash2,
+    X,
+    Zap
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -84,6 +84,8 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
       [game]: { ...prev[game], [key]: value }
     }));
   };
+
+
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -504,6 +506,8 @@ export default function AdminPanel({ state, onClose, onUpdateBalance, onUpdateSe
               </button>
             </div>
           </div>
+
+
         </div>
 
         {/* Footer */}
